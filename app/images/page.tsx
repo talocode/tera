@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { supabaseServer } from '@/lib/supabase-server'
 import ImageGallery from '@/components/ImageGallery'
 
+export const dynamic = 'force-dynamic'
+
 type Attachment = {
   url?: string
   name?: string

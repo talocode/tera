@@ -81,7 +81,23 @@ export async function generateAnswer({ prompt, tool, authorId, authorEmail, atta
   }
 
   // Token-based monthly credit cap gate
-  const { remaining: creditsRemaining, resetDate } = await getUserCreditsRemaining(authorId)
+  let creditsRemaining: number
+  let resetDate: string | null
+  try {
+    const creditState = await getUserCreditsRemaining(authorId)
+    creditsRemaining = creditState.remaining
+    resetDate = creditState.resetDate
+  } catch (error) {
+    console.error('[usage_gate_failed]', { userId: authorId, error })
+    const errorMessage = 'Tera could not verify your AI credit balance. Please try again in a moment.'
+    return {
+      answer: errorMessage,
+      sessionId: sessionId,
+      chatId: chatId,
+      error: errorMessage
+    }
+  }
+
   if (creditsRemaining <= 0) {
     const cap = getPlanCreditCap(userProfile.subscriptionPlan)
     const resetLabel = resetDate

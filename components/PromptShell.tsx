@@ -367,6 +367,12 @@ export default function PromptShell({
         })
     }, [editingMessageId, hasBumpedInput, tool.name, user?.id, currentSessionId, researchMode])
 
+    const handleStop = () => {
+        requestIdRef.current += 1
+        setStatus('idle')
+        setThinkingMessage('Tera is Thinking...')
+    }
+
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault()
         if (status === 'loading') return

@@ -14,6 +14,7 @@ export interface UsageMetricSummary {
 
 export interface ProfileUsageSummary {
     plan: PlanType
+    planDisplayName: string
     chats: UsageMetricSummary
     uploads: UsageMetricSummary
 }
@@ -52,6 +53,7 @@ export function buildProfileUsageSummary(source: {
 
     return {
         plan: source.plan,
+        planDisplayName: planConfig.displayName,
         chats: buildUsageMetricSummary(
             source.dailyChats,
             planConfig.limits.messagesPerDay,
