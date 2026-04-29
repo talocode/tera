@@ -8,6 +8,7 @@ const PLAN_MONTHLY_CREDIT_CAPS: Record<PlanType, number> = {
 }
 const RESET_INTERVAL_DAYS = 30
 const RESET_INTERVAL_MS = RESET_INTERVAL_DAYS * 24 * 60 * 60 * 1000
+const TOKENS_PER_CREDIT = 100
 
 type CreditState = {
   used: number
@@ -21,6 +22,7 @@ type UserCreditRecord = {
   plan: PlanType
   used: number
   resetDate: Date | null
+  hasCreditLedger: boolean
 }
 
 class UsageReadError extends Error {
@@ -53,6 +55,14 @@ export function getFreePlanCreditCap() {
 
 export function getPlanCreditCap(plan: PlanType): number {
   return PLAN_MONTHLY_CREDIT_CAPS[plan]
+}
+
+export function calculateCreditsForTokens(tokenCount: number): number {
+  const normalizedTokenCount = Number.isFinite(tokenCount)
+    ? Math.max(1, Math.round(tokenCount))
+    : 1
+
+  return Math.max(1, Math.ceil(normalizedTokenCount / TOKENS_PER_CREDIT))
 }
 
 function getNextResetDate(from: Date = new Date()) {
@@ -95,6 +105,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
       plan: normalizePlan(fallbackData.subscription_plan),
       used: 0,
       resetDate: null,
+      hasCreditLedger: false,
     }
   }
 
@@ -110,6 +121,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
     plan: normalizePlan(data.subscription_plan),
     used: Math.max(0, Number(data.free_plan_credits_used || 0)),
     resetDate: data.free_plan_credits_reset_date ? new Date(data.free_plan_credits_reset_date) : null,
+    hasCreditLedger: true,
   }
 }
 
@@ -164,7 +176,9 @@ async function getSessionCreditUsage(userId: string, windowStart: Date): Promise
     return 0
   }
 
-  return data.reduce((sum: number, row: { token_usage?: number | null }) => sum + Math.max(0, Number(row.token_usage || 0)), 0)
+  return data.reduce((sum: number, row: { token_usage?: number | null }) => (
+    sum + calculateCreditsForTokens(Number(row.token_usage || 0))
+  ), 0)
 }
 
 export async function getUserCreditsRemaining(userId: string): Promise<CreditState> {
@@ -178,9 +192,11 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
       ? record.resetDate
       : getNextResetDate(now)
     const windowStart = new Date(activeResetDate.getTime() - RESET_INTERVAL_MS)
-    const sessionUsage = await getSessionCreditUsage(userId, windowStart)
+    const sessionUsage = record?.hasCreditLedger
+      ? 0
+      : await getSessionCreditUsage(userId, windowStart)
     const storedUsage = record?.resetDate && now <= record.resetDate ? record.used : 0
-    const used = Math.max(storedUsage, sessionUsage)
+    const used = record?.hasCreditLedger ? storedUsage : Math.max(storedUsage, sessionUsage)
     const remaining = Math.max(0, total - used)
     return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
   } catch (error) {

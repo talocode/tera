@@ -7,7 +7,7 @@ import type { AttachmentReference } from '@/lib/attachment'
 import { getUserProfileServer } from '@/lib/usage-tracking-server'
 import { incrementChatsServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
-import { getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
+import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
 
 type GenerateProps = {
   prompt: string
@@ -154,7 +154,7 @@ export async function generateAnswer({ prompt, tool, authorId, authorEmail, atta
     ? Math.max(1, Math.min(Math.round(rawTokenCost), 2_147_483_647))
     : 1
 
-  const creditsToCharge = tokenCost
+  const creditsToCharge = calculateCreditsForTokens(tokenCost)
   const currentSessionId = sessionId || crypto.randomUUID()
 
   // Find existing title if continuing a session
