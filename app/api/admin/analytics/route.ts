@@ -77,8 +77,12 @@ async function getAnalyticsData() {
     const dayStart = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
     dayStart.setHours(0, 0, 0, 0)
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
-    const { count: dayChats } = await supabase.from('chat_sessions').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
-    const { count: dayUsers } = await supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
+    const { count: dayChats, error: dayChatsError } = await supabase.from('chat_sessions').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
+    throwIfSupabaseError(dayChatsError, `daily-chats-${i}`)
+
+    const { count: dayUsers, error: dayUsersError } = await supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
+    throwIfSupabaseError(dayUsersError, `daily-users-${i}`)
+
     dailyActivity.push({
       date: dayStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
       chats: dayChats || 0,
@@ -86,17 +90,29 @@ async function getAnalyticsData() {
     })
   }
 
-  const { data: topUsersData } = await supabase.from('chat_sessions').select('user_id').gte('created_at', sevenDaysAgo)
+  const { data: topUsersData, error: topUsersDataError } = await supabase.from('chat_sessions').select('user_id').gte('created_at', sevenDaysAgo)
+  throwIfSupabaseError(topUsersDataError, 'top-users-data')
+
   const userChatCount: Record<string, number> = {}
   topUsersData?.forEach((chat: any) => { if (chat.user_id) userChatCount[chat.user_id] = (userChatCount[chat.user_id] || 0) + 1 })
   const topUserIds = Object.entries(userChatCount).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id]) => id)
-  const { data: topUsersInfo } = await supabase.from('users').select('id, email, subscription_plan, created_at').in('id', topUserIds.length > 0 ? topUserIds : ['none'])
+
+  const { data: topUsersInfo, error: topUsersInfoError } = await supabase.from('users').select('id, email, subscription_plan, created_at').in('id', topUserIds.length > 0 ? topUserIds : ['none'])
+  throwIfSupabaseError(topUsersInfoError, 'top-users-info')
+
   const topActiveUsers = topUsersInfo?.map((user: any) => ({ ...user, chatCount: userChatCount[user.id] || 0 })).sort((a: any, b: any) => b.chatCount - a.chatCount) || []
 
-  const { data: recentSignups } = await supabase.from('users').select('id, email, subscription_plan, created_at').order('created_at', { ascending: false }).limit(10)
-  const { data: upgradedAfterLimit } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at, created_at').neq('subscription_plan', 'free').or('limit_hit_chat_at.not.is.null, limit_hit_upload_at.not.is.null')
-  const { data: lockedOutUsers } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at').or(`limit_hit_chat_at.gt.${oneDayAgo}, limit_hit_upload_at.gt.${oneDayAgo}`)
-  const { data: recentLimitHits } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at, created_at').or(`limit_hit_chat_at.gte.${sevenDaysAgo}, limit_hit_upload_at.gte.${sevenDaysAgo}`).order('created_at', { ascending: false }).limit(50)
+  const { data: recentSignups, error: recentSignupsError } = await supabase.from('users').select('id, email, subscription_plan, created_at').order('created_at', { ascending: false }).limit(10)
+  throwIfSupabaseError(recentSignupsError, 'recent-signups')
+
+  const { data: upgradedAfterLimit, error: upgradedAfterLimitError } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at, created_at').neq('subscription_plan', 'free').or('limit_hit_chat_at.not.is.null, limit_hit_upload_at.not.is.null')
+  throwIfSupabaseError(upgradedAfterLimitError, 'upgraded-after-limit')
+
+  const { data: lockedOutUsers, error: lockedOutUsersError } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at').or(`limit_hit_chat_at.gt.${oneDayAgo}, limit_hit_upload_at.gt.${oneDayAgo}`)
+  throwIfSupabaseError(lockedOutUsersError, 'locked-out-users')
+
+  const { data: recentLimitHits, error: recentLimitHitsError } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at, created_at').or(`limit_hit_chat_at.gte.${sevenDaysAgo}, limit_hit_upload_at.gte.${sevenDaysAgo}`).order('created_at', { ascending: false }).limit(50)
+  throwIfSupabaseError(recentLimitHitsError, 'recent-limit-hits')
 
   const upgradedCount = (upgradedAfterLimit || []).length
   const totalLimitHits = (chatLimitHits || 0) + (uploadLimitHits || 0)
