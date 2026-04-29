@@ -380,7 +380,7 @@ export default function ProfilePage() {
                 <UsageMetricCard
                   title="AI computational credits"
                   metric={creditMetric!}
-                  description="High-complexity tasks consume more credits than simple prompts."
+                  description="Credits are usage units. Roughly 100 AI tokens consume 1 credit."
                 />
                 <UsageMetricCard title="File uploads" metric={usageSummary!.uploads} />
               </>
