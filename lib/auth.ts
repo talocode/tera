@@ -1,6 +1,7 @@
 ﻿import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { supabaseServer } from '@/lib/supabase-server'
+import { sendWelcomeEmail } from '@/lib/transactional-emails'
 import { resolveAppOrigin, rewriteToAppOrigin } from '@/lib/url'
 
 function syncAuthOriginFromRequest(req?: Request & { nextUrl?: URL }) {
@@ -70,6 +71,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
               console.error('Error creating user:', insertError)
             } else {
               user.id = newUserId
+              sendWelcomeEmail({
+                userId: newUserId,
+                email: user.email,
+                name: user.name || profile?.name || null,
+              }).catch((error) => console.error('[welcome_email_failed]', { userId: newUserId, error }))
             }
           } else {
             user.id = existingUser.id
