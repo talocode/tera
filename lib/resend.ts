@@ -13,7 +13,7 @@ type ResendSendResult = {
 const RESEND_API_URL = 'https://api.resend.com/emails'
 
 function getFromAddress() {
-  return process.env.RESEND_FROM_EMAIL || 'Tera <updates@teraai.chat>'
+  return process.env.RESEND_FROM_EMAIL || 'TeraAI <onboarding@resend.dev>'
 }
 
 export function isResendConfigured() {

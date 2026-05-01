@@ -8,6 +8,7 @@ import { getUserProfileServer } from '@/lib/usage-tracking-server'
 import { incrementChatsServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
+import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
 
 type GenerateProps = {
   prompt: string
@@ -104,6 +105,15 @@ export async function generateAnswer({ prompt, tool, authorId, authorEmail, atta
       ? new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'in 30 days'
     const errorMessage = `You've reached your monthly credit cap (${cap}). Upgrade your plan now, or wait until your credits reset on ${resetLabel}.`
+    const email = userProfile.email || authorEmail
+    if (email) {
+      sendCreditLimitReachedEmail({
+        userId: authorId,
+        email,
+        plan: userProfile.subscriptionPlan,
+        resetDate,
+      }).catch((error) => console.error('[credit_limit_email_failed]', { userId: authorId, error }))
+    }
     return {
       answer: errorMessage,
       sessionId: sessionId,

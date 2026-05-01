@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { verifyWebhookSignature, mapVariantToPlan, type LemonSqueezyWebhookData, type LemonSqueezySubscriptionWebhook } from '@/lib/lemon-squeezy'
+import { sendSubscriptionEndedEmail, sendSubscriptionStartedEmail } from '@/lib/transactional-emails'
 
 export async function POST(request: NextRequest) {
   try {
@@ -128,6 +129,14 @@ async function handleSubscriptionCreated(data: LemonSqueezySubscriptionWebhook) 
       return
     }
 
+    sendSubscriptionStartedEmail({
+      userId,
+      email: data.attributes.user_email,
+      plan,
+      renewalDate: data.attributes.renews_at,
+      sourceId: data.id,
+    }).catch((error) => console.error('[subscription_started_email_failed]', { userId, subscriptionId: data.id, error }))
+
     console.log(`✅ Subscription created for user ${userId}`)
   } catch (error) {
     console.error('Error handling subscription created:', error)
@@ -191,6 +200,13 @@ async function handleSubscriptionCancelled(data: LemonSqueezySubscriptionWebhook
       return
     }
 
+    sendSubscriptionEndedEmail({
+      userId,
+      email: data.attributes.user_email,
+      status: 'cancelled',
+      sourceId: data.id,
+    }).catch((error) => console.error('[subscription_cancelled_email_failed]', { userId, subscriptionId: data.id, error }))
+
     console.log(`✅ Subscription cancelled for user ${userId}`)
   } catch (error) {
     console.error('Error handling subscription cancelled:', error)
@@ -221,6 +237,13 @@ async function handleSubscriptionExpired(data: LemonSqueezySubscriptionWebhook) 
       console.error('Failed to expire subscription:', error)
       return
     }
+
+    sendSubscriptionEndedEmail({
+      userId,
+      email: data.attributes.user_email,
+      status: 'expired',
+      sourceId: data.id,
+    }).catch((error) => console.error('[subscription_expired_email_failed]', { userId, subscriptionId: data.id, error }))
 
     console.log(`✅ Subscription expired for user ${userId}`)
   } catch (error) {
