@@ -6,9 +6,12 @@ const PLAN_MONTHLY_CREDIT_CAPS: Record<PlanType, number> = {
   pro: 1500,
   plus: 5000
 }
-const RESET_INTERVAL_DAYS = 30
-const RESET_INTERVAL_MS = RESET_INTERVAL_DAYS * 24 * 60 * 60 * 1000
-const TOKENS_PER_CREDIT = 5000
+const CREDIT_USAGE_CONFIG = {
+  resetIntervalDays: 30,
+  tokensPerCredit: 5000,
+} as const
+
+const RESET_INTERVAL_MS = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
 
 type CreditState = {
   used: number
@@ -62,16 +65,16 @@ export function calculateCreditsForTokens(tokenCount: number): number {
     ? Math.max(1, Math.round(tokenCount))
     : 1
 
-  return Math.max(1, Math.ceil(normalizedTokenCount / TOKENS_PER_CREDIT))
+  return Math.max(1, Math.ceil(normalizedTokenCount / CREDIT_USAGE_CONFIG.tokensPerCredit))
 }
 
 export function getTokensPerCredit() {
-  return TOKENS_PER_CREDIT
+  return CREDIT_USAGE_CONFIG.tokensPerCredit
 }
 
 function getNextResetDate(from: Date = new Date()) {
   const date = new Date(from)
-  date.setDate(date.getDate() + RESET_INTERVAL_DAYS)
+  date.setDate(date.getDate() + CREDIT_USAGE_CONFIG.resetIntervalDays)
   return date
 }
 

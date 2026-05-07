@@ -2,7 +2,7 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
-import { generateAnswer } from '@/app/actions/generate'
+import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import type { TeacherTool } from './ToolCard'
 
 type User = {
@@ -40,6 +40,25 @@ type QueuedMessage = {
 }
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
+
+const generateAnswer = async (payload: GenerateProps): Promise<GenerateAnswerResult> => {
+    const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'same-origin',
+        cache: 'no-store',
+    })
+
+    const result = await response.json().catch(() => null) as GenerateAnswerResult | null
+    if (result) return result
+
+    const message = response.ok
+        ? 'Unable to generate a reply'
+        : `Unable to generate a reply (${response.status})`
+
+    return { answer: message, sessionId: payload.sessionId ?? null, chatId: payload.chatId, error: message }
+}
 
 import dynamic from 'next/dynamic'
 
