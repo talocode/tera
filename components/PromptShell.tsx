@@ -13,11 +13,14 @@ type User = {
 }
 import type { AttachmentReference, AttachmentType } from '@/lib/attachment'
 import { fetchChatHistory } from '@/app/actions/user'
+import { addNote } from '@/app/actions/notes'
 import { dispatchUsageRefresh } from '@/lib/usage-events'
 import { compressImage } from '@/lib/image-compression'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
+
+type ChatMode = 'ask' | 'study' | 'summarize' | 'quiz' | 'image'
 
 type Message = {
     id: string
@@ -25,6 +28,12 @@ type Message = {
     content: string
     attachments?: AttachmentReference[]
     timestamp?: number
+    chatMode?: ChatMode
+}
+
+type NoteSaveStatus = {
+    type: 'success' | 'error'
+    message: string
 }
 
 type ConversationEntry = {
@@ -40,6 +49,26 @@ type QueuedMessage = {
 }
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
+
+
+const getChatModeForTool = (toolName: string): ChatMode => {
+    const normalized = toolName.toLowerCase()
+
+    if (normalized.includes('image')) return 'image'
+    if (normalized.includes('quiz') || normalized.includes('worksheet')) return 'quiz'
+    if (normalized.includes('summar') || normalized.includes('reading simplifier')) return 'summarize'
+    if (
+        normalized.includes('study') ||
+        normalized.includes('homework') ||
+        normalized.includes('concept') ||
+        normalized.includes('math') ||
+        normalized.includes('language practice')
+    ) return 'study'
+
+    return 'ask'
+}
+
+const isNoteSaveMode = (chatMode?: ChatMode) => chatMode === 'study' || chatMode === 'summarize'
 
 const generateAnswer = async (payload: GenerateProps): Promise<GenerateAnswerResult> => {
     const response = await fetch('/api/generate', {
@@ -272,6 +301,8 @@ export default function PromptShell({
     const [researchMode, setResearchMode] = useState(false)
     const [searchHistoryOpen, setSearchHistoryOpen] = useState(false)
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
+    const [noteSaveStatuses, setNoteSaveStatuses] = useState<Record<string, NoteSaveStatus>>({})
+    const [savingNoteIds, setSavingNoteIds] = useState<Record<string, boolean>>({})
     const requestIdRef = useRef(0)
 
     const getThinkingMessage = (p: string) => {
@@ -348,7 +379,8 @@ export default function PromptShell({
         setStatus('loading')
         const currentRequestId = ++requestIdRef.current
         const entryId = editingMessageId ?? createId()
-        const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now() }
+        const chatMode = getChatModeForTool(tool.name)
+        const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode }
         
         setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage: undefined } : e) : [...prev, { id: entryId, userMessage }])
         setConversationActive(true)
@@ -371,7 +403,7 @@ export default function PromptShell({
                 }
 
                 if (result.sessionId && result.sessionId !== currentSessionId) setCurrentSessionId(result.sessionId)
-                const assistantMessage: Message = { id: createId(), role: 'tera', content: result.answer, timestamp: Date.now() }
+                const assistantMessage: Message = { id: createId(), role: 'tera', content: result.answer, timestamp: Date.now(), chatMode }
                 setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage, sessionId: result.sessionId } : e))
                 setAttachmentMessage(result.warning || null)
                 dispatchUsageRefresh('messages')
@@ -384,7 +416,32 @@ export default function PromptShell({
             setEditingMessageId(null)
             setQueuedMessage(null)
         })
-    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, currentSessionId, researchMode])
+    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, user?.email, currentSessionId, researchMode])
+
+    const handleSaveNote = async (assistantMessage: Message) => {
+        if (!user?.id) {
+            setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'error', message: 'Sign in to save notes.' } }))
+            onRequireSignIn?.()
+            return
+        }
+
+        setSavingNoteIds((prev) => ({ ...prev, [assistantMessage.id]: true }))
+        setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'success', message: 'Saving...' } }))
+
+        try {
+            const note = await addNote(user.id, assistantMessage.content)
+            setNoteSaveStatuses((prev) => ({
+                ...prev,
+                [assistantMessage.id]: note
+                    ? { type: 'success', message: 'Saved as note.' }
+                    : { type: 'error', message: 'Could not save note.' },
+            }))
+        } catch (error) {
+            setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'error', message: 'Could not save note.' } }))
+        } finally {
+            setSavingNoteIds((prev) => ({ ...prev, [assistantMessage.id]: false }))
+        }
+    }
 
     const handleStop = () => {
         requestIdRef.current += 1
@@ -435,11 +492,15 @@ export default function PromptShell({
         setHistoryLoading(true)
         fetchChatHistory(user.id, sessionId).then(data => {
             if (data) {
-                const loaded: ConversationEntry[] = data.map(s => ({
-                    id: s.id, sessionId: s.id,
-                    userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: s.attachments as AttachmentReference[], timestamp: new Date(s.created_at).getTime() },
-                    assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000 }
-                }))
+                const loaded: ConversationEntry[] = data.map(s => {
+                    const chatMode = getChatModeForTool(s.tool ?? tool.name)
+
+                    return {
+                        id: s.id, sessionId: s.id,
+                        userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: s.attachments as AttachmentReference[], timestamp: new Date(s.created_at).getTime(), chatMode },
+                        assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode }
+                    }
+                })
                 setConversations(prev => loaded.length === 0 && prev.length > 0 ? prev : loaded)
                 setConversationActive(loaded.length > 0)
             }
@@ -543,8 +604,27 @@ export default function PromptShell({
                                                         return block.type === 'text' ? <div key={idx} className="w-full animate-in fade-in duration-300"><MarkdownRenderer content={block.content} /></div> : null
                                                     })}
                                                 </div>
-                                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-tera-border">
-                                                    <span className="text-xs text-tera-secondary/60">Tera</span>
+                                                <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-tera-border">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="text-xs text-tera-secondary/60">Tera</span>
+                                                        {isNoteSaveMode(entry.assistantMessage.chatMode) && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSaveNote(entry.assistantMessage!)}
+                                                                    disabled={savingNoteIds[entry.assistantMessage.id]}
+                                                                    className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
+                                                                >
+                                                                    {savingNoteIds[entry.assistantMessage.id] ? 'Saving...' : 'Save as Note'}
+                                                                </button>
+                                                                {noteSaveStatuses[entry.assistantMessage.id] && (
+                                                                    <span className={`text-[0.65rem] ${noteSaveStatuses[entry.assistantMessage.id].type === 'success' ? 'text-tera-accent' : 'text-red-400'}`}>
+                                                                        {noteSaveStatuses[entry.assistantMessage.id].message}
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                     <VoiceControls text={entry.assistantMessage.content} messageId={entry.id} />
                                                 </div>
                                             </div>
