@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { normalizeChatMode } from '@/lib/ai/chat-modes'
 import { generateAnswerForPrompt } from '@/lib/generate-answer'
 import type { GenerateProps } from '@/lib/generate-types'
+import { isChatMode } from '@/lib/chat-modes'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +24,10 @@ function isGenerateProps(value: unknown): value is GenerateProps {
     && (body.sessionId === undefined || body.sessionId === null || typeof body.sessionId === 'string')
     && (body.chatId === undefined || typeof body.chatId === 'string')
     && (body.researchMode === undefined || typeof body.researchMode === 'boolean')
+    && (body.chatMode === undefined || ['ask', 'learn', 'research', 'build'].includes(body.chatMode))
+    && (body.chatMode === undefined || typeof body.chatMode === 'string')
+    && (body.chatMode === undefined || body.chatMode === null || typeof body.chatMode === 'string')
+    && (body.chatMode === undefined || isChatMode(body.chatMode))
     && (body.attachments === undefined || Array.isArray(body.attachments))
 }
 
@@ -46,8 +52,29 @@ export async function POST(request: Request) {
     }, { status: 400 })
   }
 
+  const chatMode = normalizeChatMode(body.chatMode)
+
+  if (!chatMode) {
+    return NextResponse.json<GenerateErrorResponse>({
+      answer: 'Invalid message request.',
+      sessionId: body.sessionId ?? null,
+      chatId: body.chatId,
+      error: 'Invalid message request.',
+    }, { status: 400 })
+  }
+
+  if (chatMode === 'image') {
+    const message = 'Image creation is coming soon.'
+    return NextResponse.json<GenerateErrorResponse>({
+      answer: message,
+      sessionId: body.sessionId ?? null,
+      chatId: body.chatId,
+      error: message,
+    })
+  }
+
   try {
-    return NextResponse.json(await generateAnswerForPrompt(body))
+    return NextResponse.json(await generateAnswerForPrompt({ ...body, chatMode }))
   } catch (error) {
     console.error('[generate_api_failed]', error)
     const message = error instanceof Error ? error.message : 'Unable to generate a reply'

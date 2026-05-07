@@ -1,4 +1,10 @@
+import type { ChatMode } from '@/lib/ai/chat-modes'
 import type { AttachmentReference } from '@/lib/attachment'
+import type { ChatMode } from '@/lib/chat-mode'
+import type { ChatMode } from '@/lib/ai/chat-modes'
+import type { ChatMode } from '@/lib/chat-modes'
+
+export type ChatMode = 'ask' | 'learn' | 'research' | 'build'
 
 export type GenerateProps = {
   prompt: string
@@ -9,6 +15,7 @@ export type GenerateProps = {
   sessionId?: string | null
   chatId?: string
   researchMode?: boolean
+  chatMode?: ChatMode
 }
 
 export type GenerateAnswerResult = {
