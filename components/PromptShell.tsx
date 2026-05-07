@@ -3,6 +3,7 @@
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
+import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/chat-modes'
 import type { TeacherTool } from './ToolCard'
 
 type User = {
@@ -37,6 +38,7 @@ type ConversationEntry = {
 type QueuedMessage = {
     prompt: string
     attachments: AttachmentReference[]
+    chatMode: ChatMode
 }
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
@@ -262,6 +264,7 @@ export default function PromptShell({
     const [, startTransition] = useTransition()
     const conversationRef = useRef<HTMLDivElement | null>(null)
     const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null)
+    const [chatMode, setChatMode] = useState<ChatMode>('ask')
     const showInitialPrompt = conversations.every((entry) => !entry.userMessage)
     const [isListening, setIsListening] = useState(false)
     const recognitionRef = useRef<any>(null)
@@ -273,6 +276,8 @@ export default function PromptShell({
     const [searchHistoryOpen, setSearchHistoryOpen] = useState(false)
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
     const requestIdRef = useRef(0)
+    const selectedChatModeConfig = getChatModeConfig(chatMode)
+    const textareaPlaceholder = isListening ? 'Listening...' : selectedChatModeConfig.placeholder
 
     const getThinkingMessage = (p: string) => {
         const lp = p.toLowerCase()
@@ -344,7 +349,7 @@ export default function PromptShell({
         if (textarea) textarea.focus()
     }
 
-    const processMessage = useCallback((messageToSend: string, attachmentsToSend: AttachmentReference[]) => {
+    const processMessage = useCallback((messageToSend: string, attachmentsToSend: AttachmentReference[], mode: ChatMode) => {
         setStatus('loading')
         const currentRequestId = ++requestIdRef.current
         const entryId = editingMessageId ?? createId()
@@ -357,7 +362,7 @@ export default function PromptShell({
         startTransition(async () => {
             try {
                 setThinkingMessage(getThinkingMessage(messageToSend))
-                const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode })
+                const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode, chatMode: mode })
 
                 if (currentRequestId !== requestIdRef.current) return
 
@@ -384,7 +389,7 @@ export default function PromptShell({
             setEditingMessageId(null)
             setQueuedMessage(null)
         })
-    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, currentSessionId, researchMode])
+    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, user?.email, currentSessionId, researchMode])
 
     const handleStop = () => {
         requestIdRef.current += 1
@@ -398,33 +403,54 @@ export default function PromptShell({
         const messageToSend = prompt.trim()
         if (!messageToSend && pendingAttachments.length === 0) return
 
+        if (chatMode === 'image') {
+            const entryId = editingMessageId ?? createId()
+            const atts = [...pendingAttachments]
+            const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: atts.length > 0 ? atts : undefined, timestamp: Date.now() }
+            const assistantMessage: Message = { id: createId(), role: 'tera', content: 'Image creation is coming soon.', timestamp: Date.now() }
+            setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage } : e) : [...prev, { id: entryId, userMessage, assistantMessage }])
+            setConversationActive(true)
+            if (!hasBumpedInput) setHasBumpedInput(true)
+            setPrompt('')
+            setPendingAttachments([])
+            setEditingMessageId(null)
+            return
+        }
+
         if (!user) {
-            const data = { prompt: messageToSend, attachments: [...pendingAttachments] }
+            const data: QueuedMessage = { prompt: messageToSend, attachments: [...pendingAttachments], chatMode }
             localStorage.setItem('tera_queued_message', JSON.stringify(data))
             onRequireSignIn?.()
             return
         }
         if (!userReady) {
-            setQueuedMessage({ prompt: messageToSend, attachments: [...pendingAttachments] })
+            setQueuedMessage({ prompt: messageToSend, attachments: [...pendingAttachments], chatMode })
             return
         }
 
         const atts = [...pendingAttachments]
         setPrompt('')
         setPendingAttachments([])
-        processMessage(messageToSend, atts)
+        processMessage(messageToSend, atts, chatMode)
     }
 
     useEffect(() => {
         const saved = localStorage.getItem('tera_queued_message')
         if (saved) {
-            try { setQueuedMessage(JSON.parse(saved)) } catch (e) { localStorage.removeItem('tera_queued_message') }
+            try {
+                const parsed = JSON.parse(saved) as Partial<QueuedMessage>
+                setQueuedMessage({
+                    prompt: parsed.prompt ?? '',
+                    attachments: parsed.attachments ?? [],
+                    chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'ask',
+                })
+            } catch (e) { localStorage.removeItem('tera_queued_message') }
         }
     }, [])
 
     useEffect(() => {
         if (userReady && queuedMessage) {
-            processMessage(queuedMessage.prompt, queuedMessage.attachments)
+            processMessage(queuedMessage.prompt, queuedMessage.attachments, queuedMessage.chatMode)
             localStorage.removeItem('tera_queued_message')
             setQueuedMessage(null)
         }
@@ -565,6 +591,23 @@ export default function PromptShell({
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex flex-wrap items-center gap-2 px-2 pt-2">
+                            <div className="flex rounded-full border border-tera-border bg-tera-elevated/70 p-1">
+                                {CHAT_MODES.map((mode) => {
+                                    const config = getChatModeConfig(mode)
+                                    const selected = chatMode === mode
+                                    return (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            onClick={() => setChatMode(mode)}
+                                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${selected ? 'bg-tera-accent text-[#08101a]' : 'text-tera-secondary hover:text-tera-primary'}`}
+                                            aria-pressed={selected}
+                                        >
+                                            {config.label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
                             {pendingAttachments.length > 0 && (
                                 <div className="flex flex-wrap gap-3 p-2">
                                     {pendingAttachments.map((att, idx) => (
@@ -595,7 +638,7 @@ export default function PromptShell({
                                 </div>
                             </div>
 
-                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={isListening ? 'Listening...' : 'Ask Tera Anything...'} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.98rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
+                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={textareaPlaceholder} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.98rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
 
                             <div className="flex items-end gap-1">
                                 {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white/[0.92] text-[#08101a] transition hover:bg-white"><StopIcon /></button>}

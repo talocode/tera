@@ -1,4 +1,5 @@
 import type { AttachmentReference } from '@/lib/attachment'
+import type { ChatMode } from '@/lib/chat-modes'
 
 export type GenerateProps = {
   prompt: string
@@ -9,6 +10,7 @@ export type GenerateProps = {
   sessionId?: string | null
   chatId?: string
   researchMode?: boolean
+  chatMode?: ChatMode
 }
 
 export type GenerateAnswerResult = {
