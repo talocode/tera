@@ -1,4 +1,6 @@
 import type { AttachmentReference } from './attachment'
+import type { ChatMode } from './chat-mode'
+import { getChatModeSystemPrompt, normalizeChatMode } from './chat-mode'
 import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
@@ -157,7 +159,8 @@ export async function generateTeacherResponse({
   attachments = [] as AttachmentReference[],
   history = [] as { role: 'user' | 'assistant'; content: string }[],
   userId,
-  researchMode = false
+  researchMode = false,
+  chatMode
 }: {
   prompt: string
   tool: string
@@ -165,7 +168,17 @@ export async function generateTeacherResponse({
   history?: { role: 'user' | 'assistant'; content: string }[]
   userId?: string
   researchMode?: boolean
+  chatMode?: ChatMode
 }) {
+  const normalizedChatMode = normalizeChatMode(chatMode)
+
+  if (normalizedChatMode === 'image') {
+    return {
+      text: 'System: Image mode must be routed to the image generation provider, not the text chat provider.',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+    }
+  }
+
   const imageAttachments = attachments.filter(att => att.type === 'image')
   const fileAttachments = attachments.filter(att => att.type === 'file')
 
@@ -191,7 +204,16 @@ export async function generateTeacherResponse({
     enhancedPrompt = `${fileContents} \n\nUser Question: ${prompt}`
   }
 
+  const modeSystemPrompt = getChatModeSystemPrompt(normalizedChatMode)
+
   let systemPromptWithMemory = systemMessage
+  if (modeSystemPrompt) {
+    systemPromptWithMemory += `
+
+ === CHAT MODE INSTRUCTIONS ===
+${modeSystemPrompt}
+ === END CHAT MODE INSTRUCTIONS ===`
+  }
   if (userId) {
     const memories = await getMemories(userId)
     if (memories) {
