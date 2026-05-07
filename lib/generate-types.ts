@@ -1,5 +1,6 @@
 import type { ChatMode } from '@/lib/ai/chat-modes'
 import type { AttachmentReference } from '@/lib/attachment'
+import type { ChatMode } from '@/lib/ai/chat-modes'
 import type { ChatMode } from '@/lib/chat-modes'
 
 export type GenerateProps = {
