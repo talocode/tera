@@ -24,6 +24,7 @@ function isGenerateProps(value: unknown): value is GenerateProps {
     && (body.sessionId === undefined || body.sessionId === null || typeof body.sessionId === 'string')
     && (body.chatId === undefined || typeof body.chatId === 'string')
     && (body.researchMode === undefined || typeof body.researchMode === 'boolean')
+    && (body.chatMode === undefined || ['ask', 'learn', 'research', 'build'].includes(body.chatMode))
     && (body.chatMode === undefined || typeof body.chatMode === 'string')
     && (body.chatMode === undefined || body.chatMode === null || typeof body.chatMode === 'string')
     && (body.chatMode === undefined || isChatMode(body.chatMode))

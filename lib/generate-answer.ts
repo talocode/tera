@@ -31,6 +31,7 @@ function omitField<T extends Record<string, any>, K extends keyof T>(payload: T,
   return rest
 }
 
+export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode }: GenerateProps): Promise<GenerateAnswerResult> {
 export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode = 'ask' }: GenerateProps): Promise<GenerateAnswerResult> {
   const normalizedChatMode = normalizeChatMode(chatMode)
   // Get user profile and check limits
@@ -165,6 +166,8 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
 
   const creditsToCharge = calculateCreditsForTokens(tokenCost)
   const currentSessionId = sessionId || crypto.randomUUID()
+  const persistedChatMode = chatMode ?? (researchMode ? 'research' : 'ask')
+  const metadata = { chatMode: persistedChatMode }
 
   // Find existing title if continuing a session
   let existingTitle: string | null = null
@@ -186,21 +189,30 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
   let persistenceWarning: string | undefined
 
   if (chatId) {
-    const baseUpdatePayload = { prompt, response: answer, attachments }
+    const baseUpdatePayload = { prompt, response: answer, attachments, metadata }
+    let updatePayload: Record<string, any> = { ...baseUpdatePayload, token_usage: tokenCost }
+    let error: any = null
 
-    let { error } = await supabaseServer
-      .from('chat_sessions')
-      .update({ ...baseUpdatePayload, token_usage: tokenCost })
-      .eq('id', chatId)
-      .eq('user_id', authorId)
-
-    if (error && isMissingColumnError(error, 'token_usage')) {
-      const retryResult = await supabaseServer
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const result = await supabaseServer
         .from('chat_sessions')
-        .update(baseUpdatePayload)
+        .update(updatePayload)
         .eq('id', chatId)
         .eq('user_id', authorId)
-      error = retryResult.error
+
+      error = result.error
+
+      if (!error) break
+
+      if (isMissingColumnError(error, 'metadata') && 'metadata' in updatePayload) {
+        updatePayload = omitField(updatePayload, 'metadata')
+        continue
+      }
+      if (isMissingColumnError(error, 'token_usage') && 'token_usage' in updatePayload) {
+        updatePayload = omitField(updatePayload, 'token_usage')
+        continue
+      }
+      break
     }
 
     if (error) {
@@ -216,6 +228,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
       prompt,
       response: answer,
       attachments,
+      metadata,
       created_at: new Date().toISOString(),
       session_id: currentSessionId,
       title: title
@@ -225,7 +238,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     let data: { id: string } | null = null
     let error: any = null
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
       const result = await supabaseServer
         .from('chat_sessions')
         .insert(insertPayload)
@@ -237,6 +250,10 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
 
       if (!error) break
 
+      if (isMissingColumnError(error, 'metadata') && 'metadata' in insertPayload) {
+        insertPayload = omitField(insertPayload, 'metadata')
+        continue
+      }
       if (isMissingColumnError(error, 'token_usage') && 'token_usage' in insertPayload) {
         insertPayload = omitField(insertPayload, 'token_usage')
         continue

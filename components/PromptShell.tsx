@@ -364,6 +364,7 @@ export default function PromptShell({
         startTransition(async () => {
             try {
                 setThinkingMessage(getThinkingMessage(messageToSend))
+                const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode, chatMode: researchMode ? 'research' : 'ask' })
                 const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode, chatMode: mode })
 
                 if (currentRequestId !== requestIdRef.current) return
