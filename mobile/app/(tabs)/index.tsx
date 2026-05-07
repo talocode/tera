@@ -1,4 +1,5 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Button, Chip, EmptyState, LoadingState, Screen, SegmentedControl, Text } from '@/components/ui';
 import { colors, radii, spacing } from '@/constants/theme';
@@ -12,9 +13,17 @@ export default function HomeScreen() {
   const selectedMode = useAppStore((state) => state.selectedMode);
   const setSelectedMode = useAppStore((state) => state.setSelectedMode);
   const user = useAppStore((state) => state.session?.user);
+  const queryClient = useQueryClient();
   const conversations = useQuery({
     queryKey: ['conversations'],
     queryFn: teraApi.getConversations,
+  });
+  const startConversation = useMutation({
+    mutationFn: (prompt: string) => teraApi.createConversation(selectedMode, prompt),
+    onSuccess: async (conversation) => {
+      await queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      router.push(`/conversation/${conversation.id}`);
+    },
   });
 
   return (
@@ -28,22 +37,32 @@ export default function HomeScreen() {
       <SegmentedControl value={selectedMode} options={modeOptions} onChange={setSelectedMode} />
 
       <View style={styles.composerBlock}>
-        <Composer onSubmit={() => undefined} placeholder={`Ask Tera in ${selectedMode} mode...`} />
-        <Text variant="caption" muted>Conversation creation will connect to the backend in the next pass.</Text>
+        <Composer
+          disabled={startConversation.isPending}
+          onSubmit={(prompt) => startConversation.mutate(prompt)}
+          placeholder={`Ask Tera in ${selectedMode} mode...`}
+        />
+        <Text variant="caption" muted>Start a new learning thread from the home composer or a starter prompt.</Text>
       </View>
 
       <View style={styles.section}>
         <Text variant="h3">Starter prompts</Text>
         <View style={styles.chips}>
           {starterPrompts[selectedMode].map((prompt) => (
-            <Chip key={prompt} label={prompt} />
+            <Chip key={prompt} label={prompt} onPress={() => startConversation.mutate(prompt)} />
           ))}
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
         <Text variant="h3">Recent conversations</Text>
-        <Button label="New" variant="secondary" style={styles.newButton} />
+        <Button
+          label="New"
+          variant="secondary"
+          style={styles.newButton}
+          onPress={() => startConversation.mutate('Help me explore Tera in this mode.')}
+          loading={startConversation.isPending}
+        />
       </View>
       {conversations.isLoading ? (
         <LoadingState label="Loading conversations..." />
