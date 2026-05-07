@@ -1,4 +1,5 @@
 import type { AttachmentReference } from './attachment'
+import type { ChatMode } from './chat-mode'
 import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
@@ -157,7 +158,8 @@ export async function generateTeacherResponse({
   attachments = [] as AttachmentReference[],
   history = [] as { role: 'user' | 'assistant'; content: string }[],
   userId,
-  researchMode = false
+  researchMode = false,
+  chatMode = 'ask'
 }: {
   prompt: string
   tool: string
@@ -165,6 +167,7 @@ export async function generateTeacherResponse({
   history?: { role: 'user' | 'assistant'; content: string }[]
   userId?: string
   researchMode?: boolean
+  chatMode?: ChatMode
 }) {
   const imageAttachments = attachments.filter(att => att.type === 'image')
   const fileAttachments = attachments.filter(att => att.type === 'file')
@@ -208,6 +211,8 @@ export async function generateTeacherResponse({
   } else {
     toolContext = `\nActive Mode: Universal Companion. Adapt your personality and style to match the user's need.`
   }
+
+  toolContext += `\nChat Mode: ${chatMode}.`
 
   let userContent: any
   if (imageAttachments.length > 0) {

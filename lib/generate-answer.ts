@@ -7,6 +7,7 @@ import { incrementChatsServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
 import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
+import { normalizeChatMode } from '@/lib/chat-mode'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {
@@ -30,7 +31,8 @@ function omitField<T extends Record<string, any>, K extends keyof T>(payload: T,
   return rest
 }
 
-export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false }: GenerateProps): Promise<GenerateAnswerResult> {
+export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode = 'ask' }: GenerateProps): Promise<GenerateAnswerResult> {
+  const normalizedChatMode = normalizeChatMode(chatMode)
   // Get user profile and check limits
   let userProfile = await getUserProfileServer(authorId)
 
@@ -120,6 +122,16 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     }
   }
 
+  if (normalizedChatMode === 'image') {
+    const comingSoonMessage = 'Image mode is coming soon. For now, ask Tera for help explaining, planning, or drafting your idea in chat mode.'
+    return {
+      answer: comingSoonMessage,
+      sessionId: sessionId ?? null,
+      chatId,
+      error: comingSoonMessage
+    }
+  }
+
   // Fetch chat history if sessionId exists
   let history: { role: 'user' | 'assistant'; content: string }[] = []
 
@@ -144,7 +156,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
   }
 
   // Generate the AI response
-  const generationResult = await generateTeacherResponse({ prompt, tool, attachments, history, userId: authorId, researchMode })
+  const generationResult = await generateTeacherResponse({ prompt, tool, attachments, history, userId: authorId, researchMode, chatMode: normalizedChatMode })
   const answer = generationResult.text
   const rawTokenCost = Number(generationResult.usage.totalTokens ?? 0)
   const tokenCost = Number.isFinite(rawTokenCost)
