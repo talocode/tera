@@ -18,6 +18,7 @@ import { compressImage } from '@/lib/image-compression'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
+import ChatModePicker, { type ChatMode } from './chat/ChatModePicker'
 
 type Message = {
     id: string
@@ -269,8 +270,9 @@ export default function PromptShell({
     const [upgradePromptType, setUpgradePromptType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
     const [limitModalType, setLimitModalType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
     const [limitUnlocksAt, setLimitUnlocksAt] = useState<Date | undefined>(undefined)
-    const [researchMode, setResearchMode] = useState(false)
+    const [selectedMode, setSelectedMode] = useState<ChatMode>('chat')
     const [searchHistoryOpen, setSearchHistoryOpen] = useState(false)
+    const researchMode = selectedMode === 'research'
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
     const requestIdRef = useRef(0)
 
@@ -577,6 +579,13 @@ export default function PromptShell({
                             )}
                         </div>
 
+                        <ChatModePicker
+                            selectedMode={selectedMode}
+                            onModeChange={setSelectedMode}
+                            disabled={status === 'loading'}
+                            className="px-1"
+                        />
+
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                             <div className="flex items-center">
                                 <div className="relative">
@@ -586,7 +595,7 @@ export default function PromptShell({
                                             <button onClick={() => handleFileSelect('camera')} className="composer-menu-row"><CameraIcon /><span>Open Camera</span></button>
                                             <button onClick={() => handleFileSelect('image')} className="composer-menu-row"><ImageIcon /><span>Upload image</span></button>
                                             <button onClick={() => handleFileSelect('file')} className="composer-menu-row border-b border-tera-border/70"><FileIcon /><span>Upload file</span></button>
-                                            <button onClick={() => { setResearchMode(!researchMode); setAttachmentOpen(false) }} className={`composer-menu-row border-t border-tera-border/70 ${researchMode ? 'text-tera-neon bg-tera-neon/5' : 'text-tera-primary'}`}>
+                                            <button onClick={() => { setSelectedMode(researchMode ? 'chat' : 'research'); setAttachmentOpen(false) }} className={`composer-menu-row border-t border-tera-border/70 ${researchMode ? 'text-tera-neon bg-tera-neon/5' : 'text-tera-primary'}`}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px] shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-1.313-3.938a4.5 4.5 0 1 1 5.862-5.862L18.75 9l-2.846.813a4.5 4.5 0 0 1-6.09 6.091Z" /></svg>
                                                 <div className="flex-1 flex items-center justify-between"><span>Deep Research</span>{researchMode && <span className="text-[10px] font-bold bg-tera-neon/20 px-1.5 py-0.5 rounded text-tera-neon">ON</span>}</div>
                                             </button>
