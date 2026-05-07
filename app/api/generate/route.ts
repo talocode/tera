@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { normalizeChatMode } from '@/lib/ai/chat-modes'
 import { generateAnswerForPrompt } from '@/lib/generate-answer'
 import type { GenerateProps } from '@/lib/generate-types'
+import { isChatMode } from '@/lib/chat-modes'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,7 @@ function isGenerateProps(value: unknown): value is GenerateProps {
     && (body.chatId === undefined || typeof body.chatId === 'string')
     && (body.researchMode === undefined || typeof body.researchMode === 'boolean')
     && (body.chatMode === undefined || body.chatMode === null || typeof body.chatMode === 'string')
+    && (body.chatMode === undefined || isChatMode(body.chatMode))
     && (body.attachments === undefined || Array.isArray(body.attachments))
 }
 
