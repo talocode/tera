@@ -9,7 +9,6 @@ const PLAN_MONTHLY_CREDIT_CAPS: Record<PlanType, number> = {
 const RESET_INTERVAL_DAYS = 30
 const RESET_INTERVAL_MS = RESET_INTERVAL_DAYS * 24 * 60 * 60 * 1000
 const TOKENS_PER_CREDIT = 5000
-const TOKENS_PER_CREDIT = 500
 
 type CreditState = {
   used: number

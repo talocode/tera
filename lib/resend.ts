@@ -12,6 +12,23 @@ type ResendSendResult = {
 
 const RESEND_API_URL = 'https://api.resend.com/emails'
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function getAppUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || 'https://teraai.chat'
+}
+
+function getEmailLogoUrl() {
+  return `${getAppUrl()}/images/TERA_LOGO_ONLY.png`
+}
+
 function getFromAddress() {
   return process.env.RESEND_FROM_EMAIL || 'TeraAI <onboarding@resend.dev>'
 }
@@ -67,8 +84,11 @@ export function renderProductUpdateEmail({
   ctaLabel?: string
   ctaUrl?: string
 }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || 'https://teraai.chat'
-  const safeCtaUrl = ctaUrl || appUrl
+  const appUrl = getAppUrl()
+  const safeHeading = escapeHtml(heading)
+  const safeMessage = escapeHtml(message)
+  const safePreview = escapeHtml(previewText || heading)
+  const safeCtaUrl = escapeHtml(ctaUrl || appUrl)
   const safeCtaLabel = ctaLabel || 'Open Tera'
 
   return `<!doctype html>
@@ -76,23 +96,24 @@ export function renderProductUpdateEmail({
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${heading}</title>
+    <title>${safeHeading}</title>
   </head>
   <body style="margin:0;background:#0b0f14;color:#f6f7f9;font-family:Inter,Arial,sans-serif;">
-    <span style="display:none;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">${previewText || heading}</span>
+    <span style="display:none;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">${safePreview}</span>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0f14;padding:32px 16px;">
       <tr>
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#111820;border:1px solid rgba(255,255,255,0.10);border-radius:18px;overflow:hidden;">
             <tr>
               <td style="padding:28px 28px 12px;">
+                <img src="${escapeHtml(getEmailLogoUrl())}" alt="TeraAI" width="96" height="96" style="display:block;width:48px;height:48px;object-fit:contain;margin:0 0 14px;" />
                 <p style="margin:0 0 14px;color:#9aa6b2;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">Tera update</p>
-                <h1 style="margin:0;color:#f6f7f9;font-size:28px;line-height:1.2;font-weight:700;">${heading}</h1>
+                <h1 style="margin:0;color:#f6f7f9;font-size:28px;line-height:1.2;font-weight:700;">${safeHeading}</h1>
               </td>
             </tr>
             <tr>
               <td style="padding:8px 28px 24px;">
-                <p style="margin:0;color:#c5ced8;font-size:16px;line-height:1.7;white-space:pre-line;">${message}</p>
+                <p style="margin:0;color:#c5ced8;font-size:16px;line-height:1.7;white-space:pre-line;">${safeMessage}</p>
                 <a href="${safeCtaUrl}" style="display:inline-block;margin-top:24px;background:#ccff00;color:#08101a;text-decoration:none;font-weight:700;font-size:14px;padding:13px 18px;border-radius:10px;">${safeCtaLabel}</a>
               </td>
             </tr>
@@ -118,6 +139,6 @@ export function renderProductUpdateText({
   message: string
   ctaUrl?: string
 }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || 'https://teraai.chat'
+  const appUrl = getAppUrl()
   return `${heading}\n\n${message}\n\nOpen Tera: ${ctaUrl || appUrl}`
 }

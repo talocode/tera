@@ -36,6 +36,10 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#39;')
 }
 
+function getEmailLogoUrl() {
+  return `${appUrl()}/images/TERA_LOGO_ONLY.png`
+}
+
 function renderImportantEmail({
   heading,
   previewText,
@@ -64,6 +68,7 @@ function renderImportantEmail({
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#111820;border:1px solid rgba(255,255,255,0.10);border-radius:18px;overflow:hidden;">
             <tr>
               <td style="padding:28px 28px 12px;">
+                <img src="${escapeHtml(getEmailLogoUrl())}" alt="TeraAI" width="96" height="96" style="display:block;width:48px;height:48px;object-fit:contain;margin:0 0 14px;" />
                 <p style="margin:0 0 14px;color:#9aa6b2;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">TeraAI</p>
                 <h1 style="margin:0;color:#f6f7f9;font-size:28px;line-height:1.2;font-weight:700;">${safeHeading}</h1>
               </td>
