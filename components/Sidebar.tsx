@@ -19,13 +19,21 @@ type User = {
   image?: string | null
 }
 
-export const navigation = [
+type NavItem = {
+  label: string
+  icon: string
+  href: string
+  group?: string
+}
+
+export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
   { label: 'Search chats', icon: 'search', href: '/history' },
   { label: 'Images', icon: 'images', href: '/images' },
   { label: 'Tools', icon: 'apps', href: '/tools' },
   { label: 'Deep research', icon: 'research', href: '/deep-research' },
   { label: 'Notes', icon: 'notes', href: '/notes' },
+  { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain', group: 'Labs' },
   { label: 'Settings', icon: 'settings', href: '/settings' },
 ]
 
@@ -89,6 +97,14 @@ const IconSettings = () => (
   </svg>
 )
 
+const IconLab = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+)
+
 const getIcon = (iconName: string): React.ReactNode => {
   const icons: Record<string, () => React.ReactNode> = {
     chat: IconChat,
@@ -98,6 +114,7 @@ const getIcon = (iconName: string): React.ReactNode => {
     research: IconResearch,
     notes: IconNotes,
     settings: IconSettings,
+    lab: IconLab,
   }
   const Icon = icons[iconName]
   return Icon ? <Icon /> : null
@@ -149,25 +166,33 @@ export default function Sidebar({ expanded, onToggle, onNewChat, user, onSignOut
 
         <div className="mt-6 flex-1 overflow-y-auto custom-scrollbar">
           <nav className="space-y-1">
-            {navigation.map((item) => {
+            {navigation.map((item, index) => {
               const isNewChat = item.href.startsWith('/new')
-              const isActive = isNewChat ? pathname?.startsWith('/new') : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/tools') && pathname?.startsWith('/tools'))
+              const isActive = isNewChat ? pathname?.startsWith('/new') : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/tools') && pathname?.startsWith('/tools')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
+
+              const showGroupLabel = item.group && expanded && (index === 0 || navigation[index - 1].group !== item.group)
 
               return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={(event) => {
-                    if (item.label === 'New chat' && pathname?.startsWith('/new') && onNewChat) {
-                      event.preventDefault()
-                      onNewChat()
-                    }
-                  }}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${isActive ? 'bg-tera-highlight text-tera-primary' : 'text-tera-secondary hover:bg-tera-highlight hover:text-tera-primary'} ${expanded ? '' : 'justify-center md:px-2'}`}
-                >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
-                  {expanded && <span className="font-medium">{item.label}</span>}
-                </Link>
+                <React.Fragment key={item.label}>
+                  {showGroupLabel && expanded && (
+                    <div className="mt-4 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-tera-secondary">
+                      {item.group}
+                    </div>
+                  )}
+                  <Link
+                    href={item.href}
+                    onClick={(event) => {
+                      if (item.label === 'New chat' && pathname?.startsWith('/new') && onNewChat) {
+                        event.preventDefault()
+                        onNewChat()
+                      }
+                    }}
+                    className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${isActive ? 'bg-tera-highlight text-tera-primary' : 'text-tera-secondary hover:bg-tera-highlight hover:text-tera-primary'} ${expanded ? '' : 'justify-center md:px-2'}`}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
+                    {expanded && <span className="font-medium">{item.label}</span>}
+                  </Link>
+                </React.Fragment>
               )
             })}
           </nav>

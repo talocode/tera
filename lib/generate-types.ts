@@ -1,8 +1,4 @@
-import type { ChatMode } from '@/lib/ai/chat-modes'
 import type { AttachmentReference } from '@/lib/attachment'
-import type { ChatMode } from '@/lib/chat-mode'
-import type { ChatMode } from '@/lib/ai/chat-modes'
-import type { ChatMode } from '@/lib/chat-modes'
 
 export type ChatMode = 'ask' | 'learn' | 'research' | 'build'
 
