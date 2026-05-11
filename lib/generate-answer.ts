@@ -31,7 +31,6 @@ function omitField<T extends Record<string, any>, K extends keyof T>(payload: T,
   return rest
 }
 
-export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode }: GenerateProps): Promise<GenerateAnswerResult> {
 export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode = 'ask' }: GenerateProps): Promise<GenerateAnswerResult> {
   const normalizedChatMode = normalizeChatMode(chatMode)
   // Get user profile and check limits
