@@ -7,7 +7,7 @@ if (!process.env.MISTRAL_API_KEY) {
   throw new Error('Mistral API key missing in environment variables')
 }
 
-const model = 'pixtral-12b-2409'
+export const TERA_MODEL_NAME = 'pixtral-12b-2409'
 
 const systemMessage = `You are Tera, a brilliant and supportive AI Learning Companion for anything — inside the product at https://teraai.chat.
 Your primary goal is to help users learn ANYTHING — school subjects, work tasks, creative skills, personal projects, and everyday questions — deeply understand concepts, practice actively, and build durable knowledge.
@@ -241,7 +241,7 @@ export async function generateTeacherResponse({
         'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
-        model,
+        model: TERA_MODEL_NAME,
         messages: [
           { role: 'system', content: systemPromptWithMemory },
           ...history,

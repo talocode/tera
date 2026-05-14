@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import dns from 'node:dns'
 import { getUserCreditsRemaining } from '@/lib/free-plan-credits'
+import { getDailyUsageLedgerHistory, getUsageLedgerWindowSummary } from '@/lib/usage-ledger'
 
 // Force IPv4 to avoid SSL/TLS handshake issues with Supabase on some networks
 try {
@@ -119,6 +120,9 @@ export async function fetchDailyTokenUsage(userId: string) {
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
 
+    const summary = await getUsageLedgerWindowSummary(userId, startOfDay)
+    if (summary) return { usedToday: summary.tokenUsage }
+
     const { data, error } = await supabaseServer
         .from('chat_sessions')
         .select('token_usage')
@@ -138,6 +142,11 @@ export async function fetchWeeklyUsageHistory(userId: string) {
     try {
         const session = await auth()
         if (!session?.user?.id || session.user.id !== userId) return []
+
+        const ledgerHistory = await getDailyUsageLedgerHistory(userId, 7)
+        if (ledgerHistory.some((day) => day.tokens > 0 || day.credits > 0 || day.chats > 0)) {
+            return ledgerHistory.map(({ date, tokens }) => ({ date, used: tokens }))
+        }
 
         const sevenDaysAgo = new Date()
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)

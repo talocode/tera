@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { supabaseServer as supabase } from '@/lib/supabase-server'
 import { isAdminUser } from '@/lib/admin'
+import { supportsUsageLedger } from '@/lib/usage-ledger'
 
 function throwIfSupabaseError(error: any, context: string) {
   if (error) {
@@ -34,6 +35,7 @@ async function getAnalyticsData() {
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const ledgerAvailable = await supportsUsageLedger()
 
   const { count: totalUsers, error: totalUsersError } = await supabase.from('users').select('*', { count: 'exact', head: true })
   throwIfSupabaseError(totalUsersError, 'total-users')
@@ -62,22 +64,49 @@ async function getAnalyticsData() {
     if (plans.hasOwnProperty(plan)) { plans[plan as keyof typeof plans]++ }
   })
 
-  const { count: totalChatSessions, error: totalChatSessionsError } = await supabase.from('chat_sessions').select('*', { count: 'exact', head: true })
+  const chatCountQuery = ledgerAvailable
+    ? supabase.from('usage_ledger').select('*', { count: 'exact', head: true }).eq('event_type', 'chat_generation').eq('status', 'succeeded')
+    : supabase.from('chat_sessions').select('*', { count: 'exact', head: true })
+  const { count: totalChatSessions, error: totalChatSessionsError } = await chatCountQuery
   throwIfSupabaseError(totalChatSessionsError, 'total-chat-sessions')
 
-  const { count: chatsToday, error: chatsTodayError } = await supabase.from('chat_sessions').select('*', { count: 'exact', head: true }).gte('created_at', todayStart)
+  const chatsTodayQuery = ledgerAvailable
+    ? supabase.from('usage_ledger').select('*', { count: 'exact', head: true }).eq('event_type', 'chat_generation').eq('status', 'succeeded').gte('created_at', todayStart)
+    : supabase.from('chat_sessions').select('*', { count: 'exact', head: true }).gte('created_at', todayStart)
+  const { count: chatsToday, error: chatsTodayError } = await chatsTodayQuery
   throwIfSupabaseError(chatsTodayError, 'chats-today')
 
-  const { data: activeUsersData, error: activeUsersDataError } = await supabase.from('chat_sessions').select('user_id').gte('created_at', todayStart)
+  const activeUsersQuery = ledgerAvailable
+    ? supabase.from('usage_ledger').select('user_id').eq('event_type', 'chat_generation').eq('status', 'succeeded').gte('created_at', todayStart)
+    : supabase.from('chat_sessions').select('user_id').gte('created_at', todayStart)
+  const { data: activeUsersData, error: activeUsersDataError } = await activeUsersQuery
   throwIfSupabaseError(activeUsersDataError, 'active-users-today')
   const activeUsersToday = new Set(activeUsersData?.map((c: any) => c.user_id) || []).size
+
+  const { data: creditWindowData, error: creditWindowError } = ledgerAvailable
+    ? await supabase
+        .from('usage_ledger')
+        .select('credits_charged, created_at')
+        .eq('event_type', 'chat_generation')
+        .eq('status', 'succeeded')
+        .gte('created_at', thirtyDaysAgo)
+    : { data: [], error: null as any }
+  throwIfSupabaseError(creditWindowError, 'credit-window')
+  const creditsBurnedToday = (creditWindowData || [])
+    .filter((row: any) => row.created_at >= todayStart)
+    .reduce((sum: number, row: any) => sum + Number(row.credits_charged || 0), 0)
+  const creditsBurnedMonth = (creditWindowData || [])
+    .reduce((sum: number, row: any) => sum + Number(row.credits_charged || 0), 0)
 
   const dailyActivity = []
   for (let i = 6; i >= 0; i--) {
     const dayStart = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
     dayStart.setHours(0, 0, 0, 0)
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
-    const { count: dayChats, error: dayChatsError } = await supabase.from('chat_sessions').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
+    const dayChatsQuery = ledgerAvailable
+      ? supabase.from('usage_ledger').select('*', { count: 'exact', head: true }).eq('event_type', 'chat_generation').eq('status', 'succeeded').gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
+      : supabase.from('chat_sessions').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
+    const { count: dayChats, error: dayChatsError } = await dayChatsQuery
     throwIfSupabaseError(dayChatsError, `daily-chats-${i}`)
 
     const { count: dayUsers, error: dayUsersError } = await supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', dayStart.toISOString()).lt('created_at', dayEnd.toISOString())
@@ -90,7 +119,10 @@ async function getAnalyticsData() {
     })
   }
 
-  const { data: topUsersData, error: topUsersDataError } = await supabase.from('chat_sessions').select('user_id').gte('created_at', sevenDaysAgo)
+  const topUsersQuery = ledgerAvailable
+    ? supabase.from('usage_ledger').select('user_id').eq('event_type', 'chat_generation').eq('status', 'succeeded').gte('created_at', sevenDaysAgo)
+    : supabase.from('chat_sessions').select('user_id').gte('created_at', sevenDaysAgo)
+  const { data: topUsersData, error: topUsersDataError } = await topUsersQuery
   throwIfSupabaseError(topUsersDataError, 'top-users-data')
 
   const userChatCount: Record<string, number> = {}
@@ -111,6 +143,16 @@ async function getAnalyticsData() {
   const { data: lockedOutUsers, error: lockedOutUsersError } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at').or(`limit_hit_chat_at.gt.${oneDayAgo}, limit_hit_upload_at.gt.${oneDayAgo}`)
   throwIfSupabaseError(lockedOutUsersError, 'locked-out-users')
 
+  const { data: blockedCreditEvents, error: blockedCreditEventsError } = ledgerAvailable
+    ? await supabase
+        .from('usage_ledger')
+        .select('user_id, created_at')
+        .eq('event_type', 'credit_blocked')
+        .gte('created_at', sevenDaysAgo)
+    : { data: [], error: null as any }
+  throwIfSupabaseError(blockedCreditEventsError, 'blocked-credit-events')
+  const blockedUsersFromCredits = new Set((blockedCreditEvents || []).map((row: any) => row.user_id)).size
+
   const { data: recentLimitHits, error: recentLimitHitsError } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at, created_at').or(`limit_hit_chat_at.gte.${sevenDaysAgo}, limit_hit_upload_at.gte.${sevenDaysAgo}`).order('created_at', { ascending: false }).limit(50)
   throwIfSupabaseError(recentLimitHitsError, 'recent-limit-hits')
 
@@ -128,10 +170,12 @@ async function getAnalyticsData() {
       activeUsersToday: activeUsersToday || 0,
       totalChatSessions: totalChatSessions || 0,
       chatsToday: chatsToday || 0,
+      creditsBurnedToday,
+      creditsBurnedMonth,
       avgChatsPerUser,
       chatLimitHits: chatLimitHits || 0,
       uploadLimitHits: uploadLimitHits || 0,
-      lockedOutUsers: (lockedOutUsers || []).length,
+      lockedOutUsers: Math.max((lockedOutUsers || []).length, blockedUsersFromCredits),
       upgradeRate: parseFloat(upgradeRate),
       upgradedAfterLimit: upgradedCount,
     },
