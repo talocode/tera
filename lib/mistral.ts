@@ -69,6 +69,52 @@ GOOGLE SHEETS AND SPREADSHEETS:
 - For spreadsheet edits, generate edit instructions in a json:edit block.
 `
 
+function getToolResponseStyle(tool: string, researchMode: boolean): string {
+  const normalizedTool = tool.trim().toLowerCase()
+
+  if (researchMode || normalizedTool.includes('research')) {
+    return `\nMode Guidance:
+- Act like a precise research partner.
+- Surface the answer first, then the reasoning, evidence, tradeoffs, and implications.
+- Distinguish clearly between what is known, what is likely, and what remains uncertain.
+- Prefer synthesis over volume.
+- Use citations and links where they add real value.`
+  }
+
+  if (normalizedTool.includes('build') || normalizedTool.includes('code') || normalizedTool.includes('project')) {
+    return `\nMode Guidance:
+- Act like a practical builder's assistant.
+- Turn ideas into steps, decisions, examples, checklists, or implementation plans.
+- Be concrete and execution-oriented.
+- Call out tradeoffs, constraints, and the next action.`
+  }
+
+  if (normalizedTool.includes('learn') || normalizedTool.includes('study') || normalizedTool.includes('quiz')) {
+    return `\nMode Guidance:
+- Act like a strong teacher.
+- Explain from first principles.
+- Use one simple mental model or worked example when it helps.
+- Keep the explanation approachable without sounding childish.`
+  }
+
+  return `\nMode Guidance:
+- Match the user's immediate goal.
+- Be helpful, direct, and productively structured.
+- Optimize for clarity and usefulness over length.`
+}
+
+function cleanModelResponse(text: string): string {
+  let cleaned = text.trim()
+
+  cleaned = cleaned
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(?:^|\n)(Do you understand what I just explained\?|What area do you need more explanation on\?|Did you learn something new\?|Would you like a visual explanation[^\n]*\?)(?=\n|$)/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
+  return /[.!?]$/.test(cleaned) ? cleaned : `${cleaned}.`
+}
+
 async function getMemories(userId: string): Promise<string> {
   const { data } = await supabaseServer
     .from('user_memories')
@@ -208,15 +254,16 @@ export async function generateTeacherResponse({
 - Keep the explanation clean and easy to scan.
 - Use one example or practical takeaway when it helps.
 - End naturally. Do not force generic follow-up questions.`
+  const toolStyle = getToolResponseStyle(tool, researchMode)
 
   let userContent: any
   if (imageAttachments.length > 0) {
     userContent = [
-      { type: 'text', text: `Context: ${toolContext}${responseBlueprint}\nUser Prompt: ${enhancedPrompt}` },
+      { type: 'text', text: `Context: ${toolContext}${responseBlueprint}${toolStyle}\nUser Prompt: ${enhancedPrompt}` },
       ...imageAttachments.map((img) => ({ type: 'image_url', image_url: { url: img.url } })),
     ]
   } else {
-    userContent = `Context: ${toolContext}${responseBlueprint}\nUser Prompt: ${enhancedPrompt}`
+    userContent = `Context: ${toolContext}${responseBlueprint}${toolStyle}\nUser Prompt: ${enhancedPrompt}`
   }
 
   async function retryFetch(url: string, options: RequestInit, retries = 3, delay = 1000): Promise<Response> {
@@ -275,8 +322,7 @@ export async function generateTeacherResponse({
         .join('')
     }
 
-    const trimmed = text.trim()
-    const finalText = /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`
+    const finalText = cleanModelResponse(text)
 
     if (userId) {
       saveConversationToMemory(userId, prompt, finalText).catch((err) => console.error('Memory save failed:', err))
