@@ -1,14 +1,13 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase-server'
-import { generateTeacherResponse } from '@/lib/mistral'
+import { generateTeacherResponse, TERA_MODEL_NAME } from '@/lib/mistral'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
-import { getUserProfileServer } from '@/lib/usage-tracking-server'
-import { incrementChatsServer } from '@/lib/usage-tracking-server'
+import { getUserProfileServer, incrementChatsServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
 import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
 import { recordUsageLedgerEvent } from '@/lib/usage-ledger'
-import { TERA_MODEL_NAME } from '@/lib/mistral'
+import { normalizeChatMode } from '@/lib/chat-mode'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {
@@ -32,11 +31,21 @@ function omitField<T extends Record<string, any>, K extends keyof T>(payload: T,
   return rest
 }
 
-export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false }: GenerateProps): Promise<GenerateAnswerResult> {
-  // Get user profile and check limits
+export async function generateAnswerForPrompt({
+  prompt,
+  tool,
+  authorId,
+  authorEmail,
+  attachments = [],
+  sessionId,
+  chatId,
+  researchMode = false,
+  chatMode = 'ask',
+}: GenerateProps): Promise<GenerateAnswerResult> {
+  const normalizedChatMode = normalizeChatMode(chatMode)
+
   let userProfile = await getUserProfileServer(authorId)
 
-  // If profile still doesn't exist, create a default one
   if (!userProfile) {
     console.warn('User profile not found, creating default profile for:', authorId)
     userProfile = {
@@ -52,11 +61,10 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
       fullName: null,
       school: null,
       gradeLevels: null,
-      createdAt: new Date()
+      createdAt: new Date(),
     }
   }
 
-  // Check file upload limits if attachments are present
   if (attachments.length > 0 && !canUploadFile(userProfile.subscriptionPlan, userProfile.dailyFileUploads)) {
     const planConfig = getPlanConfig(userProfile.subscriptionPlan)
     const limit = planConfig.limits.fileUploadsPerDay
@@ -65,12 +73,11 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     return {
       answer: errorMessage,
       sessionId: sessionId ?? null,
-      chatId: chatId,
-      error: errorMessage
+      chatId,
+      error: errorMessage,
     }
   }
 
-  // Token-based monthly credit cap gate
   let creditsRemaining: number
   let resetDate: string | null
   try {
@@ -83,8 +90,8 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     return {
       answer: errorMessage,
       sessionId: sessionId ?? null,
-      chatId: chatId,
-      error: errorMessage
+      chatId,
+      error: errorMessage,
     }
   }
 
@@ -101,7 +108,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
         email,
         plan: userProfile.subscriptionPlan,
         resetDate,
-      }).catch((error) => console.error('[credit_limit_email_failed]', { userId: authorId, error }))
+      }).catch((sendError) => console.error('[credit_limit_email_failed]', { userId: authorId, error: sendError }))
     }
     await recordUsageLedgerEvent({
       userId: authorId,
@@ -117,28 +124,37 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
         chatId: chatId ?? null,
         resetDate,
         promptLength: prompt.length,
+        chatMode: normalizedChatMode,
       },
     })
     return {
       answer: errorMessage,
       sessionId: sessionId ?? null,
-      chatId: chatId,
-      error: errorMessage
+      chatId,
+      error: errorMessage,
     }
   }
 
-  // Enforce Deep Research entitlement on the server (defense-in-depth)
   if (researchMode && !(userProfile.subscriptionPlan === 'pro' || userProfile.subscriptionPlan === 'plus')) {
     const errorMessage = 'Deep Research mode is available on Pro and Plus plans.'
     return {
       answer: errorMessage,
       sessionId: sessionId ?? null,
-      chatId: chatId,
-      error: errorMessage
+      chatId,
+      error: errorMessage,
     }
   }
 
-  // Fetch chat history if sessionId exists
+  if (normalizedChatMode === 'image') {
+    const comingSoonMessage = 'Image mode is coming soon. For now, ask Tera for help explaining, planning, or drafting your idea in chat mode.'
+    return {
+      answer: comingSoonMessage,
+      sessionId: sessionId ?? null,
+      chatId,
+      error: comingSoonMessage,
+    }
+  }
+
   let history: { role: 'user' | 'assistant'; content: string }[] = []
 
   if (sessionId) {
@@ -150,19 +166,25 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
       .limit(10)
 
     if (historyData) {
-      // Format history: Oldest -> Newest
       history = historyData
         .reverse()
-        .map(msg => [
+        .map((msg) => [
           { role: 'user' as const, content: msg.prompt },
-          { role: 'assistant' as const, content: msg.response }
+          { role: 'assistant' as const, content: msg.response },
         ])
         .flat()
     }
   }
 
-  // Generate the AI response
-  const generationResult = await generateTeacherResponse({ prompt, tool, attachments, history, userId: authorId, researchMode })
+  const generationResult = await generateTeacherResponse({
+    prompt,
+    tool,
+    attachments,
+    history,
+    userId: authorId,
+    researchMode,
+    chatMode: normalizedChatMode,
+  })
   const answer = generationResult.text
   const rawTokenCost = Number(generationResult.usage.totalTokens ?? 0)
   const tokenCost = Number.isFinite(rawTokenCost)
@@ -171,8 +193,9 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
 
   const creditsToCharge = calculateCreditsForTokens(tokenCost)
   const currentSessionId = sessionId || crypto.randomUUID()
+  const persistedChatMode = chatMode ?? (researchMode ? 'research' : 'ask')
+  const metadata = { chatMode: persistedChatMode }
 
-  // Find existing title if continuing a session
   let existingTitle: string | null = null
   if (sessionId) {
     const { data: titleData } = await supabaseServer
@@ -192,21 +215,30 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
   let persistenceWarning: string | undefined
 
   if (chatId) {
-    const baseUpdatePayload = { prompt, response: answer, attachments }
+    const baseUpdatePayload = { prompt, response: answer, attachments, metadata }
+    let updatePayload: Record<string, any> = { ...baseUpdatePayload, token_usage: tokenCost }
+    let error: any = null
 
-    let { error } = await supabaseServer
-      .from('chat_sessions')
-      .update({ ...baseUpdatePayload, token_usage: tokenCost })
-      .eq('id', chatId)
-      .eq('user_id', authorId)
-
-    if (error && isMissingColumnError(error, 'token_usage')) {
-      const retryResult = await supabaseServer
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const result = await supabaseServer
         .from('chat_sessions')
-        .update(baseUpdatePayload)
+        .update(updatePayload)
         .eq('id', chatId)
         .eq('user_id', authorId)
-      error = retryResult.error
+
+      error = result.error
+
+      if (!error) break
+
+      if (isMissingColumnError(error, 'metadata') && 'metadata' in updatePayload) {
+        updatePayload = omitField(updatePayload, 'metadata')
+        continue
+      }
+      if (isMissingColumnError(error, 'token_usage') && 'token_usage' in updatePayload) {
+        updatePayload = omitField(updatePayload, 'token_usage')
+        continue
+      }
+      break
     }
 
     if (error) {
@@ -222,16 +254,17 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
       prompt,
       response: answer,
       attachments,
+      metadata,
       created_at: new Date().toISOString(),
       session_id: currentSessionId,
-      title: title
+      title,
     }
 
     let insertPayload: Record<string, any> = { ...baseInsertPayload, token_usage: tokenCost }
     let data: { id: string } | null = null
     let error: any = null
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
       const result = await supabaseServer
         .from('chat_sessions')
         .insert(insertPayload)
@@ -243,6 +276,10 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
 
       if (!error) break
 
+      if (isMissingColumnError(error, 'metadata') && 'metadata' in insertPayload) {
+        insertPayload = omitField(insertPayload, 'metadata')
+        continue
+      }
       if (isMissingColumnError(error, 'token_usage') && 'token_usage' in insertPayload) {
         insertPayload = omitField(insertPayload, 'token_usage')
         continue
@@ -271,7 +308,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     await incrementChatsServer(authorId)
   }
 
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
   const maxAccountingAttempts = 2
   let usageAccountingSucceeded = false
 
@@ -298,13 +335,16 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     sessionId: currentSessionId,
     metadata: {
       researchMode,
+      chatMode: normalizedChatMode,
       persistenceWarning: persistenceWarning ?? null,
       usageAccountingSucceeded,
       attachmentCount: attachments.length,
     },
   })
 
-  const warning = [persistenceWarning, !usageAccountingSucceeded ? 'Your response was generated, but usage accounting is delayed.' : ''].filter(Boolean).join(' ') || undefined
+  const warning = [persistenceWarning, !usageAccountingSucceeded ? 'Your response was generated, but usage accounting is delayed.' : '']
+    .filter(Boolean)
+    .join(' ') || undefined
 
   revalidatePath('/')
   revalidatePath('/history')
@@ -312,5 +352,10 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
     revalidatePath('/profile')
   }
 
-  return { answer, sessionId: chatPersisted ? currentSessionId : (sessionId ?? null), chatId: savedChatId, warning }
+  return {
+    answer,
+    sessionId: chatPersisted ? currentSessionId : (sessionId ?? null),
+    chatId: savedChatId,
+    warning,
+  }
 }
