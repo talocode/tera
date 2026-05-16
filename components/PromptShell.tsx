@@ -17,12 +17,11 @@ import { fetchChatHistory } from '@/app/actions/user'
 import { addNote } from '@/app/actions/notes'
 import { dispatchUsageRefresh } from '@/lib/usage-events'
 import { compressImage } from '@/lib/image-compression'
+import { getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
-import ChatModePicker, { type ChatMode } from './chat/ChatModePicker'
-
-type ChatMode = 'ask' | 'study' | 'summarize' | 'quiz' | 'image'
+import ChatModePicker, { type ChatMode as SurfaceMode } from './chat/ChatModePicker'
 
 type Message = {
     id: string
@@ -53,7 +52,6 @@ type QueuedMessage = {
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
 
-
 const getChatModeForTool = (toolName: string): ChatMode => {
     const normalized = toolName.toLowerCase()
 
@@ -72,6 +70,18 @@ const getChatModeForTool = (toolName: string): ChatMode => {
 }
 
 const isNoteSaveMode = (chatMode?: ChatMode) => chatMode === 'study' || chatMode === 'summarize'
+
+const mapSurfaceModeToChatMode = (surfaceMode: SurfaceMode, currentChatMode: ChatMode): ChatMode => {
+    if (surfaceMode === 'research') {
+        return currentChatMode === 'ask' ? 'study' : currentChatMode
+    }
+
+    if (surfaceMode === 'image') {
+        return 'image'
+    }
+
+    return currentChatMode
+}
 
 const generateAnswer = async (payload: GenerateProps): Promise<GenerateAnswerResult> => {
     const response = await fetch('/api/generate', {
@@ -302,7 +312,7 @@ export default function PromptShell({
     const [upgradePromptType, setUpgradePromptType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
     const [limitModalType, setLimitModalType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
     const [limitUnlocksAt, setLimitUnlocksAt] = useState<Date | undefined>(undefined)
-    const [selectedMode, setSelectedMode] = useState<ChatMode>('chat')
+    const [selectedMode, setSelectedMode] = useState<SurfaceMode>('chat')
     const [searchHistoryOpen, setSearchHistoryOpen] = useState(false)
     const researchMode = selectedMode === 'research'
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
@@ -386,8 +396,8 @@ export default function PromptShell({
         setStatus('loading')
         const currentRequestId = ++requestIdRef.current
         const entryId = editingMessageId ?? createId()
-        const chatMode = getChatModeForTool(tool.name)
-        const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode }
+        const outgoingChatMode = researchMode ? mapSurfaceModeToChatMode('research', mode) : mode
+        const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode: outgoingChatMode }
         
         setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage: undefined } : e) : [...prev, { id: entryId, userMessage }])
         setConversationActive(true)
@@ -396,8 +406,17 @@ export default function PromptShell({
         startTransition(async () => {
             try {
                 setThinkingMessage(getThinkingMessage(messageToSend))
-                const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode, chatMode: researchMode ? 'research' : 'ask' })
-                const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode, chatMode: mode })
+                const result = await generateAnswer({
+                    prompt: messageToSend,
+                    tool: tool.name,
+                    authorId: user?.id ?? '',
+                    authorEmail: user?.email ?? undefined,
+                    attachments: attachmentsToSend,
+                    sessionId: currentSessionId,
+                    chatId: editingMessageId ?? undefined,
+                    researchMode,
+                    chatMode: outgoingChatMode,
+                })
 
                 if (currentRequestId !== requestIdRef.current) return
 
@@ -411,7 +430,7 @@ export default function PromptShell({
                 }
 
                 if (result.sessionId && result.sessionId !== currentSessionId) setCurrentSessionId(result.sessionId)
-                const assistantMessage: Message = { id: createId(), role: 'tera', content: result.answer, timestamp: Date.now(), chatMode }
+                const assistantMessage: Message = { id: createId(), role: 'tera', content: result.answer, timestamp: Date.now(), chatMode: outgoingChatMode }
                 setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage, sessionId: result.sessionId } : e))
                 setAttachmentMessage(result.warning || null)
                 dispatchUsageRefresh('messages')

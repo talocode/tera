@@ -7,7 +7,7 @@ import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
 import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
 import { recordUsageLedgerEvent } from '@/lib/usage-ledger'
-import { normalizeChatMode } from '@/lib/chat-mode'
+import { normalizeChatMode } from '@/lib/ai/chat-modes'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {

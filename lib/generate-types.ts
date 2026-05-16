@@ -1,6 +1,5 @@
 import type { AttachmentReference } from '@/lib/attachment'
-
-export type ChatMode = 'ask' | 'learn' | 'research' | 'build'
+import type { ChatMode } from '@/lib/ai/chat-modes'
 
 export type GenerateProps = {
   prompt: string

@@ -1,6 +1,6 @@
 import type { AttachmentReference } from './attachment'
-import type { ChatMode } from './chat-mode'
-import { getChatModeSystemPrompt, normalizeChatMode } from './chat-mode'
+import type { ChatMode } from './ai/chat-modes'
+import { getChatModeSystemPrompt, normalizeChatMode } from './ai/chat-modes'
 import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
@@ -71,7 +71,30 @@ GOOGLE SHEETS AND SPREADSHEETS:
 - For spreadsheet edits, generate edit instructions in a json:edit block.
 `
 
-function getToolResponseStyle(tool: string, researchMode: boolean): string {
+function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: ChatMode): string {
+  if (chatMode === 'study') {
+    return `\nMode Guidance:
+- Act like a strong teacher.
+- Explain from first principles.
+- Use one simple mental model or worked example when it helps.
+- Keep the explanation approachable without sounding childish.`
+  }
+
+  if (chatMode === 'quiz') {
+    return `\nMode Guidance:
+- Act like a focused tutor running practice.
+- Keep questions clear and progressively useful.
+- Grade briefly and explain the reasoning behind corrections.
+- Use the next question to reinforce the weak spot.`
+  }
+
+  if (chatMode === 'summarize') {
+    return `\nMode Guidance:
+- Act like a sharp analyst.
+- Distill the material into the essential points, structure, and takeaways.
+- Prefer compression with clarity over volume.`
+  }
+
   const normalizedTool = tool.trim().toLowerCase()
 
   if (researchMode || normalizedTool.includes('research')) {
@@ -197,8 +220,7 @@ export async function generateTeacherResponse({
   history = [] as { role: 'user' | 'assistant'; content: string }[],
   userId,
   researchMode = false,
-  chatMode = 'ask'
-  chatMode
+  chatMode = 'ask',
 }: {
   prompt: string
   tool: string
@@ -218,9 +240,6 @@ export async function generateTeacherResponse({
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
     }
   }
-
-  const imageAttachments = attachments.filter(att => att.type === 'image')
-  const fileAttachments = attachments.filter(att => att.type === 'file')
 
   let extractedTexts: string[] = []
   if (fileAttachments.length > 0) {
@@ -279,7 +298,7 @@ ${modeSystemPrompt}
 - Keep the explanation clean and easy to scan.
 - Use one example or practical takeaway when it helps.
 - End naturally. Do not force generic follow-up questions.`
-  const toolStyle = getToolResponseStyle(tool, researchMode)
+  const toolStyle = getToolResponseStyle(tool, researchMode, normalizedChatMode)
 
   toolContext += `\nChat Mode: ${chatMode}.`
 
