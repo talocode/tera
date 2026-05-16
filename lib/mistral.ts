@@ -1,4 +1,5 @@
 import type { AttachmentReference } from './attachment'
+import type { TeraChatMode } from './generate-types'
 import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
@@ -69,7 +70,32 @@ GOOGLE SHEETS AND SPREADSHEETS:
 - For spreadsheet edits, generate edit instructions in a json:edit block.
 `
 
-function getToolResponseStyle(tool: string, researchMode: boolean): string {
+function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: TeraChatMode): string {
+  if (chatMode === 'research') {
+    return `\nMode Guidance:
+- Act like a precise research partner.
+- Surface the answer first, then the reasoning, evidence, tradeoffs, and implications.
+- Distinguish clearly between what is known, what is likely, and what remains uncertain.
+- Prefer synthesis over volume.
+- Use citations and links where they add real value.`
+  }
+
+  if (chatMode === 'build') {
+    return `\nMode Guidance:
+- Act like a practical builder's assistant.
+- Turn ideas into steps, decisions, examples, checklists, or implementation plans.
+- Be concrete and execution-oriented.
+- Call out tradeoffs, constraints, and the next action.`
+  }
+
+  if (chatMode === 'learn') {
+    return `\nMode Guidance:
+- Act like a strong teacher.
+- Explain from first principles.
+- Use one simple mental model or worked example when it helps.
+- Keep the explanation approachable without sounding childish.`
+  }
+
   const normalizedTool = tool.trim().toLowerCase()
 
   if (researchMode || normalizedTool.includes('research')) {
@@ -195,6 +221,7 @@ export async function generateTeacherResponse({
   history = [] as { role: 'user' | 'assistant'; content: string }[],
   userId,
   researchMode = false,
+  chatMode = researchMode ? 'research' : 'general',
 }: {
   prompt: string
   tool: string
@@ -202,6 +229,7 @@ export async function generateTeacherResponse({
   history?: { role: 'user' | 'assistant'; content: string }[]
   userId?: string
   researchMode?: boolean
+  chatMode?: TeraChatMode
 }) {
   const imageAttachments = attachments.filter((att) => att.type === 'image')
   const fileAttachments = attachments.filter((att) => att.type === 'file')
@@ -254,7 +282,7 @@ export async function generateTeacherResponse({
 - Keep the explanation clean and easy to scan.
 - Use one example or practical takeaway when it helps.
 - End naturally. Do not force generic follow-up questions.`
-  const toolStyle = getToolResponseStyle(tool, researchMode)
+  const toolStyle = getToolResponseStyle(tool, researchMode, chatMode)
 
   let userContent: any
   if (imageAttachments.length > 0) {

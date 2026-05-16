@@ -32,7 +32,7 @@ function omitField<T extends Record<string, any>, K extends keyof T>(payload: T,
   return rest
 }
 
-export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false }: GenerateProps): Promise<GenerateAnswerResult> {
+export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode = researchMode ? 'research' : 'general' }: GenerateProps): Promise<GenerateAnswerResult> {
   // Get user profile and check limits
   let userProfile = await getUserProfileServer(authorId)
 
@@ -117,6 +117,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
         chatId: chatId ?? null,
         resetDate,
         promptLength: prompt.length,
+        chatMode,
       },
     })
     return {
@@ -162,7 +163,7 @@ export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEm
   }
 
   // Generate the AI response
-  const generationResult = await generateTeacherResponse({ prompt, tool, attachments, history, userId: authorId, researchMode })
+  const generationResult = await generateTeacherResponse({ prompt, tool, attachments, history, userId: authorId, researchMode, chatMode })
   const answer = generationResult.text
   const rawTokenCost = Number(generationResult.usage.totalTokens ?? 0)
   const tokenCost = Number.isFinite(rawTokenCost)

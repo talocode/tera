@@ -2,7 +2,7 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
-import { generateAnswer } from '@/app/actions/generate'
+import type { GenerateAnswerResult, GenerateProps, TeraChatMode } from '@/lib/generate-types'
 import type { TeacherTool } from './ToolCard'
 
 type User = {
@@ -40,6 +40,45 @@ type QueuedMessage = {
 }
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
+
+const inferChatMode = (tool: TeacherTool, researchMode: boolean): TeraChatMode => {
+    if (researchMode) return 'research'
+
+    const searchable = `${tool.name} ${tool.description} ${tool.tags.join(' ')}`.toLowerCase()
+
+    if (/(research|deep dive|analysis|citation|data|reading|resource|investigation|web)/.test(searchable)) {
+        return 'research'
+    }
+
+    if (/(build|builder|plan|planner|generator|creator|project|resume|rubric|lesson|worksheet|materials|spreadsheet)/.test(searchable)) {
+        return 'build'
+    }
+
+    if (/(learn|study|homework|concept|explain|clarifier|quiz|practice|language|math|skill)/.test(searchable)) {
+        return 'learn'
+    }
+
+    return 'general'
+}
+
+const generateAnswer = async (payload: GenerateProps): Promise<GenerateAnswerResult> => {
+    const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'same-origin',
+        cache: 'no-store',
+    })
+
+    const result = await response.json().catch(() => null) as GenerateAnswerResult | null
+    if (result) return result
+
+    const message = response.ok
+        ? 'Unable to generate a reply'
+        : `Unable to generate a reply (${response.status})`
+
+    return { answer: message, sessionId: payload.sessionId ?? null, chatId: payload.chatId, error: message }
+}
 
 import dynamic from 'next/dynamic'
 
@@ -338,7 +377,17 @@ export default function PromptShell({
         startTransition(async () => {
             try {
                 setThinkingMessage(getThinkingMessage(messageToSend))
-                const result = await generateAnswer({ prompt: messageToSend, tool: tool.name, authorId: user?.id ?? '', authorEmail: user?.email ?? undefined, attachments: attachmentsToSend, sessionId: currentSessionId, chatId: editingMessageId ?? undefined, researchMode })
+                const result = await generateAnswer({
+                    prompt: messageToSend,
+                    tool: tool.name,
+                    authorId: user?.id ?? '',
+                    authorEmail: user?.email ?? undefined,
+                    attachments: attachmentsToSend,
+                    sessionId: currentSessionId,
+                    chatId: editingMessageId ?? undefined,
+                    researchMode,
+                    chatMode: inferChatMode(tool, researchMode)
+                })
 
                 if (currentRequestId !== requestIdRef.current) return
 
@@ -365,7 +414,7 @@ export default function PromptShell({
             setEditingMessageId(null)
             setQueuedMessage(null)
         })
-    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, currentSessionId, researchMode])
+    }, [editingMessageId, hasBumpedInput, tool, user?.id, user?.email, currentSessionId, researchMode])
 
     const handleStop = () => {
         requestIdRef.current += 1
