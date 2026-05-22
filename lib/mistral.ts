@@ -1,5 +1,7 @@
 import type { AttachmentReference } from './attachment'
 import type { TeraChatMode } from './generate-types'
+import type { ChatMode } from './ai/chat-modes'
+import { getChatModeSystemPrompt, normalizeChatMode } from './ai/chat-modes'
 import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
@@ -94,6 +96,28 @@ function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: Ter
 - Explain from first principles.
 - Use one simple mental model or worked example when it helps.
 - Keep the explanation approachable without sounding childish.`
+function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: ChatMode): string {
+  if (chatMode === 'study') {
+    return `\nMode Guidance:
+- Act like a strong teacher.
+- Explain from first principles.
+- Use one simple mental model or worked example when it helps.
+- Keep the explanation approachable without sounding childish.`
+  }
+
+  if (chatMode === 'quiz') {
+    return `\nMode Guidance:
+- Act like a focused tutor running practice.
+- Keep questions clear and progressively useful.
+- Grade briefly and explain the reasoning behind corrections.
+- Use the next question to reinforce the weak spot.`
+  }
+
+  if (chatMode === 'summarize') {
+    return `\nMode Guidance:
+- Act like a sharp analyst.
+- Distill the material into the essential points, structure, and takeaways.
+- Prefer compression with clarity over volume.`
   }
 
   const normalizedTool = tool.trim().toLowerCase()
@@ -222,6 +246,7 @@ export async function generateTeacherResponse({
   userId,
   researchMode = false,
   chatMode = researchMode ? 'research' : 'general',
+  chatMode = 'ask',
 }: {
   prompt: string
   tool: string
@@ -230,9 +255,18 @@ export async function generateTeacherResponse({
   userId?: string
   researchMode?: boolean
   chatMode?: TeraChatMode
+  chatMode?: ChatMode
 }) {
   const imageAttachments = attachments.filter((att) => att.type === 'image')
   const fileAttachments = attachments.filter((att) => att.type === 'file')
+  const normalizedChatMode = normalizeChatMode(chatMode)
+
+  if (normalizedChatMode === 'image') {
+    return {
+      text: 'System: Image mode must be routed to the image generation provider, not the text chat provider.',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+    }
+  }
 
   let extractedTexts: string[] = []
   if (fileAttachments.length > 0) {
@@ -256,7 +290,16 @@ export async function generateTeacherResponse({
     enhancedPrompt = `${fileContents}\n\nUser Question: ${prompt}`
   }
 
+  const modeSystemPrompt = getChatModeSystemPrompt(normalizedChatMode)
+
   let systemPromptWithMemory = systemMessage
+  if (modeSystemPrompt) {
+    systemPromptWithMemory += `
+
+ === CHAT MODE INSTRUCTIONS ===
+${modeSystemPrompt}
+ === END CHAT MODE INSTRUCTIONS ===`
+  }
   if (userId) {
     const memories = await getMemories(userId)
     if (memories) {
@@ -283,6 +326,9 @@ export async function generateTeacherResponse({
 - Use one example or practical takeaway when it helps.
 - End naturally. Do not force generic follow-up questions.`
   const toolStyle = getToolResponseStyle(tool, researchMode, chatMode)
+  const toolStyle = getToolResponseStyle(tool, researchMode, normalizedChatMode)
+
+  toolContext += `\nChat Mode: ${chatMode}.`
 
   let userContent: any
   if (imageAttachments.length > 0) {
