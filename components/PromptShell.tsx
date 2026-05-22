@@ -2,6 +2,7 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
+import type { GenerateAnswerResult, GenerateProps, TeraChatMode } from '@/lib/generate-types'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/chat-modes'
 import type { TeacherTool } from './ToolCard'
@@ -52,6 +53,24 @@ type QueuedMessage = {
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
 
+const inferChatMode = (tool: TeacherTool, researchMode: boolean): TeraChatMode => {
+    if (researchMode) return 'research'
+
+    const searchable = `${tool.name} ${tool.description} ${tool.tags.join(' ')}`.toLowerCase()
+
+    if (/(research|deep dive|analysis|citation|data|reading|resource|investigation|web)/.test(searchable)) {
+        return 'research'
+    }
+
+    if (/(build|builder|plan|planner|generator|creator|project|resume|rubric|lesson|worksheet|materials|spreadsheet)/.test(searchable)) {
+        return 'build'
+    }
+
+    if (/(learn|study|homework|concept|explain|clarifier|quiz|practice|language|math|skill)/.test(searchable)) {
+        return 'learn'
+    }
+
+    return 'general'
 const getChatModeForTool = (toolName: string): ChatMode => {
     const normalized = toolName.toLowerCase()
 
@@ -415,6 +434,7 @@ export default function PromptShell({
                     sessionId: currentSessionId,
                     chatId: editingMessageId ?? undefined,
                     researchMode,
+                    chatMode: inferChatMode(tool, researchMode)
                     chatMode: outgoingChatMode,
                 })
 
@@ -443,6 +463,7 @@ export default function PromptShell({
             setEditingMessageId(null)
             setQueuedMessage(null)
         })
+    }, [editingMessageId, hasBumpedInput, tool, user?.id, user?.email, currentSessionId, researchMode])
     }, [editingMessageId, hasBumpedInput, tool.name, user?.id, user?.email, currentSessionId, researchMode])
 
     const handleSaveNote = async (assistantMessage: Message) => {
