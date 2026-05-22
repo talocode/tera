@@ -1,0 +1,5 @@
+packages:
+  - backend-server
+  - mobile
+allowBuilds:
+  esbuild: set this to true or false
