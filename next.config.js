@@ -4,6 +4,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  turbopack: {},
   webpack: (config) => {
     if (process.env.DISABLE_WEBPACK_CACHE === "1") {
       config.cache = false;
