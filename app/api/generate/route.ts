@@ -55,8 +55,6 @@ export async function POST(request: Request) {
     }, { status: 400 })
   }
 
-  try {
-    return NextResponse.json(await generateAnswerForPrompt(body))
   const chatMode = normalizeChatMode(body.chatMode)
 
   if (!chatMode) {

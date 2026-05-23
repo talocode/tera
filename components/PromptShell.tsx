@@ -3,7 +3,6 @@
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import type { GenerateAnswerResult, GenerateProps, TeraChatMode } from '@/lib/generate-types'
-import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/chat-modes'
 import type { TeacherTool } from './ToolCard'
 
@@ -18,7 +17,6 @@ import { fetchChatHistory } from '@/app/actions/user'
 import { addNote } from '@/app/actions/notes'
 import { dispatchUsageRefresh } from '@/lib/usage-events'
 import { compressImage } from '@/lib/image-compression'
-import { getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
@@ -71,6 +69,8 @@ const inferChatMode = (tool: TeacherTool, researchMode: boolean): TeraChatMode =
     }
 
     return 'general'
+}
+
 const getChatModeForTool = (toolName: string): ChatMode => {
     const normalized = toolName.toLowerCase()
 
@@ -434,7 +434,6 @@ export default function PromptShell({
                     sessionId: currentSessionId,
                     chatId: editingMessageId ?? undefined,
                     researchMode,
-                    chatMode: inferChatMode(tool, researchMode)
                     chatMode: outgoingChatMode,
                 })
 
@@ -464,7 +463,6 @@ export default function PromptShell({
             setQueuedMessage(null)
         })
     }, [editingMessageId, hasBumpedInput, tool, user?.id, user?.email, currentSessionId, researchMode])
-    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, user?.email, currentSessionId, researchMode])
 
     const handleSaveNote = async (assistantMessage: Message) => {
         if (!user?.id) {
@@ -562,12 +560,12 @@ export default function PromptShell({
         fetchChatHistory(user.id, sessionId).then(data => {
             if (data) {
                 const loaded: ConversationEntry[] = data.map(s => {
-                    const chatMode = getChatModeForTool(s.tool ?? tool.name)
+                    const mode = getChatModeForTool(s.tool ?? tool.name)
 
                     return {
                         id: s.id, sessionId: s.id,
-                        userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: s.attachments as AttachmentReference[], timestamp: new Date(s.created_at).getTime(), chatMode },
-                        assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode }
+                        userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: s.attachments as AttachmentReference[], timestamp: new Date(s.created_at).getTime(), chatMode: mode },
+                        assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode: mode }
                     }
                 })
                 setConversations(prev => loaded.length === 0 && prev.length > 0 ? prev : loaded)
