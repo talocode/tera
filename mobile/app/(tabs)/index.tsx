@@ -28,25 +28,37 @@ export default function HomeScreen() {
 
   return (
     <Screen scroll>
-      <View style={styles.header}>
-        <Text variant="caption" style={styles.brand}>TeraAI</Text>
-        <Text variant="h1">Good to see you{user?.name ? `, ${user.name.split(' ')[0]}` : ''}.</Text>
-        <Text muted>Ask, learn, research, or turn an idea into a concrete next step.</Text>
+      <View style={styles.hero}>
+        <Text variant="overline">TeraAI</Text>
+        <View style={styles.heroCopy}>
+          <Text variant="h1">Good to see you{user?.name ? `, ${user.name.split(' ')[0]}` : ''}.</Text>
+          <Text variant="body" muted>
+            Ask, learn, research, or turn an idea into a concrete next step.
+          </Text>
+        </View>
       </View>
 
-      <SegmentedControl value={selectedMode} options={modeOptions} onChange={setSelectedMode} />
+      <View style={styles.modeBlock}>
+        <SegmentedControl value={selectedMode} options={modeOptions} onChange={setSelectedMode} />
+        <Text variant="bodySmall" muted>
+          Switch Tera between explanation, research depth, and execution support.
+        </Text>
+      </View>
 
-      <View style={styles.composerBlock}>
+      <View style={styles.composerCard}>
+        <Text variant="title">Start a new thread</Text>
         <Composer
           disabled={startConversation.isPending}
           onSubmit={(prompt) => startConversation.mutate(prompt)}
           placeholder={`Ask Tera in ${selectedMode} mode...`}
         />
-        <Text variant="caption" muted>Start a new learning thread from the home composer or a starter prompt.</Text>
       </View>
 
       <View style={styles.section}>
-        <Text variant="h3">Starter prompts</Text>
+        <View style={styles.sectionHead}>
+          <Text variant="h3">Starter prompts</Text>
+          <Text variant="overline">{selectedMode}</Text>
+        </View>
         <View style={styles.chips}>
           {starterPrompts[selectedMode].map((prompt) => (
             <Chip key={prompt} label={prompt} onPress={() => startConversation.mutate(prompt)} />
@@ -55,10 +67,14 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text variant="h3">Recent conversations</Text>
+        <View style={styles.sectionHead}>
+          <Text variant="h3">Recent conversations</Text>
+          <Text variant="bodySmall" muted>Your latest learning threads</Text>
+        </View>
         <Button
           label="New"
           variant="secondary"
+          fullWidth={false}
           style={styles.newButton}
           onPress={() => startConversation.mutate('Help me explore Tera in this mode.')}
           loading={startConversation.isPending}
@@ -80,20 +96,31 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
+  hero: {
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  heroCopy: {
+    gap: spacing.md,
+  },
+  modeBlock: {
     gap: spacing.md,
     marginBottom: spacing.xl,
   },
-  brand: {
-    color: colors.accent,
-  },
-  composerBlock: {
-    marginTop: spacing.xl,
-    gap: spacing.sm,
+  composerCard: {
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   section: {
     marginTop: spacing.xxl,
     gap: spacing.md,
+  },
+  sectionHead: {
+    gap: spacing.xs,
   },
   chips: {
     gap: spacing.md,
@@ -102,7 +129,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxl,
     marginBottom: spacing.md,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
@@ -111,6 +138,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   list: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
 });

@@ -4,6 +4,7 @@
   surface: '#141C19',
   surfaceMuted: '#1B2521',
   surfacePressed: '#22302B',
+  surfaceStrong: '#18211D',
   border: '#26352F',
   borderMuted: '#1C2824',
   text: '#F4F7F5',
@@ -12,6 +13,7 @@
   accent: '#6EE7B7',
   accentStrong: '#34D399',
   accentMuted: '#14382B',
+  accentSoft: '#C8F5E3',
   danger: '#F87171',
   warning: '#FBBF24',
   white: '#FFFFFF',
@@ -41,9 +43,11 @@ export const typography = {
   h1: 30,
   h2: 24,
   h3: 19,
+  title: 17,
   body: 16,
   bodySmall: 14,
   caption: 12,
+  overline: 11,
 } as const;
 
 export const layout = {

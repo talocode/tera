@@ -1,7 +1,7 @@
 ﻿import { Text as NativeText, TextProps, StyleSheet } from 'react-native';
 import { colors, typography } from '@/constants/theme';
 
-type Variant = 'hero' | 'h1' | 'h2' | 'h3' | 'body' | 'bodySmall' | 'caption';
+type Variant = 'hero' | 'h1' | 'h2' | 'h3' | 'title' | 'body' | 'bodySmall' | 'caption' | 'overline';
 
 interface AppTextProps extends TextProps {
   variant?: Variant;
@@ -42,6 +42,11 @@ const styles = StyleSheet.create({
     lineHeight: 25,
     fontWeight: '700',
   },
+  title: {
+    fontSize: typography.title,
+    lineHeight: 24,
+    fontWeight: '700',
+  },
   body: {
     fontSize: typography.body,
     lineHeight: 24,
@@ -57,6 +62,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '600',
     textTransform: 'uppercase',
+  },
+  overline: {
+    fontSize: typography.overline,
+    lineHeight: 14,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    color: colors.textSubtle,
   },
   muted: {
     color: colors.textMuted,

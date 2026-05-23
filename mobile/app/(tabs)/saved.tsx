@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, View } from 'react-native';
 import { EmptyState, ListRow, LoadingState, Screen, Text } from '@/components/ui';
 import { spacing } from '@/constants/theme';
@@ -14,8 +14,9 @@ export default function SavedScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
+        <Text variant="overline">Pinned</Text>
         <Text variant="h1">Saved</Text>
-        <Text muted>Keep the conversations and outputs worth returning to.</Text>
+        <Text variant="body" muted>Keep the conversations and outputs worth returning to.</Text>
       </View>
       {saved.isLoading ? (
         <LoadingState label="Loading saved items..." />
@@ -43,6 +44,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   list: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
 });

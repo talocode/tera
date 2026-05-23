@@ -94,7 +94,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
           SUPABASE_URL=${SUPABASE_URL}
           WEB_URL=${WEB_URL}
+          NODE_ENV=production
           EOF
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy Frontend (tera-web) to Cloudflare Workers
         run: pnpm exec wrangler deploy --config wrangler.jsonc --secrets-file .cloudflare.secrets.env
+
+      - name: Deploy Backend API (tera-api) to Cloudflare Workers
+        run: pnpm exec wrangler deploy --config backend-server/wrangler.toml --secrets-file .cloudflare.secrets.env

@@ -27,10 +27,10 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: layout.minTouchTarget,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceStrong,
     color: colors.text,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,

@@ -13,6 +13,7 @@ interface ButtonProps {
   loading?: boolean;
   icon?: ReactNode;
   style?: ViewStyle;
+  fullWidth?: boolean;
 }
 
 export function Button({
@@ -23,6 +24,7 @@ export function Button({
   loading,
   icon,
   style,
+  fullWidth = true,
 }: ButtonProps) {
   return (
     <Pressable
@@ -31,6 +33,7 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         styles[variant],
+        fullWidth && styles.fullWidth,
         pressed && styles.pressed,
         (disabled || loading) && styles.disabled,
         style,
@@ -53,11 +56,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  fullWidth: {
+    width: '100%',
+  },
   primary: {
     backgroundColor: colors.accent,
   },
   secondary: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },

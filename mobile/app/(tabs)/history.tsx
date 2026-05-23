@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { EmptyState, LoadingState, Screen, Text, TextField } from '@/components/ui';
@@ -24,8 +24,9 @@ export default function HistoryScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
+        <Text variant="overline">Library</Text>
         <Text variant="h1">History</Text>
-        <Text muted>Return to explanations, research threads, and build plans.</Text>
+        <Text variant="body" muted>Return to explanations, research threads, and build plans.</Text>
       </View>
       <TextField
         value={query}
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   list: {
-    gap: spacing.md,
+    gap: spacing.lg,
     marginTop: spacing.xl,
   },
 });

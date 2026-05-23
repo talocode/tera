@@ -1,8 +1,8 @@
-import express from 'express';
-import { AuthRequest, authMiddleware } from '../middleware/auth.js';
+import { Hono } from 'hono';
+import { honoAuthMiddleware } from '../middleware/hono-auth.js';
 import { generateTool } from '../services/mistral.js';
 
-const router = express.Router();
+const router = new Hono();
 
 const TOOLS = [
   { id: 'concept-explainer', name: 'Concept Explainer', description: 'Break down any topic into simple, understandable chunks', category: 'learning' },
@@ -13,25 +13,35 @@ const TOOLS = [
   { id: 'study-guide', name: 'Study Guide', description: 'Create personalized study guides with key concepts and practice', category: 'learning' },
 ];
 
-router.get('/', authMiddleware, async (req: AuthRequest, res: express.Response) => {
-  try { res.json({ success: true, data: TOOLS }); } catch (error) { res.status(500).json({ success: false, error: 'Failed to fetch tools' }); }
+router.get('/', honoAuthMiddleware, async (c: any) => {
+  try {
+    return c.json({ success: true, data: TOOLS });
+  } catch (error) {
+    return c.json({ success: false, error: 'Failed to fetch tools' }, 500);
+  }
 });
 
-router.get('/:toolId', authMiddleware, async (req: AuthRequest, res: express.Response) => {
+router.get('/:toolId', honoAuthMiddleware, async (c: any) => {
   try {
-    const { toolId } = req.params;
+    const toolId = c.req.param('toolId');
     const tool = TOOLS.find(t => t.id === toolId);
-    if (!tool) return res.status(404).json({ success: false, error: 'Tool not found' });
-    res.json({ success: true, data: tool });
-  } catch (error) { res.status(500).json({ success: false, error: 'Failed to fetch tool' }); }
+    if (!tool) {
+      return c.json({ success: false, error: 'Tool not found' }, 404);
+    }
+    return c.json({ success: true, data: tool });
+  } catch (error) {
+    return c.json({ success: false, error: 'Failed to fetch tool' }, 500);
+  }
 });
 
-router.post('/:toolId/process', authMiddleware, async (req: AuthRequest, res: express.Response) => {
+router.post('/:toolId/process', honoAuthMiddleware, async (c: any) => {
   try {
-    const { toolId } = req.params;
-    const { input, context } = req.body;
+    const toolId = c.req.param('toolId');
+    const { input } = await c.req.json();
     const tool = TOOLS.find(t => t.id === toolId);
-    if (!tool) return res.status(404).json({ success: false, error: 'Tool not found' });
+    if (!tool) {
+      return c.json({ success: false, error: 'Tool not found' }, 404);
+    }
 
     const toolTypeMap: { [key: string]: string } = {
       'lesson-plan-generator': 'lessonPlan',
@@ -45,8 +55,18 @@ router.post('/:toolId/process', authMiddleware, async (req: AuthRequest, res: ex
     const toolType = toolTypeMap[toolId] || toolId;
     const result = await generateTool(toolType, input);
 
-    res.json({ success: true, data: { toolId, result, timestamp: new Date() } });
-  } catch (error) { res.status(500).json({ success: false, error: 'Failed to process tool' }); }
+    return c.json({
+      success: true,
+      data: {
+        toolId,
+        result,
+        timestamp: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error('Error processing tool:', error);
+    return c.json({ success: false, error: 'Failed to process tool' }, 500);
+  }
 });
 
 export default router;

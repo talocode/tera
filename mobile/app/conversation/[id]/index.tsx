@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, StyleSheet, View } from 'react-native';
@@ -30,8 +30,9 @@ export default function ConversationScreen() {
   const sendMessage = useMutation({
     mutationFn: (prompt: string) => teraApi.sendMessage(id, conversation.data?.mode ?? selectedMode, prompt),
     onMutate: (prompt) => {
+      const stamp = Date.now();
       const userMessage: Message = {
-        id: `local_${Date.now()}`,
+        id: `local_${stamp}`,
         conversationId: id,
         role: 'user',
         content: prompt,
@@ -39,7 +40,7 @@ export default function ConversationScreen() {
         status: 'sent',
       };
       const streamingMessage: Message = {
-        id: `streaming_${Date.now()}`,
+        id: `streaming_${stamp}`,
         conversationId: id,
         role: 'assistant',
         content: 'Tera is preparing a learning-focused answer...',
@@ -79,8 +80,12 @@ export default function ConversationScreen() {
           keyboardVerticalOffset={keyboard.keyboardVerticalOffset}
         >
           <View style={styles.header}>
-            <Text variant="h2" numberOfLines={2}>{conversation.data?.title ?? 'Conversation'}</Text>
-            <Text variant="caption" muted>{conversation.data?.mode ?? selectedMode} mode</Text>
+            <View style={styles.headerCopy}>
+              <Text variant="h2" numberOfLines={2}>{conversation.data?.title ?? 'Conversation'}</Text>
+              <Text variant="bodySmall" muted>
+                {conversation.data?.mode ?? selectedMode} mode
+              </Text>
+            </View>
           </View>
           {conversation.isLoading ? (
             <LoadingState label="Loading conversation..." />
@@ -111,14 +116,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    gap: spacing.xs,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderMuted,
   },
+  headerCopy: {
+    gap: spacing.xs,
+  },
   messages: {
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
+    gap: spacing.xs,
   },
   composer: {
     paddingTop: spacing.md,

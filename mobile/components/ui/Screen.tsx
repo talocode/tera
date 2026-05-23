@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 18,
+    paddingTop: 22,
   },
   flex: {
     flex: 1,
