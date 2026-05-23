@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import chatRoutes from './routes/chat.js';
 import toolsRoutes from './routes/tools.js';
-import searchRoutes from './routes/search.js';
+// import searchRoutes from './routes/search.js';
 
 dotenv.config();
 
@@ -50,7 +50,7 @@ app.get('/health', (req: express.Request, res: express.Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/tools', toolsRoutes);
-app.use('/api/search', searchRoutes);
+// app.use('/api/search', searchRoutes);
 
 // Error handling middleware
 app.use(

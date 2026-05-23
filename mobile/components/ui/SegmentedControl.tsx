@@ -46,9 +46,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: spacing.xs,
     borderRadius: radii.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceStrong,
     borderWidth: 1,
-    borderColor: colors.borderMuted,
+    borderColor: colors.border,
   },
   item: {
     flex: 1,
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   labelSelected: {
-    color: colors.accent,
+    color: colors.accentSoft,
   },
 });

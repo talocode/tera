@@ -1,4 +1,4 @@
-﻿import { Switch, StyleSheet, View } from 'react-native';
+import { Switch, StyleSheet, View } from 'react-native';
 import { Button, Divider, ListRow, Screen, Text } from '@/components/ui';
 import { colors, radii, spacing } from '@/constants/theme';
 import { useAuthActions } from '@/features/auth/useAuthActions';
@@ -13,8 +13,9 @@ export default function ProfileScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
+        <Text variant="overline">Account</Text>
         <Text variant="h1">Profile</Text>
-        <Text muted>Manage your Tera account and app preferences.</Text>
+        <Text variant="body" muted>Manage your Tera account and app preferences.</Text>
       </View>
 
       <View style={styles.userPanel}>
@@ -24,17 +25,19 @@ export default function ProfileScreen() {
           </Text>
         </View>
         <View style={styles.userCopy}>
-          <Text variant="h3">{session?.user.name ?? 'Tera Learner'}</Text>
-          <Text muted>{session?.user.email ?? 'learner@tera.ai'}</Text>
-          <Text variant="caption" style={styles.plan}>{session?.user.plan ?? 'free'} plan</Text>
+          <Text variant="title">{session?.user.name ?? 'Tera Learner'}</Text>
+          <Text variant="bodySmall" muted>{session?.user.email ?? 'learner@tera.ai'}</Text>
+          <View style={styles.planPill}>
+            <Text variant="overline" style={styles.planText}>{session?.user.plan ?? 'free'} plan</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.preferenceRow}>
           <View style={styles.preferenceCopy}>
-            <Text variant="h3">Concise answers</Text>
-            <Text muted>Prefer shorter responses by default.</Text>
+            <Text variant="title">Concise answers</Text>
+            <Text variant="bodySmall" muted>Prefer shorter responses by default.</Text>
           </View>
           <Switch
             value={preferences.conciseAnswers}
@@ -45,8 +48,8 @@ export default function ProfileScreen() {
         <Divider />
         <View style={styles.preferenceRow}>
           <View style={styles.preferenceCopy}>
-            <Text variant="h3">Notifications</Text>
-            <Text muted>Prepared for study reminders and updates.</Text>
+            <Text variant="title">Notifications</Text>
+            <Text variant="bodySmall" muted>Prepared for study reminders and updates.</Text>
           </View>
           <Switch
             value={preferences.notificationsEnabled}
@@ -77,35 +80,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.lg,
     padding: spacing.lg,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderMuted,
+    borderColor: colors.border,
     marginBottom: spacing.xl,
   },
   avatar: {
-    width: 58,
-    height: 58,
+    width: 64,
+    height: 64,
     borderRadius: radii.pill,
     backgroundColor: colors.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: colors.accent,
+    color: colors.accentSoft,
   },
   userCopy: {
     flex: 1,
     gap: spacing.xs,
   },
-  plan: {
-    color: colors.accent,
+  planPill: {
+    alignSelf: 'flex-start',
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  planText: {
+    color: colors.accentSoft,
   },
   section: {
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderMuted,
+    borderColor: colors.border,
     marginBottom: spacing.xl,
     overflow: 'hidden',
   },
@@ -120,7 +132,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   list: {
-    gap: spacing.md,
+    gap: spacing.lg,
     marginBottom: spacing.xl,
   },
 });
