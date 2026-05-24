@@ -8,11 +8,8 @@ import toolsRoutes from './routes/tools.js';
 
 dotenv.config();
 
-// Configuration validation
 if (!process.env.SEARXNG_BASE_URL) {
-  console.error('❌ SEARXNG_BASE_URL is missing in .env file.');
-  console.error('Please configure SearXNG before starting the server.');
-  process.exit(1);
+  console.warn('⚠️  SEARXNG_BASE_URL is not set — web search features will be unavailable.');
 }
 
 const app: express.Express = express();

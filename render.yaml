@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: tera-api
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: pnpm install --no-frozen-lockfile && cd backend-server && pnpm build
+    startCommand: cd backend-server && node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: SEARXNG_BASE_URL
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: RESEND_REPLY_TO_EMAIL
+        sync: false
+      - key: WEB_URL
+        sync: false
