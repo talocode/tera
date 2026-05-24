@@ -1,5 +1,4 @@
 import type { AttachmentReference } from './attachment'
-import type { TeraChatMode } from './generate-types'
 import type { ChatMode } from './ai/chat-modes'
 import { getChatModeSystemPrompt, normalizeChatMode } from './ai/chat-modes'
 import { extractTextFromFile } from './extract-text'
@@ -72,30 +71,6 @@ GOOGLE SHEETS AND SPREADSHEETS:
 - For spreadsheet edits, generate edit instructions in a json:edit block.
 `
 
-function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: TeraChatMode): string {
-  if (chatMode === 'research') {
-    return `\nMode Guidance:
-- Act like a precise research partner.
-- Surface the answer first, then the reasoning, evidence, tradeoffs, and implications.
-- Distinguish clearly between what is known, what is likely, and what remains uncertain.
-- Prefer synthesis over volume.
-- Use citations and links where they add real value.`
-  }
-
-  if (chatMode === 'build') {
-    return `\nMode Guidance:
-- Act like a practical builder's assistant.
-- Turn ideas into steps, decisions, examples, checklists, or implementation plans.
-- Be concrete and execution-oriented.
-- Call out tradeoffs, constraints, and the next action.`
-  }
-
-  if (chatMode === 'learn') {
-    return `\nMode Guidance:
-- Act like a strong teacher.
-- Explain from first principles.
-- Use one simple mental model or worked example when it helps.
-- Keep the explanation approachable without sounding childish.`
 function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: ChatMode): string {
   if (chatMode === 'study') {
     return `\nMode Guidance:
@@ -245,7 +220,6 @@ export async function generateTeacherResponse({
   history = [] as { role: 'user' | 'assistant'; content: string }[],
   userId,
   researchMode = false,
-  chatMode = researchMode ? 'research' : 'general',
   chatMode = 'ask',
 }: {
   prompt: string
@@ -254,7 +228,6 @@ export async function generateTeacherResponse({
   history?: { role: 'user' | 'assistant'; content: string }[]
   userId?: string
   researchMode?: boolean
-  chatMode?: TeraChatMode
   chatMode?: ChatMode
 }) {
   const imageAttachments = attachments.filter((att) => att.type === 'image')
@@ -294,11 +267,7 @@ export async function generateTeacherResponse({
 
   let systemPromptWithMemory = systemMessage
   if (modeSystemPrompt) {
-    systemPromptWithMemory += `
-
- === CHAT MODE INSTRUCTIONS ===
-${modeSystemPrompt}
- === END CHAT MODE INSTRUCTIONS ===`
+    systemPromptWithMemory += `\n\n === CHAT MODE INSTRUCTIONS ===\n${modeSystemPrompt}\n === END CHAT MODE INSTRUCTIONS ===`
   }
   if (userId) {
     const memories = await getMemories(userId)
@@ -325,10 +294,10 @@ ${modeSystemPrompt}
 - Keep the explanation clean and easy to scan.
 - Use one example or practical takeaway when it helps.
 - End naturally. Do not force generic follow-up questions.`
-  const toolStyle = getToolResponseStyle(tool, researchMode, chatMode)
+
   const toolStyle = getToolResponseStyle(tool, researchMode, normalizedChatMode)
 
-  toolContext += `\nChat Mode: ${chatMode}.`
+  toolContext += `\nChat Mode: ${normalizedChatMode}.`
 
   let userContent: any
   if (imageAttachments.length > 0) {
