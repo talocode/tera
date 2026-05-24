@@ -31,8 +31,6 @@ function omitField<T extends Record<string, any>, K extends keyof T>(payload: T,
   return rest
 }
 
-export async function generateAnswerForPrompt({ prompt, tool, authorId, authorEmail, attachments = [], sessionId, chatId, researchMode = false, chatMode = researchMode ? 'research' : 'general' }: GenerateProps): Promise<GenerateAnswerResult> {
-  // Get user profile and check limits
 export async function generateAnswerForPrompt({
   prompt,
   tool,
@@ -126,7 +124,6 @@ export async function generateAnswerForPrompt({
         chatId: chatId ?? null,
         resetDate,
         promptLength: prompt.length,
-        chatMode,
         chatMode: normalizedChatMode,
       },
     })
@@ -180,7 +177,6 @@ export async function generateAnswerForPrompt({
   }
 
   // Generate the AI response
-  const generationResult = await generateTeacherResponse({ prompt, tool, attachments, history, userId: authorId, researchMode, chatMode })
   const generationResult = await generateTeacherResponse({
     prompt,
     tool,

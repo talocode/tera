@@ -2,7 +2,7 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
-import type { GenerateAnswerResult, GenerateProps, TeraChatMode } from '@/lib/generate-types'
+import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/chat-modes'
 import type { TeacherTool } from './ToolCard'
 
@@ -51,7 +51,7 @@ type QueuedMessage = {
 
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
 
-const inferChatMode = (tool: TeacherTool, researchMode: boolean): TeraChatMode => {
+const inferChatMode = (tool: TeacherTool, researchMode: boolean) => {
     if (researchMode) return 'research'
 
     const searchable = `${tool.name} ${tool.description} ${tool.tags.join(' ')}`.toLowerCase()
