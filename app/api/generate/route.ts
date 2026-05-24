@@ -16,11 +16,6 @@ function isGenerateProps(value: unknown): value is GenerateProps {
   if (!value || typeof value !== 'object') return false
 
   const body = value as Partial<GenerateProps>
-  const validChatMode = body.chatMode === undefined
-    || body.chatMode === 'general'
-    || body.chatMode === 'learn'
-    || body.chatMode === 'research'
-    || body.chatMode === 'build'
 
   return typeof body.prompt === 'string'
     && typeof body.tool === 'string'
@@ -29,7 +24,6 @@ function isGenerateProps(value: unknown): value is GenerateProps {
     && (body.sessionId === undefined || body.sessionId === null || typeof body.sessionId === 'string')
     && (body.chatId === undefined || typeof body.chatId === 'string')
     && (body.researchMode === undefined || typeof body.researchMode === 'boolean')
-    && validChatMode
     && (body.chatMode === undefined || isChatMode(body.chatMode))
     && (body.attachments === undefined || Array.isArray(body.attachments))
 }
@@ -55,18 +49,7 @@ export async function POST(request: Request) {
     }, { status: 400 })
   }
 
-  try {
-    return NextResponse.json(await generateAnswerForPrompt(body))
   const chatMode = normalizeChatMode(body.chatMode)
-
-  if (!chatMode) {
-    return NextResponse.json<GenerateErrorResponse>({
-      answer: 'Invalid message request.',
-      sessionId: body.sessionId ?? null,
-      chatId: body.chatId,
-      error: 'Invalid message request.',
-    }, { status: 400 })
-  }
 
   if (chatMode === 'image') {
     const message = 'Image creation is coming soon.'
