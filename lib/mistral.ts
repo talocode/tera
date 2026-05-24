@@ -279,7 +279,7 @@ export async function generateTeacherResponse({
   }
 
   const isUniversalMode = tool === 'Universal Companion'
-  const toolContext = !isUniversalMode
+  let toolContext = !isUniversalMode
     ? `\nActive Tool: ${tool}. Fulfill the purpose of this tool.`
     : `\nActive Mode: Universal Companion. Adapt your style to the user's need.`
 
