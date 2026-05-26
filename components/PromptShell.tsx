@@ -20,7 +20,7 @@ import { compressImage } from '@/lib/image-compression'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
-import ChatModePicker, { type ChatMode as SurfaceMode } from './chat/ChatModePicker'
+type SurfaceMode = 'chat' | 'research' | 'image'
 
 type Message = {
     id: string
@@ -291,6 +291,94 @@ const FileIcon = () => (
     </svg>
 )
 
+const AskIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9M7.5 12h6m-9 6 1.5-3.75A2.25 2.25 0 016.75 12h10.5A2.25 2.25 0 0119.5 14.25V17.25A2.25 2.25 0 0117.25 19.5H8.25L4.5 21V19.5A2.25 2.25 0 002.25 17.25V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75V9" />
+    </svg>
+)
+
+const StudyIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 8.25h7.5m-7.5 3h7.5m-7.5 3h4.5" />
+    </svg>
+)
+
+const QuizIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M9.75 9.75a2.25 2.25 0 114.5 0c0 1.5-2.25 1.5-2.25 3.75" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z" />
+    </svg>
+)
+
+const SummarizeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75h15M4.5 12h10.5M4.5 17.25h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 15.75l1.5 1.5 3-3" />
+    </svg>
+)
+
+const ImageChatIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5A2.25 2.25 0 016.75 5.25h10.5A2.25 2.25 0 0119.5 7.5v9a2.25 2.25 0 01-2.25 2.25H9.75L5.25 21v-3.75A2.25 2.25 0 013 15V7.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9.75h7.5M8.25 12.75h4.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9.75h.01M15.75 12.75h.01" />
+    </svg>
+)
+
+const ChatSurfaceIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9M7.5 12h6m-9 6 1.5-3.75A2.25 2.25 0 016.75 12h10.5A2.25 2.25 0 0119.5 14.25V17.25A2.25 2.25 0 0117.25 19.5H8.25L4.5 21V19.5A2.25 2.25 0 002.25 17.25V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75V9" />
+    </svg>
+)
+
+const ResearchSurfaceIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.3-4.3" />
+        <circle cx="10.5" cy="10.5" r="5.75" />
+    </svg>
+)
+
+const SurfaceImageIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 013.182 0L21.75 15.75m-16.5 4.5h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+)
+
+const COMPOSER_PROMPT_MODES = {
+    ask: {
+        icon: <AskIcon />,
+        hint: 'Direct answers and concise guidance.',
+    },
+    study: {
+        icon: <StudyIcon />,
+        hint: 'Step-by-step explanations with checkpoints.',
+    },
+    quiz: {
+        icon: <QuizIcon />,
+        hint: 'Practice questions and quick feedback.',
+    },
+    summarize: {
+        icon: <SummarizeIcon />,
+        hint: 'Condense long text into clear takeaways.',
+    },
+    image: {
+        icon: <ImageChatIcon />,
+        hint: 'Visual generation is coming soon.',
+    },
+} as const
+
+const COMPOSER_SURFACES: Array<{
+    id: SurfaceMode
+    label: string
+    description: string
+    icon: React.ReactNode
+}> = [
+    { id: 'chat', label: 'Chat', description: 'Balanced answers for everyday use.', icon: <ChatSurfaceIcon /> },
+    { id: 'research', label: 'Research', description: 'Deeper web-backed investigation.', icon: <ResearchSurfaceIcon /> },
+    { id: 'image', label: 'Image', description: 'Visual tasks and future image flows.', icon: <SurfaceImageIcon /> },
+]
+
 export default function PromptShell({
     tool,
     user,
@@ -340,6 +428,7 @@ export default function PromptShell({
     const requestIdRef = useRef(0)
     const selectedChatModeConfig = getChatModeConfig(chatMode)
     const textareaPlaceholder = isListening ? 'Listening...' : selectedChatModeConfig.placeholder
+    const selectedSurfaceMeta = COMPOSER_SURFACES.find((surface) => surface.id === selectedMode) ?? COMPOSER_SURFACES[0]
 
     const getThinkingMessage = (p: string) => {
         const lp = p.toLowerCase()
@@ -353,6 +442,16 @@ export default function PromptShell({
 
     useEffect(() => { setCurrentSessionId(sessionId || null) }, [sessionId])
     useEffect(() => { if (initialPrompt) setPrompt(initialPrompt) }, [initialPrompt])
+    useEffect(() => {
+        if (!attachmentOpen) return
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setAttachmentOpen(false)
+        }
+
+        window.addEventListener('keydown', handleEscape)
+        return () => window.removeEventListener('keydown', handleEscape)
+    }, [attachmentOpen])
 
     const uploadAttachment = async (file: File, type: AttachmentType) => {
         const formData = new FormData()
@@ -603,20 +702,6 @@ export default function PromptShell({
     const showSend = (prompt.trim().length > 0 || pendingAttachments.length > 0) && status !== 'loading'
     const showStop = status === 'loading'
     const showMic = !showSend && !showStop
-    const composerSelections = [
-        ...(researchMode ? [{
-            key: 'research-mode',
-            label: 'Deep Research',
-            tone: 'accent' as const,
-            onRemove: () => setSelectedMode('chat'),
-        }] : []),
-        ...pendingAttachments.map((attachment, index) => ({
-            key: `${attachment.type}-${index}`,
-            label: attachment.type === 'image' ? `Image • ${attachment.name}` : attachment.name,
-            tone: 'neutral' as const,
-            onRemove: () => setPendingAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index)),
-        })),
-    ]
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
@@ -650,7 +735,7 @@ export default function PromptShell({
                                                         <div className="mt-3 flex flex-wrap gap-2">
                                                             {entry.userMessage.attachments.map((att, idx) => (
                                                                 <div key={idx} className="flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs">
-                                                                    <span>{att.type === 'image' ? '🖼️' : '📄'}</span>
+                                                                    <span>{att.type === 'image' ? 'ðŸ–¼ï¸' : 'ðŸ“„'}</span>
                                                                     <span className="truncate max-w-[150px]">{att.name}</span>
                                                                 </div>
                                                             ))}
@@ -725,32 +810,6 @@ export default function PromptShell({
             <div className="sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/92 px-2 py-2.5 backdrop-blur-xl md:px-8 md:py-3">
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
-                        <div className="flex flex-wrap items-center gap-2 px-2 pt-2">
-                            <div className="flex rounded-full border border-tera-border bg-tera-elevated/70 p-1">
-                                {CHAT_MODES.map((mode) => {
-                                    const selected = chatMode === mode.id
-                                    return (
-                                        <button
-                                            key={mode.id}
-                                            type="button"
-                                            onClick={() => setChatMode(mode.id)}
-                                            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${selected ? 'bg-tera-accent text-[#08101a]' : 'text-tera-secondary hover:text-tera-primary'}`}
-                                            aria-pressed={selected}
-                                        >
-                                            {mode.label}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        </div>
-
-                        <ChatModePicker
-                            selectedMode={selectedMode}
-                            onModeChange={setSelectedMode}
-                            disabled={status === 'loading'}
-                            className="px-1"
-                        />
-
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                             <div className="flex items-center">
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment">
@@ -767,46 +826,184 @@ export default function PromptShell({
                             </div>
                         </div>
 
-                        {composerSelections.length > 0 && (
-                            <div className="flex flex-wrap gap-2 px-2 pb-1">
-                                {composerSelections.map((item) => (
-                                    <div
-                                        key={item.key}
-                                        className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${item.tone === 'accent' ? 'border-white bg-white text-[#08101a]' : 'border-white/10 bg-white/[0.04] text-tera-primary'}`}
-                                    >
-                                        <span className="truncate">{item.label}</span>
-                                        <button
-                                            type="button"
-                                            onClick={item.onRemove}
-                                            className="flex h-4 w-4 items-center justify-center rounded-full text-current/70 transition hover:bg-black/20 hover:text-current"
-                                            aria-label={`Remove ${item.label}`}
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
                         {attachmentOpen && (
-                            <div className="grid grid-cols-2 gap-2 px-2 pb-1">
-                                <button onClick={() => handleFileSelect('camera')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]">
-                                    <CameraIcon />
-                                    <span>Camera</span>
-                                </button>
-                                <button onClick={() => handleFileSelect('image')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]">
-                                    <ImageIcon />
-                                    <span>Image</span>
-                                </button>
-                                <button onClick={() => handleFileSelect('file')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]">
-                                    <FileIcon />
-                                    <span>File</span>
-                                </button>
-                                <button onClick={() => { setSelectedMode(researchMode ? 'chat' : 'research'); setAttachmentOpen(false) }} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium transition ${researchMode ? 'border-white bg-white text-black' : 'border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]'}`}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px] shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-1.313-3.938a4.5 4.5 0 1 1 5.862-5.862L18.75 9l-2.846.813a4.5 4.5 0 0 1-6.09 6.091Z" /></svg>
-                                    <span>Deep Research</span>
-                                </button>
-                            </div>
+                            <>
+                                <button
+                                    type="button"
+                                    aria-label="Close composer menu"
+                                    onClick={() => setAttachmentOpen(false)}
+                                    className="fixed inset-0 z-[58] bg-black/30 backdrop-blur-[2px] md:bg-transparent"
+                                />
+
+                                <div className="absolute inset-x-0 bottom-full z-[59] mb-3">
+                                    <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0b0f14]/96 shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+                                        <div className="flex items-start justify-between gap-4 border-b border-tera-border/60 px-4 py-3 md:px-5 md:py-4">
+                                            <div>
+                                                <p className="text-[0.67rem] uppercase tracking-[0.28em] text-tera-secondary">Composer menu</p>
+                                                <h3 className="mt-1 text-sm font-semibold text-tera-primary">Choose how Tera should answer</h3>
+                                                <p className="mt-1 text-xs text-tera-secondary">
+                                                    Pick an answer style, switch the surface, or add files before sending.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setAttachmentOpen(false)}
+                                                className="composer-action-button h-9 w-9 rounded-full border border-white/10 bg-tera-panel/80 text-tera-primary hover:bg-tera-elevated/90"
+                                                aria-label="Close menu"
+                                            >
+                                                <span className="text-lg leading-none">×</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="max-h-[calc(100vh-7rem)] overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+                                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]">
+                                                <section className="space-y-3">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-[0.67rem] uppercase tracking-[0.26em] text-tera-secondary">Response style</p>
+                                                            <p className="mt-1 text-sm text-tera-primary">Choose the shape of the answer.</p>
+                                                        </div>
+                                                        <span className="rounded-full border border-tera-border bg-white/[0.03] px-3 py-1 text-[0.68rem] font-medium text-tera-secondary">
+                                                            {selectedChatModeConfig.label}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
+                                                        {CHAT_MODES.map((mode) => {
+                                                            const selected = chatMode === mode.id
+                                                            const modeMeta = COMPOSER_PROMPT_MODES[mode.id]
+                                                            const disabled = mode.status !== 'enabled'
+
+                                                            return (
+                                                                <button
+                                                                    key={mode.id}
+                                                                    type="button"
+                                                                    onClick={() => !disabled && setChatMode(mode.id)}
+                                                                    disabled={disabled}
+                                                                    className={`group flex min-h-[84px] items-start gap-3 rounded-[24px] border px-4 py-3 text-left transition-all duration-200 ${
+                                                                        selected
+                                                                            ? 'border-white bg-white text-[#08101a] shadow-[0_18px_45px_rgba(0,0,0,0.12)]'
+                                                                            : 'border-tera-border bg-tera-panel/80 text-tera-primary hover:-translate-y-0.5 hover:border-white/16 hover:bg-tera-elevated/90'
+                                                                    } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                                                                >
+                                                                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition ${
+                                                                        selected ? 'border-[#08101a]/10 bg-[#08101a]/6 text-[#08101a]' : 'border-tera-border bg-white/[0.04] text-tera-accent'
+                                                                    }`}>
+                                                                        {modeMeta.icon}
+                                                                    </span>
+                                                                    <span className="min-w-0 flex-1">
+                                                                        <span className="flex items-center gap-2">
+                                                                            <span className="block text-sm font-semibold">{mode.label}</span>
+                                                                            {mode.status !== 'enabled' && (
+                                                                                <span className={`rounded-full border px-2 py-0.5 text-[0.63rem] font-bold uppercase tracking-[0.16em] ${selected ? 'border-[#08101a]/10 bg-[#08101a]/6 text-[#08101a]' : 'border-tera-border bg-white/[0.04] text-tera-secondary'}`}>
+                                                                                    Soon
+                                                                                </span>
+                                                                            )}
+                                                                        </span>
+                                                                        <span className={`mt-1 block text-xs leading-5 ${selected ? 'text-[#08101a]/72' : 'text-tera-secondary'}`}>
+                                                                            {mode.description}
+                                                                        </span>
+                                                                        <span className={`mt-2 block text-[0.68rem] font-medium ${selected ? 'text-[#08101a]/62' : 'text-tera-secondary'}`}>
+                                                                            {modeMeta.hint}
+                                                                        </span>
+                                                                    </span>
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </section>
+
+                                                <aside className="space-y-3">
+                                                    <div className="rounded-[26px] border border-tera-border bg-white/[0.03] p-4">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div>
+                                                                <p className="text-[0.67rem] uppercase tracking-[0.26em] text-tera-secondary">Surface</p>
+                                                                <p className="mt-1 text-sm text-tera-primary">Where the prompt should land.</p>
+                                                            </div>
+                                                            <span className="rounded-full border border-tera-border bg-white/[0.03] px-3 py-1 text-[0.68rem] font-medium text-tera-secondary">
+                                                                {selectedSurfaceMeta.label}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="mt-4 space-y-2">
+                                                            {COMPOSER_SURFACES.map((surface) => {
+                                                                const selected = selectedMode === surface.id
+                                                                return (
+                                                                    <button
+                                                                        key={surface.id}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedMode(surface.id)}
+                                                                        disabled={status === 'loading'}
+                                                                        className={`flex w-full items-center gap-3 rounded-[20px] border px-4 py-3 text-left transition-all duration-200 ${
+                                                                            selected
+                                                                                ? 'border-white bg-white text-[#08101a] shadow-[0_14px_36px_rgba(255,255,255,0.10)]'
+                                                                                : 'border-white/10 bg-white/[0.035] text-white hover:border-white/18 hover:bg-white/[0.07]'
+                                                                        }`}
+                                                                    >
+                                                                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border ${
+                                                                            selected ? 'border-[#08101a]/10 bg-[#08101a]/6 text-[#08101a]' : 'border-tera-border bg-white/[0.04] text-tera-accent'
+                                                                        }`}>
+                                                                            {surface.icon}
+                                                                        </span>
+                                                                        <span className="min-w-0 flex-1">
+                                                                            <span className="block text-sm font-semibold">{surface.label}</span>
+                                                                            <span className={`mt-1 block text-xs leading-5 ${selected ? 'text-[#08101a]/70' : 'text-tera-secondary'}`}>
+                                                                                {surface.description}
+                                                                            </span>
+                                                                        </span>
+                                                                    </button>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="rounded-[26px] border border-tera-border bg-white/[0.03] p-4">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div>
+                                                                <p className="text-[0.67rem] uppercase tracking-[0.26em] text-tera-secondary">Attachments</p>
+                                                                <p className="mt-1 text-sm text-tera-primary">Add media or a file before sending.</p>
+                                                            </div>
+                                                            <span className="rounded-full border border-tera-border bg-white/[0.03] px-3 py-1 text-[0.68rem] font-medium text-tera-secondary">
+                                                                {pendingAttachments.length ? `${pendingAttachments.length} added` : 'Optional'}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                                            <button onClick={() => handleFileSelect('camera')} className="flex items-center gap-3 rounded-[20px] border border-tera-border bg-tera-panel/80 px-4 py-3 text-sm font-medium text-tera-primary transition hover:-translate-y-0.5 hover:border-white/16 hover:bg-tera-elevated/90">
+                                                                <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-tera-border bg-white/[0.04] text-tera-accent">
+                                                                    <CameraIcon />
+                                                                </span>
+                                                                <span className="min-w-0">
+                                                                    <span className="block text-sm font-semibold">Camera</span>
+                                                                    <span className="block text-xs leading-5 text-tera-secondary">Capture something new.</span>
+                                                                </span>
+                                                            </button>
+                                                            <button onClick={() => handleFileSelect('image')} className="flex items-center gap-3 rounded-[20px] border border-tera-border bg-tera-panel/80 px-4 py-3 text-sm font-medium text-tera-primary transition hover:-translate-y-0.5 hover:border-white/16 hover:bg-tera-elevated/90">
+                                                                <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-tera-border bg-white/[0.04] text-tera-accent">
+                                                                    <ImageIcon />
+                                                                </span>
+                                                                <span className="min-w-0">
+                                                                    <span className="block text-sm font-semibold">Image</span>
+                                                                    <span className="block text-xs leading-5 text-tera-secondary">Upload a screenshot or photo.</span>
+                                                                </span>
+                                                            </button>
+                                                            <button onClick={() => handleFileSelect('file')} className="flex items-center gap-3 rounded-[20px] border border-tera-border bg-tera-panel/80 px-4 py-3 text-sm font-medium text-tera-primary transition hover:-translate-y-0.5 hover:border-white/16 hover:bg-tera-elevated/90 sm:col-span-2">
+                                                                <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-tera-border bg-white/[0.04] text-tera-accent">
+                                                                    <FileIcon />
+                                                                </span>
+                                                                <span className="min-w-0">
+                                                                    <span className="block text-sm font-semibold">File</span>
+                                                                    <span className="block text-xs leading-5 text-tera-secondary">Add notes, PDFs, or docs.</span>
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </aside>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -830,3 +1027,5 @@ export default function PromptShell({
         </div>
     )
 }
+
+
