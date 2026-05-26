@@ -19,7 +19,7 @@ const audienceCards = [
 
 const features = [
   'Unlimited conversations on the free plan',
-  'Current answers with web search and citations',
+  'Current answers with Tavily-backed web research and citations',
   'Deeper research modes on higher tiers',
   'File uploads for documents and images',
   'Specialized tools for teaching, learning, and planning',
@@ -94,7 +94,7 @@ export default function AboutPage() {
               <p className="tera-eyebrow">How it works</p>
               <ol className="mt-4 space-y-4 text-sm leading-7 text-tera-secondary">
                 <li><span className="text-tera-primary">1.</span> Start with a natural prompt or open a tool.</li>
-                <li><span className="text-tera-primary">2.</span> Turn on web search when you need current, cited information.</li>
+                <li><span className="text-tera-primary">2.</span> Turn on research mode when you need current, cited information.</li>
                 <li><span className="text-tera-primary">3.</span> Continue the same thread with follow-up questions, notes, and revisions.</li>
                 <li><span className="text-tera-primary">4.</span> Return later through history and keep your work moving.</li>
               </ol>

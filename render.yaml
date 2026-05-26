@@ -38,15 +38,13 @@ services:
         sync: false
       - key: NEXTAUTH_URL
         sync: false
+      - key: TAVILY_API_KEY
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
         sync: false
       - key: RESEND_REPLY_TO_EMAIL
-        sync: false
-      - key: SEARXNG_BASE_URL
-        sync: false
-      - key: SERPER_API_KEY
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
@@ -80,9 +78,7 @@ services:
         sync: false
       - key: MISTRAL_API_KEY
         sync: false
-      - key: SEARXNG_BASE_URL
-        sync: false
-      - key: SERPER_API_KEY
+      - key: TAVILY_API_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false

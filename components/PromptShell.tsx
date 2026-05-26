@@ -3,7 +3,7 @@
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
-import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/chat-modes'
+import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
 import type { TeacherTool } from './ToolCard'
 
 type User = {
@@ -603,6 +603,20 @@ export default function PromptShell({
     const showSend = (prompt.trim().length > 0 || pendingAttachments.length > 0) && status !== 'loading'
     const showStop = status === 'loading'
     const showMic = !showSend && !showStop
+    const composerSelections = [
+        ...(researchMode ? [{
+            key: 'research-mode',
+            label: 'Deep Research',
+            tone: 'accent' as const,
+            onRemove: () => setSelectedMode('chat'),
+        }] : []),
+        ...pendingAttachments.map((attachment, index) => ({
+            key: `${attachment.type}-${index}`,
+            label: attachment.type === 'image' ? `Image • ${attachment.name}` : attachment.name,
+            tone: 'neutral' as const,
+            onRemove: () => setPendingAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index)),
+        })),
+    ]
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
@@ -714,31 +728,20 @@ export default function PromptShell({
                         <div className="flex flex-wrap items-center gap-2 px-2 pt-2">
                             <div className="flex rounded-full border border-tera-border bg-tera-elevated/70 p-1">
                                 {CHAT_MODES.map((mode) => {
-                                    const config = getChatModeConfig(mode)
-                                    const selected = chatMode === mode
+                                    const selected = chatMode === mode.id
                                     return (
                                         <button
-                                            key={mode}
+                                            key={mode.id}
                                             type="button"
-                                            onClick={() => setChatMode(mode)}
+                                            onClick={() => setChatMode(mode.id)}
                                             className={`rounded-full px-3 py-1 text-xs font-semibold transition ${selected ? 'bg-tera-accent text-[#08101a]' : 'text-tera-secondary hover:text-tera-primary'}`}
                                             aria-pressed={selected}
                                         >
-                                            {config.label}
+                                            {mode.label}
                                         </button>
                                     )
                                 })}
                             </div>
-                            {pendingAttachments.length > 0 && (
-                                <div className="flex flex-wrap gap-3 p-2">
-                                    {pendingAttachments.map((att, idx) => (
-                                        <div key={idx} className="group relative overflow-hidden rounded-[20px] border border-tera-border bg-tera-elevated/90 shadow-soft-lg">
-                                            {att.type === 'image' ? <div className="relative w-24 h-24 md:w-32 md:h-32"><img src={att.url} alt={att.name} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2"><span className="text-xs text-white truncate w-full">{att.name}</span></div></div> : <div className="flex items-center gap-2 px-4 py-3 min-w-[120px]"><FileIcon /><span className="text-xs text-tera-primary truncate max-w-[150px]">{att.name}</span></div>}
-                                            <button onClick={() => setPendingAttachments(prev => prev.filter((_, i) => i !== idx))} className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/70 text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500">×</button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
                         </div>
 
                         <ChatModePicker
@@ -750,30 +753,61 @@ export default function PromptShell({
 
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                             <div className="flex items-center">
-                                <div className="relative">
-                                    <button onClick={() => setAttachmentOpen(!attachmentOpen)} className="composer-action-button" title="Add attachment"><AttachmentIcon /></button>
-                                    {attachmentOpen && (
-                                        <div className="absolute bottom-full left-0 mb-3 w-64 overflow-hidden rounded-2xl border border-tera-border bg-tera-panel p-2 text-tera-primary shadow-2xl">
-                                            <button onClick={() => handleFileSelect('camera')} className="composer-menu-row"><CameraIcon /><span>Open Camera</span></button>
-                                            <button onClick={() => handleFileSelect('image')} className="composer-menu-row"><ImageIcon /><span>Upload image</span></button>
-                                            <button onClick={() => handleFileSelect('file')} className="composer-menu-row border-b border-tera-border/70"><FileIcon /><span>Upload file</span></button>
-                                            <button onClick={() => { setSelectedMode(researchMode ? 'chat' : 'research'); setAttachmentOpen(false) }} className={`composer-menu-row border-t border-tera-border/70 ${researchMode ? 'text-tera-neon bg-tera-neon/5' : 'text-tera-primary'}`}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px] shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-1.313-3.938a4.5 4.5 0 1 1 5.862-5.862L18.75 9l-2.846.813a4.5 4.5 0 0 1-6.09 6.091Z" /></svg>
-                                                <div className="flex-1 flex items-center justify-between"><span>Deep Research</span>{researchMode && <span className="text-[10px] font-bold bg-tera-neon/20 px-1.5 py-0.5 rounded text-tera-neon">ON</span>}</div>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment">
+                                    <AttachmentIcon />
+                                </button>
                             </div>
 
                             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={textareaPlaceholder} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.98rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
 
                             <div className="flex items-end gap-1">
-                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white/[0.92] text-[#08101a] transition hover:bg-white"><StopIcon /></button>}
-                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-accent bg-tera-accent text-[#08101a] transition hover:brightness-95"><SendIcon /></button>}
+                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:bg-white/95"><StopIcon /></button>}
+                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-white bg-white text-[#08101a] transition hover:bg-white/95"><SendIcon /></button>}
                                 {showMic && <button onClick={toggleListening} className={`composer-action-button ${isListening ? 'border-red-400/40 bg-red-500/18 text-red-300 animate-pulse' : ''}`}><MicIcon /></button>}
                             </div>
                         </div>
+
+                        {composerSelections.length > 0 && (
+                            <div className="flex flex-wrap gap-2 px-2 pb-1">
+                                {composerSelections.map((item) => (
+                                    <div
+                                        key={item.key}
+                                        className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${item.tone === 'accent' ? 'border-white bg-white text-[#08101a]' : 'border-white/10 bg-white/[0.04] text-tera-primary'}`}
+                                    >
+                                        <span className="truncate">{item.label}</span>
+                                        <button
+                                            type="button"
+                                            onClick={item.onRemove}
+                                            className="flex h-4 w-4 items-center justify-center rounded-full text-current/70 transition hover:bg-black/20 hover:text-current"
+                                            aria-label={`Remove ${item.label}`}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {attachmentOpen && (
+                            <div className="grid grid-cols-2 gap-2 px-2 pb-1">
+                                <button onClick={() => handleFileSelect('camera')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]">
+                                    <CameraIcon />
+                                    <span>Camera</span>
+                                </button>
+                                <button onClick={() => handleFileSelect('image')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]">
+                                    <ImageIcon />
+                                    <span>Image</span>
+                                </button>
+                                <button onClick={() => handleFileSelect('file')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.06]">
+                                    <FileIcon />
+                                    <span>File</span>
+                                </button>
+                                <button onClick={() => { setSelectedMode(researchMode ? 'chat' : 'research'); setAttachmentOpen(false) }} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium transition ${researchMode ? 'border-white bg-white text-black' : 'border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]'}`}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px] shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-1.313-3.938a4.5 4.5 0 1 1 5.862-5.862L18.75 9l-2.846.813a4.5 4.5 0 0 1-6.09 6.091Z" /></svg>
+                                    <span>Deep Research</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

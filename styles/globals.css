@@ -4,14 +4,14 @@
 
 :root {
   color-scheme: dark;
-  --surface-base: #111315;
-  --surface-l1: #16191d;
-  --surface-l2: #1d2126;
-  --fg-primary: #eceff3;
-  --fg-secondary: #b4bcc7;
-  --border-l1: rgba(255, 255, 255, 0.08);
-  --border-l2: rgba(255, 255, 255, 0.12);
-  --border-l3: rgba(255, 255, 255, 0.18);
+  --surface-base: #050505;
+  --surface-l1: #0d0d0d;
+  --surface-l2: #141414;
+  --fg-primary: #f4f4f5;
+  --fg-secondary: #9ca3af;
+  --border-l1: rgba(255, 255, 255, 0.07);
+  --border-l2: rgba(255, 255, 255, 0.11);
+  --border-l3: rgba(255, 255, 255, 0.16);
 
   --bg-tera-bg: var(--surface-base);
   --bg-tera-panel: color-mix(in srgb, var(--surface-l1) 90%, transparent);
@@ -24,9 +24,9 @@
   --text-tera-primary: var(--fg-primary);
   --text-tera-secondary: var(--fg-secondary);
   --text-tera-accent: #d5dae2;
-  --text-tera-accent-strong: #f3f6fa;
-  --shadow-tera-panel: 0 8px 24px rgba(0, 0, 0, 0.22);
-  --shadow-tera-soft: 0 4px 14px rgba(0, 0, 0, 0.16);
+  --text-tera-accent-strong: #ffffff;
+  --shadow-tera-panel: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-tera-soft: 0 6px 18px rgba(0, 0, 0, 0.22);
 }
 
 .light {
@@ -58,14 +58,14 @@
 
 .dark {
   color-scheme: dark;
-  --surface-base: #111315;
-  --surface-l1: #16191d;
-  --surface-l2: #1d2126;
-  --fg-primary: #eceff3;
-  --fg-secondary: #b4bcc7;
-  --border-l1: rgba(255, 255, 255, 0.08);
-  --border-l2: rgba(255, 255, 255, 0.12);
-  --border-l3: rgba(255, 255, 255, 0.18);
+  --surface-base: #050505;
+  --surface-l1: #0d0d0d;
+  --surface-l2: #141414;
+  --fg-primary: #f4f4f5;
+  --fg-secondary: #9ca3af;
+  --border-l1: rgba(255, 255, 255, 0.07);
+  --border-l2: rgba(255, 255, 255, 0.11);
+  --border-l3: rgba(255, 255, 255, 0.16);
 }
 
 @layer base {

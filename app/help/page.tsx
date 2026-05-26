@@ -32,11 +32,11 @@ const HELP_SECTIONS = [
     articles: [
       {
         title: 'What is included in the Free plan?',
-        content: `The Free plan includes unlimited AI conversations, 3 file uploads per day, 5 web searches per month, and access to the core Tera tools.`,
+        content: `The Free plan includes unlimited AI conversations, 3 file uploads per day, 5 Tavily-backed web research requests per month, and access to the core Tera tools.`,
       },
       {
         title: 'What is the difference between Pro and Plus?',
-        content: `Pro increases upload and search limits, adds Deep Research, and unlocks exports. Plus adds the highest usage limits, analytics, and priority support.`,
+        content: `Pro increases upload and research limits, adds Deep Research, and unlocks exports. Plus adds the highest usage limits, analytics, and priority support.`,
       },
       {
         title: 'Can I switch plans anytime?',

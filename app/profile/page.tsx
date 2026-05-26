@@ -383,6 +383,11 @@ export default function ProfilePage() {
                   description="Credits are usage units. Roughly 5,000 AI tokens consume 1 credit."
                 />
                 <UsageMetricCard title="File uploads" metric={usageSummary!.uploads} />
+                <UsageMetricCard
+                  title="Web searches"
+                  metric={usageSummary!.webSearches}
+                  description="Deep Research uses Tavily and is capped monthly by plan."
+                />
               </>
             )}
           </div>

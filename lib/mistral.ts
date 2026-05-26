@@ -221,6 +221,7 @@ export async function generateTeacherResponse({
   userId,
   researchMode = false,
   chatMode = 'ask',
+  researchContext = '',
 }: {
   prompt: string
   tool: string
@@ -229,6 +230,7 @@ export async function generateTeacherResponse({
   userId?: string
   researchMode?: boolean
   chatMode?: ChatMode
+  researchContext?: string
 }) {
   const imageAttachments = attachments.filter((att) => att.type === 'image')
   const fileAttachments = attachments.filter((att) => att.type === 'file')
@@ -278,6 +280,10 @@ export async function generateTeacherResponse({
     }
   }
 
+  if (researchContext) {
+    systemPromptWithMemory += `\n\n=== WEB RESEARCH CONTEXT ===\n${researchContext}\n=== END WEB RESEARCH CONTEXT ===\n`
+  }
+
   const isUniversalMode = tool === 'Universal Companion'
   let toolContext = !isUniversalMode
     ? `\nActive Tool: ${tool}. Fulfill the purpose of this tool.`
@@ -288,7 +294,7 @@ export async function generateTeacherResponse({
 - Start with a concise answer or thesis.
 - Then use clear sections such as Key Points, Explanation, Evidence, Example, and Next Steps when helpful.
 - Prioritize accuracy, depth, and synthesis.
-- Include Grokipedia links for the most relevant topics, not every noun.`
+- Include the most relevant links and sources, not every noun.`
     : `\nResponse Blueprint:
 - Start with the direct answer.
 - Keep the explanation clean and easy to scan.

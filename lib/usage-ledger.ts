@@ -1,7 +1,7 @@
 import { supabaseServer } from './supabase-server'
 import type { PlanType } from './plan-config'
 
-type UsageLedgerEventType = 'chat_generation' | 'credit_blocked' | 'upload'
+type UsageLedgerEventType = 'chat_generation' | 'credit_blocked' | 'upload' | 'web_search' | 'web_search_blocked'
 type UsageLedgerStatus = 'succeeded' | 'blocked' | 'failed'
 
 type UsageLedgerInsert = {

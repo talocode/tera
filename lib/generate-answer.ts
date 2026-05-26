@@ -2,12 +2,13 @@ import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase-server'
 import { generateTeacherResponse, TERA_MODEL_NAME } from '@/lib/mistral'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
-import { getUserProfileServer, incrementChatsServer } from '@/lib/usage-tracking-server'
+import { checkAndResetUsageServer, getUserProfileServer, incrementChatsServer, incrementWebSearchesServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredits, getPlanCreditCap } from '@/lib/free-plan-credits'
 import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
 import { recordUsageLedgerEvent } from '@/lib/usage-ledger'
 import { normalizeChatMode } from '@/lib/ai/chat-modes'
+import { formatTavilyResearchContext, searchTavily } from '@/lib/tavily'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {
@@ -43,6 +44,7 @@ export async function generateAnswerForPrompt({
   chatMode = 'ask',
 }: GenerateProps): Promise<GenerateAnswerResult> {
   const normalizedChatMode = normalizeChatMode(chatMode)
+  await checkAndResetUsageServer(authorId)
 
   let userProfile = await getUserProfileServer(authorId)
 
@@ -54,7 +56,9 @@ export async function generateAnswerForPrompt({
       subscriptionPlan: 'free',
       dailyChats: 0,
       dailyFileUploads: 0,
+      monthlyWebSearches: 0,
       chatResetDate: null,
+      webSearchResetDate: null,
       limitHitChatAt: null,
       limitHitUploadAt: null,
       profileImageUrl: null,
@@ -176,6 +180,77 @@ export async function generateAnswerForPrompt({
     }
   }
 
+  let researchContext = ''
+  if (researchMode) {
+    const planConfig = getPlanConfig(userProfile.subscriptionPlan)
+    const monthlyWebSearchLimit = planConfig.limits.webSearchesPerMonth
+    const monthlyWebSearches = userProfile.monthlyWebSearches || 0
+
+    if (monthlyWebSearchLimit !== 'unlimited' && monthlyWebSearches >= monthlyWebSearchLimit) {
+      const resetLabel = userProfile.webSearchResetDate
+        ? new Date(userProfile.webSearchResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : 'next month'
+      const errorMessage = `You've reached your monthly web search limit (${monthlyWebSearchLimit}). It resets on ${resetLabel}.`
+
+      await recordUsageLedgerEvent({
+        userId: authorId,
+        eventType: 'web_search_blocked',
+        status: 'blocked',
+        plan: userProfile.subscriptionPlan,
+        tool,
+        model: TERA_MODEL_NAME,
+        tokenUsage: 0,
+        creditsCharged: 0,
+        sessionId: sessionId ?? null,
+        metadata: {
+          promptLength: prompt.length,
+          chatMode: normalizedChatMode,
+          resetDate: userProfile.webSearchResetDate ? userProfile.webSearchResetDate.toISOString() : null,
+        },
+      })
+
+      return {
+        answer: errorMessage,
+        sessionId: sessionId ?? null,
+        chatId,
+        error: errorMessage,
+      }
+    }
+
+    try {
+      const tavilyResponse = await searchTavily({
+        query: prompt,
+        searchDepth: 'advanced',
+        maxResults: 5,
+        includeAnswer: true,
+        includeRawContent: false,
+      })
+
+      researchContext = formatTavilyResearchContext(tavilyResponse)
+      await incrementWebSearchesServer(authorId)
+
+      await recordUsageLedgerEvent({
+        userId: authorId,
+        eventType: 'web_search',
+        status: 'succeeded',
+        plan: userProfile.subscriptionPlan,
+        tool,
+        model: TERA_MODEL_NAME,
+        tokenUsage: 0,
+        creditsCharged: 0,
+        sessionId: sessionId ?? null,
+        metadata: {
+          chatMode: normalizedChatMode,
+          resultCount: tavilyResponse.results?.length || 0,
+          responseTime: tavilyResponse.response_time || null,
+          query: prompt,
+        },
+      })
+    } catch (error) {
+      console.error('[tavily_search_failed]', { userId: authorId, error })
+    }
+  }
+
   // Generate the AI response
   const generationResult = await generateTeacherResponse({
     prompt,
@@ -185,6 +260,7 @@ export async function generateAnswerForPrompt({
     userId: authorId,
     researchMode,
     chatMode: normalizedChatMode,
+    researchContext,
   })
   const answer = generationResult.text
   const rawTokenCost = Number(generationResult.usage.totalTokens ?? 0)
