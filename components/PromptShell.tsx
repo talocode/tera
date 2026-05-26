@@ -735,7 +735,7 @@ export default function PromptShell({
                                                         <div className="mt-3 flex flex-wrap gap-2">
                                                             {entry.userMessage.attachments.map((att, idx) => (
                                                                 <div key={idx} className="flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs">
-                                                                    <span>{att.type === 'image' ? 'ðŸ–¼ï¸' : 'ðŸ“„'}</span>
+                                                                    <span>{att.type === 'image' ? 'Image' : 'File'}</span>
                                                                     <span className="truncate max-w-[150px]">{att.name}</span>
                                                                 </div>
                                                             ))}
@@ -832,10 +832,10 @@ export default function PromptShell({
                                     type="button"
                                     aria-label="Close composer menu"
                                     onClick={() => setAttachmentOpen(false)}
-                                    className="fixed inset-0 z-[58] bg-black/30 backdrop-blur-[2px] md:bg-transparent"
+                                    className="fixed inset-0 z-[58] bg-black/50 backdrop-blur-sm md:bg-transparent"
                                 />
 
-                                <div className="absolute inset-x-0 bottom-full z-[59] mb-3">
+                                <div className="absolute inset-x-0 bottom-full z-[59] mb-4">
                                     <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[#0b0f14]/96 shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
                                         <div className="flex items-start justify-between gap-4 border-b border-tera-border/60 px-4 py-3 md:px-5 md:py-4">
                                             <div>
@@ -856,7 +856,7 @@ export default function PromptShell({
                                         </div>
 
                                         <div className="max-h-[calc(100vh-7rem)] overflow-y-auto px-4 py-4 md:px-5 md:py-5">
-                                            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]">
+                                            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]">
                                                 <section className="space-y-3">
                                                     <div className="flex items-center justify-between gap-3">
                                                         <div>
@@ -880,7 +880,7 @@ export default function PromptShell({
                                                                     type="button"
                                                                     onClick={() => !disabled && setChatMode(mode.id)}
                                                                     disabled={disabled}
-                                                                    className={`group flex min-h-[84px] items-start gap-3 rounded-[24px] border px-4 py-3 text-left transition-all duration-200 ${
+                                                                    className={`group flex min-h-[88px] items-start gap-3 rounded-[24px] border px-4 py-3 text-left transition-all duration-200 ${
                                                                         selected
                                                                             ? 'border-white bg-white text-[#08101a] shadow-[0_18px_45px_rgba(0,0,0,0.12)]'
                                                                             : 'border-tera-border bg-tera-panel/80 text-tera-primary hover:-translate-y-0.5 hover:border-white/16 hover:bg-tera-elevated/90'
@@ -1027,5 +1027,6 @@ export default function PromptShell({
         </div>
     )
 }
+
 
 
