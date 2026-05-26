@@ -702,13 +702,19 @@ export default function PromptShell({
     const showSend = (prompt.trim().length > 0 || pendingAttachments.length > 0) && status !== 'loading'
     const showStop = status === 'loading'
     const showMic = !showSend && !showStop
+    const hideInitialHero = attachmentOpen && showInitialPrompt
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
             <div className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-24 md:px-10 md:pb-10 md:pt-10" ref={conversationRef}>
                 <div className="mx-auto min-h-full max-w-4xl space-y-8">
                     {showInitialPrompt ? (
-                        <div className="absolute inset-x-0 top-0 bottom-0 flex items-center justify-center px-4 text-center pointer-events-none -mt-16">
+                        <div
+                            className={`absolute inset-x-0 top-0 bottom-0 flex items-center justify-center px-4 text-center pointer-events-none -mt-16 transition-all duration-200 ease-out ${
+                                hideInitialHero ? 'opacity-0 scale-[0.99]' : 'opacity-100'
+                            }`}
+                            aria-hidden={hideInitialHero}
+                        >
                             <div className="pointer-events-auto flex max-w-3xl flex-col items-center">
                                 <div className="mx-auto mb-8 w-fit p-7">
                                     <div className="relative w-32 h-32">
