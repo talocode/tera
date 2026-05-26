@@ -6,6 +6,7 @@ export type PlanType = 'free' | 'pro' | 'plus'
 export interface PlanLimits {
     messagesPerDay: number | 'unlimited'
     fileUploadsPerDay: number | 'unlimited'
+    webSearchesPerMonth: number | 'unlimited'
     maxFileSize: number // in MB
     features: string[]
 }
@@ -31,6 +32,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         limits: {
             messagesPerDay: 'unlimited',
             fileUploadsPerDay: 3,
+            webSearchesPerMonth: 5,
             maxFileSize: 10,
             features: ['basic-chat', 'basic-tools', 'file-uploads']
         },
@@ -52,6 +54,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         limits: {
             messagesPerDay: 'unlimited',
             fileUploadsPerDay: 25,
+            webSearchesPerMonth: 100,
             maxFileSize: 500,
             features: ['advanced-chat', 'all-tools', 'file-uploads', 'export', 'deep-research', 'priority-support']
         },
@@ -75,6 +78,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         limits: {
             messagesPerDay: 'unlimited',
             fileUploadsPerDay: 'unlimited',
+            webSearchesPerMonth: 300,
             maxFileSize: 2000,
             features: ['advanced-chat', 'all-tools', 'file-uploads', 'export', 'admin', 'analytics', 'deep-research', 'priority-support']
         },

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { getUserLabProgress, getUserBadgeSummary } from '@/lib/blockchain-lab/progress';
 import { getBadgeInfo } from '@/lib/blockchain-lab/badges';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

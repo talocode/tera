@@ -47,6 +47,8 @@ export async function fetchUserUsageSummary(userId: string) {
             dailyChats: profile.dailyChats,
             dailyFileUploads: profile.dailyFileUploads,
             chatResetDate: profile.chatResetDate,
+            monthlyWebSearches: profile.monthlyWebSearches,
+            webSearchResetDate: profile.webSearchResetDate,
         })
     } catch (error) {
         console.error('Error fetching user usage summary:', error)

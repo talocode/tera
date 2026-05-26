@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React from 'react'
 import Link from 'next/link'
@@ -23,7 +23,6 @@ type NavItem = {
   label: string
   icon: string
   href: string
-  group?: string
 }
 
 export const navigation: NavItem[] = [
@@ -33,13 +32,15 @@ export const navigation: NavItem[] = [
   { label: 'Tools', icon: 'apps', href: '/tools' },
   { label: 'Deep research', icon: 'research', href: '/deep-research' },
   { label: 'Notes', icon: 'notes', href: '/notes' },
-  { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain', group: 'Labs' },
+  { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
   { label: 'Settings', icon: 'settings', href: '/settings' },
 ]
 
 interface SidebarProps {
-  expanded: boolean
-  onToggle: () => void
+  pinned: boolean
+  mobileOpen?: boolean
+  onTogglePin: () => void
+  onCloseMobile?: () => void
   onNewChat?: () => void
   user?: User | null
   onSignOut?: () => void
@@ -120,88 +121,99 @@ const getIcon = (iconName: string): React.ReactNode => {
   return Icon ? <Icon /> : null
 }
 
-export default function Sidebar({ expanded, onToggle, onNewChat, user, onSignOut }: SidebarProps) {
+export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
   const pathname = usePathname()
+  const isDesktopExpanded = pinned
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ${expanded ? 'w-[310px] translate-x-0' : '-translate-x-full md:w-[90px] md:translate-x-0'}`}>
-      <div className="flex h-full flex-col border-r border-tera-border bg-tera-panel px-3 py-4 text-tera-primary backdrop-blur-xl">
-        <div className={`flex items-center ${expanded ? 'justify-between px-1' : 'justify-center'}`}>
-          <Link href="/new" className={`flex items-center ${expanded ? 'gap-2' : ''}`} aria-label="Tera home">
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/[0.03]">
-              <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="hidden object-contain p-2 dark:block" priority />
-              <Image src="/images/TERA_LOGO_ONLY1.png" alt="Tera" fill className="object-contain p-2 dark:hidden" priority />
-            </div>
-          </Link>
+    <>
+      {mobileOpen && onCloseMobile && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+          onClick={onCloseMobile}
+          aria-label="Close navigation"
+        />
+      )}
 
-          {expanded && (
+      <aside
+        className={[
+          'group fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-white/10 bg-[#050505] text-white transition-[width,transform] duration-300',
+          mobileOpen ? 'translate-x-0 w-[292px]' : '-translate-x-full md:translate-x-0',
+          isDesktopExpanded ? 'md:w-[292px]' : 'md:w-[72px] md:hover:w-[292px]',
+        ].join(' ')}
+      >
+        <div className="flex h-full flex-col px-3 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/new" className="flex items-center gap-3 overflow-hidden" aria-label="Tera home">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.04]">
+                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain p-2" priority />
+              </div>
+              <span className={[
+                'whitespace-nowrap text-[15px] font-medium tracking-[-0.01em] transition-all duration-200',
+                isDesktopExpanded || mobileOpen ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
+              ].join(' ')}>
+                Tera
+              </span>
+            </Link>
+
             <button
               type="button"
-              onClick={onToggle}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-tera-secondary transition hover:bg-tera-highlight hover:text-tera-primary"
-              aria-label="Collapse sidebar"
+              onClick={onTogglePin}
+              className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-[16px] text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+              aria-label={isDesktopExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 6 12 12" />
-                <path d="M18 6 6 18" />
+              <svg className={`h-5 w-5 transition-transform ${isDesktopExpanded ? 'rotate-0' : 'rotate-180'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 7 9 12l5 5" />
               </svg>
             </button>
-          )}
+          </div>
 
-          {!expanded && (
-            <button
-              type="button"
-              onClick={onToggle}
-              className="hidden md:inline-flex md:h-10 md:w-10 md:items-center md:justify-center md:rounded-xl md:text-tera-secondary md:transition md:hover:bg-tera-highlight md:hover:text-tera-primary"
-              aria-label="Expand sidebar"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 7h16" />
-                <path d="M4 12h16" />
-                <path d="M4 17h16" />
-              </svg>
-            </button>
-          )}
-        </div>
+          <div className="mt-6 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+            <nav className="space-y-1">
+              {navigation.map((item) => {
+                const isNewChat = item.href.startsWith('/new')
+                const isActive = isNewChat
+                  ? pathname?.startsWith('/new')
+                  : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/tools') && pathname?.startsWith('/tools')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
 
-        <div className="mt-6 flex-1 overflow-y-auto custom-scrollbar">
-          <nav className="space-y-1">
-            {navigation.map((item, index) => {
-              const isNewChat = item.href.startsWith('/new')
-              const isActive = isNewChat ? pathname?.startsWith('/new') : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/tools') && pathname?.startsWith('/tools')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
-
-              const showGroupLabel = item.group && expanded && (index === 0 || navigation[index - 1].group !== item.group)
-
-              return (
-                <React.Fragment key={item.label}>
-                  {showGroupLabel && expanded && (
-                    <div className="mt-4 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-tera-secondary">
-                      {item.group}
-                    </div>
-                  )}
+                return (
                   <Link
+                    key={item.label}
                     href={item.href}
                     onClick={(event) => {
                       if (item.label === 'New chat' && pathname?.startsWith('/new') && onNewChat) {
                         event.preventDefault()
                         onNewChat()
                       }
+                      if (mobileOpen && onCloseMobile) {
+                        onCloseMobile()
+                      }
                     }}
-                    className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${isActive ? 'bg-tera-highlight text-tera-primary' : 'text-tera-secondary hover:bg-tera-highlight hover:text-tera-primary'} ${expanded ? '' : 'justify-center md:px-2'}`}
+                    className={[
+                      'group flex h-12 items-center gap-3 rounded-[16px] px-3 text-[13px] font-medium tracking-[-0.01em] transition',
+                      isActive ? 'bg-white text-black' : 'text-white/70 hover:bg-white/[0.06] hover:text-white',
+                      isDesktopExpanded || mobileOpen ? 'justify-start' : 'justify-center md:justify-center',
+                    ].join(' ')}
                   >
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
-                    {expanded && <span className="font-medium">{item.label}</span>}
+                    <span className={[
+                      'whitespace-nowrap transition-all duration-200',
+                      isDesktopExpanded || mobileOpen ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
+                    ].join(' ')}>
+                      {item.label}
+                    </span>
                   </Link>
-                </React.Fragment>
-              )
-            })}
-          </nav>
-        </div>
+                )
+              })}
+            </nav>
+          </div>
 
-        <div className="mt-3 border-t border-tera-border pt-3">
-          <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <UserMenu user={user || null} expanded={isDesktopExpanded || mobileOpen} onSignOut={onSignOut || (() => {})} />
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }

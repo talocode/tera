@@ -18,6 +18,7 @@ export default function WalletSimulator() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newWalletLabel, setNewWalletLabel] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWallets();
@@ -36,21 +37,25 @@ export default function WalletSimulator() {
   }
 
   async function createWallet() {
-    if (!newWalletLabel.trim()) return;
     setCreating(true);
+    setErrorMessage(null);
     try {
+      const label = newWalletLabel.trim() || `Wallet ${wallets.length + 1}`;
       const res = await fetch('/api/blockchain-lab/wallets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: newWalletLabel, createDemo: false }),
+        body: JSON.stringify({ label, createDemo: false }),
       });
       const data = await res.json();
       if (data.wallet) {
         setWallets((prev) => [...prev, data.wallet]);
         setNewWalletLabel('');
+      } else {
+        setErrorMessage(data.error || 'Unable to create wallet right now.');
       }
     } catch (error) {
       console.error('Error creating wallet:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to create wallet right now.');
     } finally {
       setCreating(false);
     }
@@ -58,6 +63,7 @@ export default function WalletSimulator() {
 
   async function createDemoWallet() {
     setCreating(true);
+    setErrorMessage(null);
     try {
       const res = await fetch('/api/blockchain-lab/wallets', {
         method: 'POST',
@@ -67,9 +73,12 @@ export default function WalletSimulator() {
       const data = await res.json();
       if (data.wallet) {
         setWallets((prev) => [...prev, data.wallet]);
+      } else {
+        setErrorMessage(data.error || 'Unable to create demo wallet right now.');
       }
     } catch (error) {
       console.error('Error creating demo wallet:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to create demo wallet right now.');
     } finally {
       setCreating(false);
     }
@@ -91,10 +100,16 @@ export default function WalletSimulator() {
           Create simulated wallets to practice blockchain transactions safely.
         </p>
 
+        {errorMessage && (
+          <div className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {errorMessage}
+          </div>
+        )}
+
         <div className="mt-4 flex gap-3">
           <input
             type="text"
-            placeholder="Wallet name"
+            placeholder="Wallet name (optional)"
             value={newWalletLabel}
             onChange={(e) => setNewWalletLabel(e.target.value)}
             className="tera-input flex-1"
@@ -102,7 +117,7 @@ export default function WalletSimulator() {
           />
           <button
             onClick={createWallet}
-            disabled={creating || !newWalletLabel.trim()}
+            disabled={creating}
             className="tera-button-primary"
           >
             {creating ? 'Creating...' : 'Create Wallet'}

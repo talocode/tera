@@ -36,7 +36,7 @@ export type ProgressInput = z.infer<typeof ProgressInputSchema>;
 
 export const ExplanationInputSchema = z.object({
   eventType: z.enum(['transaction', 'block', 'wallet', 'gas']),
-  eventData: z.record(z.any()),
+  eventData: z.record(z.string(), z.any()),
 });
 
 export type ExplanationInput = z.infer<typeof ExplanationInputSchema>;

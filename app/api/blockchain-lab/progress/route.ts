@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { getUserLabProgress, getUserBadgeSummary, recordProgressEvent } from '@/lib/blockchain-lab/progress';
 import { ProgressInputSchema } from '@/lib/blockchain-lab/schemas';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

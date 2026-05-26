@@ -15,11 +15,10 @@ interface CloudflareEnv {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: string;
   NEXT_PUBLIC_SUPABASE_URL: string;
   NEXTAUTH_URL: string;
+  TAVILY_API_KEY: string;
   RESEND_API_KEY: string;
   RESEND_FROM_EMAIL: string;
   RESEND_REPLY_TO_EMAIL: string;
-  SEARXNG_BASE_URL: string;
-  SERPER_API_KEY: string;
   SUPABASE_ANON_KEY: string;
   SUPABASE_JWT_SECRET: string;
   SUPABASE_SERVICE_ROLE_KEY: string;

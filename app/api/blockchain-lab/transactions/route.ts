@@ -7,7 +7,7 @@ import { checkAndAwardBadges } from '@/lib/blockchain-lab/progress';
 import { explainBlockchainEvent } from '@/lib/ai/blockchain-lab-tutor';
 import { CreateTransactionInputSchema } from '@/lib/blockchain-lab/schemas';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

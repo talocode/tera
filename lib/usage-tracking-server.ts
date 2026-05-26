@@ -7,7 +7,7 @@ import { supabaseServer } from './supabase-server'
 export async function checkAndResetUsageServer(userId: string): Promise<boolean> {
     const { data, error } = await supabaseServer
         .from('users')
-        .select('chat_reset_date, limit_hit_chat_at, limit_hit_upload_at')
+        .select('chat_reset_date, limit_hit_chat_at, limit_hit_upload_at, web_search_reset_date')
         .eq('id', userId)
         .single()
 
@@ -39,6 +39,23 @@ export async function checkAndResetUsageServer(userId: string): Promise<boolean>
             updates.limit_hit_upload_at = null
             needsUpdate = true
         }
+    }
+
+    if (data.web_search_reset_date) {
+        const resetAt = new Date(data.web_search_reset_date)
+        if (now >= resetAt) {
+            updates.monthly_web_searches = 0
+            const nextSearchResetDate = new Date(now)
+            nextSearchResetDate.setMonth(nextSearchResetDate.getMonth() + 1)
+            updates.web_search_reset_date = nextSearchResetDate.toISOString()
+            needsUpdate = true
+        }
+    } else {
+        const nextSearchResetDate = new Date(now)
+        nextSearchResetDate.setMonth(nextSearchResetDate.getMonth() + 1)
+        updates.web_search_reset_date = nextSearchResetDate.toISOString()
+        updates.monthly_web_searches = 0
+        needsUpdate = true
     }
 
     // DAILY RESET LOGIC (Overrules 24h lock if the day cycle has passed)
@@ -124,6 +141,28 @@ export async function incrementFileUploadsServer(userId: string, count: number =
 }
 
 /**
+ * Increment web search counter (Server Side)
+ */
+export async function incrementWebSearchesServer(userId: string, count: number = 1): Promise<boolean> {
+    await checkAndResetUsageServer(userId)
+
+    const { data, error: fetchError } = await supabaseServer
+        .from('users')
+        .select('monthly_web_searches')
+        .eq('id', userId)
+        .single()
+
+    if (fetchError || !data) return false
+
+    const { error: updateError } = await supabaseServer
+        .from('users')
+        .update({ monthly_web_searches: (data.monthly_web_searches || 0) + count })
+        .eq('id', userId)
+
+    return !updateError
+}
+
+/**
  * Fetch user profile with usage stats (Server Side)
  */
 export async function getUserProfileServer(userId: string) {
@@ -144,7 +183,9 @@ export async function getUserProfileServer(userId: string) {
         subscriptionPlan: (data.subscription_plan || 'free') as 'free' | 'pro' | 'plus',
         dailyChats: data.daily_chats || 0,
         dailyFileUploads: data.daily_file_uploads || 0,
+        monthlyWebSearches: data.monthly_web_searches || 0,
         chatResetDate: data.chat_reset_date ? new Date(data.chat_reset_date) : null,
+        webSearchResetDate: data.web_search_reset_date ? new Date(data.web_search_reset_date) : null,
         profileImageUrl: data.profile_image_url,
         fullName: data.full_name,
         school: data.school,
