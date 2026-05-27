@@ -764,7 +764,7 @@ export default function PromptShell({
                 </div>
             </div>
 
-            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/92 px-2 py-2.5 backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3 ${composerDimClass}`}>
+            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/92 px-2 py-2.5 backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
