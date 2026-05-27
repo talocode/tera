@@ -789,15 +789,15 @@ export default function PromptShell({
                                     type="button"
                                     aria-label="Close composer menu"
                                     onClick={closeComposerMenu}
-                                    className="fixed inset-0 z-[58] bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+                                    className="fixed inset-0 z-[58] bg-black/60 backdrop-blur-sm"
                                 />
 
-                                <div className="absolute left-0 bottom-full z-[59] mb-3 w-[min(380px,calc(100vw-1rem))]">
-                                    <div className="overflow-hidden rounded-[24px] border border-tera-border/70 bg-tera-panel/98 text-tera-primary shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+                                <div className="absolute left-0 right-0 bottom-full z-[59] mb-3 mx-auto w-full max-w-[380px] px-2 sm:px-0 sm:left-0 sm:right-auto sm:w-[min(380px,calc(100vw-1rem))]">
+                                    <div className="overflow-hidden rounded-[20px] sm:rounded-[24px] border border-tera-border/70 bg-tera-panel/98 text-tera-primary shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
 
-                                        <div className="px-3 pt-3 pb-1">
+                                        <div className="px-2 sm:px-3 pt-3 pb-1">
                                             <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Response mode</p>
-                                            <div className="space-y-0.5">
+                                            <div className="space-y-px">
                                                 {([
                                                     { key: 'ask', label: 'Ask', hint: 'Direct answers and concise guidance.', icon: <AskIcon /> },
                                                     { key: 'study', label: 'Study', hint: 'Step-by-step explanations with checkpoints.', icon: <StudyIcon /> },
@@ -812,15 +812,15 @@ export default function PromptShell({
                                                             type="button"
                                                             onClick={() => handleResponseModeSelect(item.key)}
                                                             className={[
-                                                                'flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-all duration-150 active:scale-[0.98]',
+                                                                'flex w-full items-center gap-3 rounded-[12px] sm:rounded-[14px] px-3 py-3 sm:py-2.5 text-left transition-all duration-150',
                                                                 isActive
                                                                     ? 'bg-tera-primary/10 text-tera-primary ring-1 ring-inset ring-tera-primary/20'
-                                                                    : 'text-tera-secondary hover:bg-white/[0.08] hover:text-tera-primary',
+                                                                    : 'text-tera-secondary active:bg-white/[0.06] sm:hover:bg-white/[0.08] sm:hover:text-tera-primary',
                                                             ].join(' ')}
                                                         >
                                                             <span
                                                                 className={[
-                                                                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border transition-colors',
+                                                                    'flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border transition-colors',
                                                                     isActive
                                                                         ? 'border-tera-primary/20 bg-tera-primary text-tera-bg'
                                                                         : 'border-tera-border bg-tera-bg text-tera-secondary',
@@ -829,9 +829,9 @@ export default function PromptShell({
                                                                 {item.icon}
                                                             </span>
                                                             <span className="min-w-0 flex-1">
-                                                                <span className="block text-[0.88rem] font-medium">{item.label}</span>
+                                                                <span className="block text-[0.94rem] sm:text-[0.88rem] font-medium">{item.label}</span>
                                                                 <span className={[
-                                                                    'mt-px block text-[0.72rem] leading-4',
+                                                                    'mt-px block text-[0.75rem] sm:text-[0.72rem] leading-4',
                                                                     isActive ? 'text-tera-secondary/80' : 'text-tera-secondary/60',
                                                                 ].join(' ')}>
                                                                     {item.hint}
@@ -850,15 +850,15 @@ export default function PromptShell({
 
                                         <div className="mx-3 my-1.5 h-px bg-tera-border/50" />
 
-                                        <div className="px-3 pb-3">
+                                        <div className="px-2 sm:px-3 pb-3">
                                             <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Attachments</p>
-                                            <div className="space-y-0.5">
+                                            <div className="space-y-px">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('file')}
-                                                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-[14px] font-medium text-tera-secondary transition-all duration-150 hover:bg-white/[0.08] hover:text-tera-primary active:scale-[0.98]"
+                                                    className="flex w-full items-center gap-3 rounded-[12px] sm:rounded-[14px] px-3 py-3 sm:py-2.5 text-left text-[15px] sm:text-[14px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
                                                 >
-                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                    <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
                                                         <AttachmentIcon />
                                                     </span>
                                                     Upload photos & files
@@ -866,9 +866,9 @@ export default function PromptShell({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('image')}
-                                                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-[14px] font-medium text-tera-secondary transition-all duration-150 hover:bg-white/[0.08] hover:text-tera-primary active:scale-[0.98]"
+                                                    className="flex w-full items-center gap-3 rounded-[12px] sm:rounded-[14px] px-3 py-3 sm:py-2.5 text-left text-[15px] sm:text-[14px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
                                                 >
-                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                    <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
                                                         <ScanIcon />
                                                     </span>
                                                     Take screenshot
@@ -876,9 +876,9 @@ export default function PromptShell({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('camera')}
-                                                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-[14px] font-medium text-tera-secondary transition-all duration-150 hover:bg-white/[0.08] hover:text-tera-primary active:scale-[0.98]"
+                                                    className="flex w-full items-center gap-3 rounded-[12px] sm:rounded-[14px] px-3 py-3 sm:py-2.5 text-left text-[15px] sm:text-[14px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
                                                 >
-                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                    <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
                                                         <CameraIcon />
                                                     </span>
                                                     Take photo
