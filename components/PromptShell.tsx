@@ -286,13 +286,6 @@ const ScanIcon = () => (
     </svg>
 )
 
-const DotsIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-[18px] w-[18px]">
-        <circle cx="5" cy="12" r="1.5" />
-        <circle cx="12" cy="12" r="1.5" />
-        <circle cx="19" cy="12" r="1.5" />
-    </svg>
-)
 
 const AskIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
@@ -321,59 +314,6 @@ const SummarizeIcon = () => (
     </svg>
 )
 
-const ImageChatIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7.5A2.25 2.25 0 016.75 5.25h10.5A2.25 2.25 0 0119.5 7.5v9a2.25 2.25 0 01-2.25 2.25H9.75L5.25 21v-3.75A2.25 2.25 0 013 15V7.5z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9.75h7.5M8.25 12.75h4.5" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9.75h.01M15.75 12.75h.01" />
-    </svg>
-)
-
-const ChatSurfaceIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9M7.5 12h6m-9 6 1.5-3.75A2.25 2.25 0 016.75 12h10.5A2.25 2.25 0 0119.5 14.25V17.25A2.25 2.25 0 0117.25 19.5H8.25L4.5 21V19.5A2.25 2.25 0 002.25 17.25V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75V9" />
-    </svg>
-)
-
-const ResearchSurfaceIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.3-4.3" />
-        <circle cx="10.5" cy="10.5" r="5.75" />
-    </svg>
-)
-
-const COMPOSER_PROMPT_MODES = {
-    ask: {
-        icon: <AskIcon />,
-        hint: 'Direct answers and concise guidance.',
-    },
-    study: {
-        icon: <StudyIcon />,
-        hint: 'Step-by-step explanations with checkpoints.',
-    },
-    quiz: {
-        icon: <QuizIcon />,
-        hint: 'Practice questions and quick feedback.',
-    },
-    summarize: {
-        icon: <SummarizeIcon />,
-        hint: 'Condense long text into clear takeaways.',
-    },
-    image: {
-        icon: <ImageChatIcon />,
-        hint: 'Visual generation is coming soon.',
-    },
-} as const
-
-const COMPOSER_SURFACES: Array<{
-    id: SurfaceMode
-    label: string
-    description: string
-    icon: React.ReactNode
-}> = [
-    { id: 'chat', label: 'Chat', description: 'Balanced answers for everyday use.', icon: <ChatSurfaceIcon /> },
-    { id: 'research', label: 'Research', description: 'Deeper web-backed investigation.', icon: <ResearchSurfaceIcon /> },
-]
 
 export default function PromptShell({
     tool,
@@ -425,7 +365,6 @@ export default function PromptShell({
     const requestIdRef = useRef(0)
     const selectedChatModeConfig = getChatModeConfig(chatMode)
     const textareaPlaceholder = isListening ? 'Listening...' : selectedChatModeConfig.placeholder
-    const selectedSurfaceMeta = COMPOSER_SURFACES.find((surface) => surface.id === selectedMode) ?? COMPOSER_SURFACES[0]
     const closeComposerMenu = useCallback(() => setAttachmentOpen(false), [])
 
     const handleResponseModeSelect = useCallback((mode: ChatMode) => {
@@ -440,21 +379,9 @@ export default function PromptShell({
         setAttachmentOpen(false)
     }, [])
 
-    const handleSurfaceModeSelect = useCallback((mode: SurfaceMode) => {
-        setSelectedMode(mode)
+    const getThinkingMessage
 
-        if (mode === 'image') {
-            setChatMode('image')
-        } else if (mode === 'research') {
-            setChatMode((current) => (current === 'image' ? 'ask' : current))
-        } else {
-            setChatMode((current) => (current === 'image' ? 'ask' : current))
-        }
 
-        setAttachmentOpen(false)
-    }, [])
-
-    const handleOpenSkills = useCallback(() => {
         router.push('/skills')
         setAttachmentOpen(false)
     }, [router])
@@ -873,10 +800,10 @@ export default function PromptShell({
                                 />
 
                                 <div className="absolute left-0 bottom-full z-[59] mb-3 w-[min(368px,calc(100vw-1rem))]">
-                                    <div className="overflow-hidden rounded-[28px] border border-tera-border/70 bg-tera-panel/98 text-tera-primary shadow-[0_26px_80px_rgba(0,0,0,0.38)] backdrop-blur-2xl dark:border-white/10 dark:shadow-[0_26px_80px_rgba(0,0,0,0.64)]">
+                                    <div className="overflow-hidden rounded-[28px] border border-tera-border/70 bg-tera-bg text-tera-primary shadow-[0_26px_80px_rgba(0,0,0,0.48)]">
                                         <div className="border-b border-tera-border/50 px-4 py-3 dark:border-white/10">
-                                            <p className="text-[0.68rem] uppercase tracking-[0.3em] text-tera-secondary">Composer menu</p>
-                                            <p className="mt-1 text-sm text-tera-secondary/85">Pick a response mode, choose the surface, or add files.</p>
+                                            <p className="text-[0.68rem] uppercase tracking-[0.3em] text-tera-secondary">Composer</p>
+                                            <p className="mt-1 text-sm text-tera-secondary/85">Choose a response mode or attach files.</p>
                                         </div>
 
                                         <div className="px-2 py-2">
@@ -888,7 +815,6 @@ export default function PromptShell({
                                                         { key: 'study', label: 'Study', hint: 'Step-by-step explanations with checkpoints.', icon: <StudyIcon /> },
                                                         { key: 'quiz', label: 'Quiz', hint: 'Practice questions and quick feedback.', icon: <QuizIcon /> },
                                                         { key: 'summarize', label: 'Summarize', hint: 'Condense long text into clear takeaways.', icon: <SummarizeIcon /> },
-                                                        { key: 'image', label: 'Image Chat', hint: 'Talk about images and visual context.', icon: <ImageChatIcon /> },
                                                     ] as const).map((item) => {
                                                         const isActive = chatMode === item.key
 
@@ -932,51 +858,6 @@ export default function PromptShell({
                                             <div className="my-2 h-px bg-tera-border/50 dark:bg-white/10" />
 
                                             <div className="px-2 pb-2">
-                                                <p className="px-2 pb-2 text-[0.64rem] uppercase tracking-[0.28em] text-tera-secondary">Surface</p>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {COMPOSER_SURFACES.map((surface) => {
-                                                        const active = selectedMode === surface.id
-
-                                                        return (
-                                                            <button
-                                                                key={surface.id}
-                                                                type="button"
-                                                                onClick={() => handleSurfaceModeSelect(surface.id)}
-                                                                className={[
-                                                                    'flex items-center gap-3 rounded-[18px] border px-3 py-3 text-left transition-colors duration-150',
-                                                                    active
-                                                                        ? 'border-tera-primary bg-tera-primary text-tera-bg'
-                                                                        : 'border-tera-border/60 bg-transparent hover:border-tera-border hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
-                                                                ].join(' ')}
-                                                            >
-                                                                <span
-                                                                    className={[
-                                                                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors',
-                                                                        active
-                                                                            ? 'border-tera-bg/20 bg-tera-bg text-tera-primary'
-                                                                            : 'border-tera-border/60 bg-tera-bg text-tera-secondary dark:bg-white/[0.04]',
-                                                                    ].join(' ')}
-                                                                >
-                                                                    {surface.icon}
-                                                                </span>
-                                                                <span className="min-w-0">
-                                                                    <span className="block text-[0.88rem] font-medium tracking-[-0.01em]">{surface.label}</span>
-                                                                    <span className={[
-                                                                        'mt-0.5 block text-[0.72rem] leading-4',
-                                                                        active ? 'text-tera-bg/72' : 'text-tera-secondary',
-                                                                    ].join(' ')}>
-                                                                        {surface.description}
-                                                                    </span>
-                                                                </span>
-                                                            </button>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            <div className="my-2 h-px bg-tera-border/50 dark:bg-white/10" />
-
-                                            <div className="px-2 pb-1">
                                                 <p className="px-2 pb-2 text-[0.64rem] uppercase tracking-[0.28em] text-tera-secondary">Attachments</p>
                                                 <div className="space-y-1">
                                                     <button
@@ -1012,26 +893,6 @@ export default function PromptShell({
                                                 </div>
                                             </div>
 
-                                            <div className="my-2 h-px bg-tera-border/50 dark:bg-white/10" />
-
-                                            <div className="px-2 pt-1 pb-2">
-                                                <p className="px-2 pb-2 text-[0.64rem] uppercase tracking-[0.28em] text-tera-secondary">Explore</p>
-                                                <div className="space-y-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleOpenSkills}
-                                                        className="flex w-full items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-left text-[15px] font-medium tracking-[-0.01em] transition hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-                                                    >
-                                                        <span className="flex items-center gap-3">
-                                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-tera-border/60 bg-tera-bg text-tera-secondary dark:bg-white/[0.04]">
-                                                                <DotsIcon />
-                                                            </span>
-                                                            <span className="min-w-0 flex-1">Skills</span>
-                                                        </span>
-                                                        <span className="text-tera-secondary/70">›</span>
-                                                    </button>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1059,6 +920,4 @@ export default function PromptShell({
         </div>
     )
 }
-
-
-
+
