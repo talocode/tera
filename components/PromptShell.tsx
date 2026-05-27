@@ -379,13 +379,6 @@ export default function PromptShell({
         setAttachmentOpen(false)
     }, [])
 
-    const getThinkingMessage
-
-
-        router.push('/skills')
-        setAttachmentOpen(false)
-    }, [router])
-
     const getThinkingMessage = (p: string) => {
         const lp = p.toLowerCase()
         if (lp.includes('draw') || lp.includes('visual') || lp.includes('chart') || lp.includes('diagram') || lp.includes('image')) return 'Tera is Creating Visuals...'
