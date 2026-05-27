@@ -29,7 +29,7 @@ export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
   { label: 'Search chats', icon: 'search', href: '/history' },
   { label: 'Images', icon: 'images', href: '/images' },
-  { label: 'Tools', icon: 'apps', href: '/tools' },
+  { label: 'Skills', icon: 'apps', href: '/skills' },
   { label: 'Deep research', icon: 'research', href: '/deep-research' },
   { label: 'Notes', icon: 'notes', href: '/notes' },
   { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
@@ -40,6 +40,7 @@ interface SidebarProps {
   pinned: boolean
   mobileOpen?: boolean
   onTogglePin: () => void
+  onHoverChange?: (hovered: boolean) => void
   onCloseMobile?: () => void
   onNewChat?: () => void
   user?: User | null
@@ -121,9 +122,9 @@ const getIcon = (iconName: string): React.ReactNode => {
   return Icon ? <Icon /> : null
 }
 
-export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
+export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
   const pathname = usePathname()
-  const isDesktopExpanded = pinned
+  const expanded = pinned || mobileOpen
 
   return (
     <>
@@ -138,79 +139,81 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onClo
 
       <aside
         className={[
-          'group fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-white/10 bg-[#050505] text-white transition-[width,transform] duration-300',
-          mobileOpen ? 'translate-x-0 w-[292px]' : '-translate-x-full md:translate-x-0',
-          isDesktopExpanded ? 'md:w-[292px]' : 'md:w-[72px] md:hover:w-[292px]',
+          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border/70 bg-tera-bg text-tera-primary transition-[width,transform] duration-300 ease-out dark:border-tera-border/70',
+          mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
+          expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
         ].join(' ')}
+        onMouseEnter={() => {
+          if (!pinned && !mobileOpen) {
+            onHoverChange?.(true)
+          }
+        }}
+        onMouseLeave={() => {
+          if (!pinned && !mobileOpen) {
+            onHoverChange?.(false)
+          }
+        }}
       >
         <div className="flex h-full flex-col px-3 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <Link href="/new" className="flex items-center gap-3 overflow-hidden" aria-label="Tera home">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.04]">
-                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain p-2" priority />
-              </div>
-              <span className={[
-                'whitespace-nowrap text-[15px] font-medium tracking-[-0.01em] transition-all duration-200',
-                isDesktopExpanded || mobileOpen ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
-              ].join(' ')}>
-                Tera
-              </span>
-            </Link>
-
+          {/* Logo */}
+          <div className="flex items-center justify-center md:justify-start">
             <button
               type="button"
               onClick={onTogglePin}
-              className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-[16px] text-white/70 transition hover:bg-white/[0.06] hover:text-white"
-              aria-label={isDesktopExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-tera-border bg-tera-panel transition-all duration-200 hover:bg-tera-highlight"
+              aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
-              <svg className={`h-5 w-5 transition-transform ${isDesktopExpanded ? 'rotate-0' : 'rotate-180'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 7 9 12l5 5" />
-              </svg>
+              <div className="relative h-6 w-6">
+                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain dark:brightness-0 dark:invert" priority />
+              </div>
             </button>
           </div>
 
-          <div className="mt-6 flex-1 overflow-y-auto pr-1 custom-scrollbar">
-            <nav className="space-y-1">
-              {navigation.map((item) => {
-                const isNewChat = item.href.startsWith('/new')
-                const isActive = isNewChat
-                  ? pathname?.startsWith('/new')
-                  : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/tools') && pathname?.startsWith('/tools')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
+          {/* Nav */}
+          <nav className="mt-6 flex flex-1 flex-col gap-0.5">
+            {navigation.map((item) => {
+              const isNewChat = item.href.startsWith('/new')
+              const isActive = isNewChat
+                ? pathname?.startsWith('/new')
+                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
 
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    onClick={(event) => {
-                      if (item.label === 'New chat' && pathname?.startsWith('/new') && onNewChat) {
-                        event.preventDefault()
-                        onNewChat()
-                      }
-                      if (mobileOpen && onCloseMobile) {
-                        onCloseMobile()
-                      }
-                    }}
-                    className={[
-                      'group flex h-12 items-center gap-3 rounded-[16px] px-3 text-[13px] font-medium tracking-[-0.01em] transition',
-                      isActive ? 'bg-white text-black' : 'text-white/70 hover:bg-white/[0.06] hover:text-white',
-                      isDesktopExpanded || mobileOpen ? 'justify-start' : 'justify-center md:justify-center',
-                    ].join(' ')}
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={(event) => {
+                    if (item.label === 'New chat' && pathname?.startsWith('/new') && onNewChat) {
+                      event.preventDefault()
+                      onNewChat()
+                    }
+                    if (mobileOpen && onCloseMobile) {
+                      onCloseMobile()
+                    }
+                  }}
+                  title={item.label}
+                  className={[
+                    'flex h-[44px] items-center gap-3 rounded-[14px] border px-3 text-[13px] font-medium tracking-[-0.01em] transition-all duration-150',
+                    isActive
+                      ? 'border-tera-border bg-tera-primary text-tera-bg'
+                      : 'border-transparent text-tera-secondary hover:border-tera-border hover:bg-tera-panel/70 hover:text-tera-primary',
+                  ].join(' ')}
+                >
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
+                  <span className={[
+                    'whitespace-nowrap text-[13px] transition-all duration-200',
+                    expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
+                  ].join(' ')}
                   >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
-                    <span className={[
-                      'whitespace-nowrap transition-all duration-200',
-                      isDesktopExpanded || mobileOpen ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
-                    ].join(' ')}>
-                      {item.label}
-                    </span>
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })}
+          </nav>
 
-          <div className="mt-3 border-t border-white/10 pt-3">
-            <UserMenu user={user || null} expanded={isDesktopExpanded || mobileOpen} onSignOut={onSignOut || (() => {})} />
+          {/* Bottom: User */}
+          <div className="border-t border-tera-border pt-3">
+            <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
           </div>
         </div>
       </aside>

@@ -10,8 +10,10 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarPinned, setSidebarPinned] = useState(false)
+  const [sidebarHovered, setSidebarHovered] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const sidebarExpanded = sidebarPinned || sidebarHovered
 
   const handleNewChat = () => {
     if (typeof window !== 'undefined') {
@@ -25,13 +27,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
         pinned={sidebarPinned}
         mobileOpen={mobileNavOpen}
         onTogglePin={() => setSidebarPinned((current) => !current)}
+        onHoverChange={setSidebarHovered}
         onCloseMobile={() => setMobileNavOpen(false)}
         onNewChat={handleNewChat}
         user={user}
         onSignOut={signOut}
       />
 
-      <main className={`relative flex min-w-0 flex-1 flex-col transition-[padding] duration-300 ${sidebarPinned ? 'md:pl-[292px]' : 'md:pl-[72px]'}`}>
+      <main className={`relative flex min-w-0 flex-1 flex-col transition-[padding] duration-300 ${sidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[68px]'}`}>
         <div className="pointer-events-none sticky top-0 z-30 border-b border-white/10 bg-[#050505]/92 backdrop-blur-xl md:hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-3.5">
             <button
