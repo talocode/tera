@@ -184,7 +184,7 @@ export const studentTools: TeacherTool[] = [
     },
     {
         name: 'Research Agent',
-        description: 'I conduct deep web searches to build comprehensive reports with citations.',
+        description: 'I conduct deep Grokipedia research to build comprehensive reports with citations.',
         icon: '🕵️',
         tags: ['Research', 'Web', 'Deep Dive']
     },
@@ -197,6 +197,12 @@ export const studentTools: TeacherTool[] = [
 ]
 
 export const learnerTools: TeacherTool[] = [
+    {
+        name: 'Blockchain Lab',
+        description: 'Learn blockchain concepts safely through AI-guided simulations.',
+        icon: '⛓️',
+        tags: ['Blockchain', 'Education', 'Simulation']
+    },
     {
         name: 'Skill Explorer',
         description: 'Want to learn something new? I\'ll create a roadmap for you.',

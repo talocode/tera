@@ -10,11 +10,28 @@ function formatResetLabel(resetAt: string | null) {
   if (!resetAt) return 'Reset time unavailable'
 
   const date = new Date(resetAt)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMs < 0) return 'Resetting now...'
+  
+  if (diffHours < 1) {
+    const mins = Math.round(diffMs / (1000 * 60))
+    return `Resets in ${mins} ${mins === 1 ? 'min' : 'mins'}`
+  }
+
+  if (diffHours < 48) {
+    if (diffDays === 0) {
+      return `Resets in ${Math.round(diffHours)} ${Math.round(diffHours) === 1 ? 'hour' : 'hours'}`
+    }
+    return `Resets in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`
+  }
+
   return `Resets ${date.toLocaleString([], {
     month: 'short',
     day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
   })}`
 }
 
@@ -32,6 +49,16 @@ export default function UsageMetricCard({
   const remainingLabel = metric.isUnlimited
     ? 'Unlimited access'
     : `${Math.round(metric.percentageRemaining)}% remaining`
+
+  // Dynamic color based on usage percentage
+  const getBarColor = () => {
+    if (metric.isUnlimited) return 'bg-tera-neon'
+    if (metric.percentageUsed > 90) return 'bg-red-500'
+    if (metric.percentageUsed > 75) return 'bg-amber-500'
+    return 'bg-tera-neon'
+  }
+
+  const activeColor = metric.isUnlimited ? accentClassName : getBarColor()
 
   return (
     <div className="tera-card h-full">
@@ -53,8 +80,8 @@ export default function UsageMetricCard({
         <div>
           <div className="h-4 overflow-hidden rounded-full bg-white/[0.08]">
             <div
-              className={`h-full rounded-full ${accentClassName}`}
-              style={{ width: `${metric.isUnlimited ? 100 : Math.max(metric.percentageRemaining, 6)}%` }}
+              className={`h-full rounded-full transition-all duration-500 ${activeColor}`}
+              style={{ width: `${metric.isUnlimited ? 100 : Math.max(metric.percentageUsed, 4)}%` }}
             />
           </div>
           <div className="mt-4 flex items-center justify-between gap-4 text-sm text-tera-secondary">

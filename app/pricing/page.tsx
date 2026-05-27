@@ -61,7 +61,6 @@ const comparisonRows = [
   { feature: 'Monthly Credits', free: '150', pro: '1,500', plus: '5,000' },
   { feature: 'File Uploads per Day', free: '3', pro: '25', plus: 'Unlimited' },
   { feature: 'Max File Size', free: '10 MB', pro: '500 MB', plus: '2 GB' },
-  { feature: 'Monthly Web Searches', free: '5', pro: '100', plus: 'Unlimited' },
   { feature: 'Deep Research Mode', free: '-', pro: 'Yes', plus: 'Yes' },
   { feature: 'Export to PDF and Word', free: '-', pro: 'Yes', plus: 'Yes' },
   { feature: 'Priority Support', free: '-', pro: 'Yes', plus: '24/7' },
@@ -194,7 +193,7 @@ export default function PricingPage() {
           <p className="tera-eyebrow">Pricing</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Choose the level of Tera that fits your work.</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-tera-secondary">
-            Conversations stay free. Upgrade when you need more monthly credits, larger file limits, more web search volume, deeper research, or analytics.
+            Conversations stay free. Upgrade when you need more computational credits, larger file limits, Tavily-backed deep research, or analytics.
           </p>
         </section>
 

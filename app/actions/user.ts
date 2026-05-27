@@ -2,12 +2,12 @@
 
 import { getUserProfileServer, checkAndResetUsageServer } from '@/lib/usage-tracking-server'
 import { buildProfileUsageSummary } from '@/lib/profile-usage'
-import { getWebSearchUsageState } from '@/lib/web-search-usage'
 import { supabaseServer } from '@/lib/supabase-server'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import dns from 'node:dns'
 import { getUserCreditsRemaining } from '@/lib/free-plan-credits'
+import { getDailyUsageLedgerHistory, getUsageLedgerWindowSummary } from '@/lib/usage-ledger'
 
 // Force IPv4 to avoid SSL/TLS handshake issues with Supabase on some networks
 try {
@@ -38,10 +38,7 @@ export async function fetchUserUsageSummary(userId: string) {
 
         await checkAndResetUsageServer(userId)
 
-        const [profile, webSearch] = await Promise.all([
-            getUserProfileServer(userId),
-            getWebSearchUsageState(userId),
-        ])
+        const profile = await getUserProfileServer(userId)
 
         if (!profile) return null
 
@@ -49,9 +46,9 @@ export async function fetchUserUsageSummary(userId: string) {
             plan: profile.subscriptionPlan,
             dailyChats: profile.dailyChats,
             dailyFileUploads: profile.dailyFileUploads,
-            monthlyWebSearches: webSearch.used,
             chatResetDate: profile.chatResetDate,
-            webSearchResetDate: webSearch.resetDate ? new Date(webSearch.resetDate) : null,
+            monthlyWebSearches: profile.monthlyWebSearches,
+            webSearchResetDate: profile.webSearchResetDate,
         })
     } catch (error) {
         console.error('Error fetching user usage summary:', error)
@@ -125,6 +122,9 @@ export async function fetchDailyTokenUsage(userId: string) {
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
 
+    const summary = await getUsageLedgerWindowSummary(userId, startOfDay)
+    if (summary) return { usedToday: summary.tokenUsage }
+
     const { data, error } = await supabaseServer
         .from('chat_sessions')
         .select('token_usage')
@@ -140,6 +140,54 @@ export async function fetchDailyTokenUsage(userId: string) {
     return { usedToday }
 }
 
+export async function fetchWeeklyUsageHistory(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return []
+
+        const ledgerHistory = await getDailyUsageLedgerHistory(userId, 7)
+        if (ledgerHistory.some((day) => day.tokens > 0 || day.credits > 0 || day.chats > 0)) {
+            return ledgerHistory.map(({ date, tokens }) => ({ date, used: tokens }))
+        }
+
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+        sevenDaysAgo.setHours(0, 0, 0, 0)
+
+        const { data, error } = await supabaseServer
+            .from('chat_sessions')
+            .select('created_at, token_usage')
+            .eq('user_id', userId)
+            .gte('created_at', sevenDaysAgo.toISOString())
+            .order('created_at', { ascending: true })
+
+        if (error) throw error
+
+        // Group by day
+        const history: Record<string, number> = {}
+        for (let i = 0; i < 7; i++) {
+            const date = new Date()
+            date.setDate(date.getDate() - i)
+            const dateStr = date.toISOString().split('T')[0]
+            history[dateStr] = 0
+        }
+
+        data?.forEach((row: any) => {
+            const dateStr = row.created_at.split('T')[0]
+            if (history[dateStr] !== undefined) {
+                history[dateStr] += Number(row.token_usage || 0)
+            }
+        })
+
+        return Object.entries(history)
+            .map(([date, used]) => ({ date, used }))
+            .sort((a, b) => a.date.localeCompare(b.date))
+    } catch (error) {
+        console.error('Error fetching weekly usage history:', error)
+        return []
+    }
+}
+
 export async function fetchChatHistory(userId: string, sessionId: string) {
     try {
         const session = await auth()
@@ -147,7 +195,7 @@ export async function fetchChatHistory(userId: string, sessionId: string) {
 
         const { data, error } = await supabaseServer
             .from('chat_sessions')
-            .select('id, prompt, response, attachments, created_at')
+            .select('id, prompt, response, attachments, created_at, tool')
             .eq('user_id', userId)
             .eq('session_id', sessionId)
             .order('created_at', { ascending: true })

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 
 interface LimitModalProps {
     isOpen: boolean
-    limitType: 'chats' | 'file-uploads' | 'web-search' | 'research-mode' | 'credits' | null
+    limitType: 'chats' | 'file-uploads' | 'research-mode' | 'credits' | null
     currentPlan: string
     onClose: () => void
     unlocksAt?: Date
@@ -22,20 +22,15 @@ const LIMIT_INFO = {
         message: 'You have reached your daily file upload limit.',
         upgrade: 'Upgrade to Pro for 25 uploads or Plus for unlimited uploads.',
     },
-    'web-search': {
-        title: 'Monthly Web Search Limit Reached',
-        message: 'You have reached your monthly web search limit.',
-        upgrade: 'Upgrade to Pro for 100 searches or Plus for unlimited searches.',
-    },
     'research-mode': {
         title: 'Deep Research Mode',
-        message: 'Deep Research is available on Pro and Plus plans.',
-        upgrade: 'Upgrade to unlock deeper multi-source research.',
+        message: 'Deep Research uses Grokipedia as a canonical source for multi-step analytical reasoning and is available on Pro and Plus plans.',
+        upgrade: 'Upgrade to unlock comprehensive research depth and high-density citations.',
     },
     credits: {
-        title: 'Monthly Credit Cap Reached',
-        message: 'Chats are free and unlimited, but monthly credits power AI responses. You have used your current monthly credit allowance.',
-        upgrade: 'Upgrade for more monthly credits, or wait for your reset date.',
+        title: 'Credit limit reached',
+        message: 'Conversations are unlimited, but AI computational credits power responses. You have used your current credit allowance.',
+        upgrade: 'Upgrade for more computational credits, or wait for your reset date.',
     },
 } as const
 

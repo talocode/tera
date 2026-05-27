@@ -3,7 +3,7 @@
 import Link from 'next/link'
 
 interface UpgradePromptProps {
-    type: 'lesson-plans' | 'chats' | 'file-uploads' | 'web-search' | 'research-mode' | 'credits'
+    type: 'lesson-plans' | 'chats' | 'file-uploads' | 'research-mode' | 'credits'
     onClose?: () => void
     inline?: boolean
 }
@@ -27,22 +27,16 @@ const PROMPTS = {
         benefit: 'Upgrade to Pro for more uploads or Plus for unlimited uploads.',
         icon: 'UP',
     },
-    'web-search': {
-        title: 'Web Search Limit Reached',
-        description: 'You have reached your monthly web search limit.',
-        benefit: 'Upgrade to Pro or Plus to unlock more searches.',
-        icon: 'WS',
-    },
     'research-mode': {
         title: 'Deep Research Mode',
-        description: 'Deep Research mode is available on Pro and Plus plans.',
-        benefit: 'Upgrade to unlock deeper multi-source research.',
+        description: 'Deep Research uses Grokipedia as a canonical source for multi-step analytical reasoning.',
+        benefit: 'Upgrade to Pro to unlock comprehensive research depth and high-density citations.',
         icon: 'DR',
     },
     credits: {
-        title: 'Monthly Credit Cap Reached',
-        description: 'Chats are free and unlimited, but monthly credits power AI responses.',
-        benefit: 'Upgrade to Pro or Plus for more monthly credits, or wait for your reset date.',
+        title: 'Credit limit reached',
+        description: 'Conversations are unlimited, but AI computational credits power responses.',
+        benefit: 'Upgrade to Pro or Plus for more computational credits, or wait for your reset date.',
         icon: 'CR',
     },
 } as const

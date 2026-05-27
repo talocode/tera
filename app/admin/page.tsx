@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -13,11 +13,8 @@ interface AnalyticsData {
     newUsersWeek: number
     newUsersMonth: number
     activeUsersToday: number
-    activeUsersWeek: number
     totalChatSessions: number
     chatsToday: number
-    chatsThisWeek: number
-    totalWebSearches: number
     avgChatsPerUser: number
     chatLimitHits: number
     uploadLimitHits: number
@@ -115,7 +112,7 @@ export default function AdminPage() {
           <div>
             <p className="tera-eyebrow">Admin</p>
             <h1 className="tera-title mt-3">Analytics dashboard</h1>
-            <p className="tera-subtitle mt-4">Monitor user growth, chat activity, search usage, limits, and upgrade conversion from one dark dashboard.</p>
+            <p className="tera-subtitle mt-4">Monitor user growth, chat activity, limits, and upgrade conversion from one dark dashboard.</p>
           </div>
           <button type="button" onClick={fetchAnalytics} disabled={loading} className="tera-button-secondary disabled:opacity-60">
             {loading ? 'Refreshing...' : 'Refresh'}
@@ -133,7 +130,7 @@ export default function AdminPage() {
             <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               <MetricCard title="Total users" value={analytics.summary.totalUsers} subtext={`+${analytics.summary.newUsersToday} today`} />
               <MetricCard title="Total chats" value={analytics.summary.totalChatSessions} subtext={`${analytics.summary.chatsToday} today`} />
-              <MetricCard title="Web searches" value={analytics.summary.totalWebSearches} subtext="Current total" />
+              <MetricCard title="Active users" value={analytics.summary.activeUsersToday} subtext="Today's activity" />
               <MetricCard title="Upgrade rate" value={`${analytics.summary.upgradeRate}%`} subtext={`${analytics.summary.upgradedAfterLimit} after limit`} />
             </div>
 

@@ -48,6 +48,20 @@ Tera is a free, AI-powered learning companion designed for **anything** you want
 
 ---
 
+## Chat Learning Modes
+
+Tera chat includes learning modes that shape the assistant experience without changing existing usage limits or introducing new plan limits for this foundation.
+
+- **Ask:** Preserves normal Tera chat behavior.
+- **Study:** Provides tutor-style, step-by-step teaching.
+- **Quiz:** Generates interactive quizzes and grades follow-up answers.
+- **Summarize:** Creates structured learning notes from pasted content.
+- **Image:** Visible in the mode picker, but coming soon and locked.
+
+Mode configuration and prompts live in `lib/ai/chat-modes.ts`. Document any migration added for mode metadata alongside this foundation; no new plan limits are introduced, so existing usage limits continue to apply.
+
+---
+
 ## 📖 Grokipedia Integration
 
 Tera integrates [Grokipedia](https://grokipedia.com) — an open-source AI-powered encyclopedia with **362,000+ pages** — as its primary knowledge base and citation source.

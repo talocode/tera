@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React from 'react'
 import Link from 'next/link'
@@ -19,19 +19,29 @@ type User = {
   image?: string | null
 }
 
-export const navigation = [
+type NavItem = {
+  label: string
+  icon: string
+  href: string
+}
+
+export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
   { label: 'Search chats', icon: 'search', href: '/history' },
   { label: 'Images', icon: 'images', href: '/images' },
-  { label: 'Tools', icon: 'apps', href: '/tools' },
+  { label: 'Skills', icon: 'apps', href: '/skills' },
   { label: 'Deep research', icon: 'research', href: '/deep-research' },
   { label: 'Notes', icon: 'notes', href: '/notes' },
+  { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
   { label: 'Settings', icon: 'settings', href: '/settings' },
 ]
 
 interface SidebarProps {
-  expanded: boolean
-  onToggle: () => void
+  pinned: boolean
+  mobileOpen?: boolean
+  onTogglePin: () => void
+  onHoverChange?: (hovered: boolean) => void
+  onCloseMobile?: () => void
   onNewChat?: () => void
   user?: User | null
   onSignOut?: () => void
@@ -89,6 +99,14 @@ const IconSettings = () => (
   </svg>
 )
 
+const IconLab = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+)
+
 const getIcon = (iconName: string): React.ReactNode => {
   const icons: Record<string, () => React.ReactNode> = {
     chat: IconChat,
@@ -98,60 +116,66 @@ const getIcon = (iconName: string): React.ReactNode => {
     research: IconResearch,
     notes: IconNotes,
     settings: IconSettings,
+    lab: IconLab,
   }
   const Icon = icons[iconName]
   return Icon ? <Icon /> : null
 }
 
-export default function Sidebar({ expanded, onToggle, onNewChat, user, onSignOut }: SidebarProps) {
+export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
   const pathname = usePathname()
+  const expanded = pinned || mobileOpen
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ${expanded ? 'w-[310px] translate-x-0' : '-translate-x-full md:w-[90px] md:translate-x-0'}`}>
-      <div className="flex h-full flex-col border-r border-tera-border bg-tera-panel px-3 py-4 text-tera-primary backdrop-blur-xl">
-        <div className={`flex items-center ${expanded ? 'justify-between px-1' : 'justify-center'}`}>
-          <Link href="/new" className={`flex items-center ${expanded ? 'gap-2' : ''}`} aria-label="Tera home">
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/[0.03]">
-              <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="hidden object-contain p-2 dark:block" priority />
-              <Image src="/images/TERA_LOGO_ONLY1.png" alt="Tera" fill className="object-contain p-2 dark:hidden" priority />
-            </div>
-          </Link>
+    <>
+      {mobileOpen && onCloseMobile && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+          onClick={onCloseMobile}
+          aria-label="Close navigation"
+        />
+      )}
 
-          {expanded && (
+      <aside
+        className={[
+          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border/70 bg-tera-bg text-tera-primary transition-[width,transform] duration-300 ease-out dark:border-tera-border/70',
+          mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
+          expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
+        ].join(' ')}
+        onMouseEnter={() => {
+          if (!pinned && !mobileOpen) {
+            onHoverChange?.(true)
+          }
+        }}
+        onMouseLeave={() => {
+          if (!pinned && !mobileOpen) {
+            onHoverChange?.(false)
+          }
+        }}
+      >
+        <div className="flex h-full flex-col px-3 py-4">
+          {/* Logo */}
+          <div className="flex items-center justify-center md:justify-start">
             <button
               type="button"
-              onClick={onToggle}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-tera-secondary transition hover:bg-tera-highlight hover:text-tera-primary"
-              aria-label="Collapse sidebar"
+              onClick={onTogglePin}
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-tera-border bg-tera-panel transition-all duration-200 hover:bg-tera-highlight"
+              aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 6 12 12" />
-                <path d="M18 6 6 18" />
-              </svg>
+              <div className="relative h-6 w-6">
+                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain dark:brightness-0 dark:invert" priority />
+              </div>
             </button>
-          )}
+          </div>
 
-          {!expanded && (
-            <button
-              type="button"
-              onClick={onToggle}
-              className="hidden md:inline-flex md:h-10 md:w-10 md:items-center md:justify-center md:rounded-xl md:text-tera-secondary md:transition md:hover:bg-tera-highlight md:hover:text-tera-primary"
-              aria-label="Expand sidebar"
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 7h16" />
-                <path d="M4 12h16" />
-                <path d="M4 17h16" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        <div className="mt-6 flex-1 overflow-y-auto custom-scrollbar">
-          <nav className="space-y-1">
+          {/* Nav */}
+          <nav className="mt-6 flex flex-1 flex-col gap-0.5">
             {navigation.map((item) => {
               const isNewChat = item.href.startsWith('/new')
-              const isActive = isNewChat ? pathname?.startsWith('/new') : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/tools') && pathname?.startsWith('/tools'))
+              const isActive = isNewChat
+                ? pathname?.startsWith('/new')
+                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
 
               return (
                 <Link
@@ -162,21 +186,37 @@ export default function Sidebar({ expanded, onToggle, onNewChat, user, onSignOut
                       event.preventDefault()
                       onNewChat()
                     }
+                    if (mobileOpen && onCloseMobile) {
+                      onCloseMobile()
+                    }
                   }}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${isActive ? 'bg-tera-highlight text-tera-primary' : 'text-tera-secondary hover:bg-tera-highlight hover:text-tera-primary'} ${expanded ? '' : 'justify-center md:px-2'}`}
+                  title={item.label}
+                  className={[
+                    'flex h-[44px] items-center gap-3 rounded-[14px] border px-3 text-[13px] font-medium tracking-[-0.01em] transition-all duration-150',
+                    isActive
+                      ? 'border-tera-border bg-tera-primary text-tera-bg'
+                      : 'border-transparent text-tera-secondary hover:border-tera-border hover:bg-tera-panel/70 hover:text-tera-primary',
+                  ].join(' ')}
                 >
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
-                  {expanded && <span className="font-medium">{item.label}</span>}
+                  <span className={[
+                    'whitespace-nowrap text-[13px] transition-all duration-200',
+                    expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
+                  ].join(' ')}
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               )
             })}
           </nav>
-        </div>
 
-        <div className="mt-3 border-t border-tera-border pt-3">
-          <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
+          {/* Bottom: User */}
+          <div className="border-t border-tera-border pt-3">
+            <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }

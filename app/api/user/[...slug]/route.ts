@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { getCurrencyForCountry, EXCHANGE_RATES } from '@/lib/currency-converter'
-import { getWebSearchRemaining } from '@/lib/web-search-usage'
 import { getUserProfileServer, incrementFileUploadsServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { auth } from '@/lib/auth'
@@ -60,19 +59,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
     const { slug } = await params
     const action = slug[0]
-
-    if (action === 'web-search-status') {
-        try {
-            const { userId } = await request.json()
-            if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
-            const { remaining, total, resetDate, plan } = await getWebSearchRemaining(userId)
-            return NextResponse.json({
-                success: true, remaining, total, resetDate, plan, percentageUsed: total > 0 ? Math.round(((total - remaining) / total) * 100) : 0,
-                isLow: remaining <= Math.ceil(total * 0.2),
-                message: remaining === 0 ? `🔍 Limit Reached (0/${total})` : (remaining <= 2 ? `🔍 Last ${remaining} search(es) remaining` : `🔍 Web Search (${remaining}/${total})`)
-            })
-        } catch (error) { return NextResponse.json({ error: 'Failed' }, { status: 500 }) }
-    }
 
     if (action === 'settings') {
         const session = await auth()

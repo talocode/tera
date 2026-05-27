@@ -8,6 +8,7 @@ import { PLAN_CONFIGS, canStartChat, canUploadFile, getRemainingChats, getRemain
 export interface UsageStats {
     dailyChats: number
     dailyFileUploads: number
+    monthlyWebSearches?: number
     chatResetDate: Date
 }
 
@@ -17,7 +18,9 @@ export interface UserProfile {
     subscriptionPlan: PlanType
     dailyChats: number
     dailyFileUploads: number
+    monthlyWebSearches: number
     chatResetDate: Date | null
+    webSearchResetDate: Date | null
     limitHitChatAt: Date | null
     limitHitUploadAt: Date | null
     profileImageUrl: string | null
@@ -48,7 +51,9 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
         subscriptionPlan: (data.subscription_plan || 'free') as PlanType,
         dailyChats: data.daily_chats || 0,
         dailyFileUploads: data.daily_file_uploads || 0,
+        monthlyWebSearches: data.monthly_web_searches || 0,
         chatResetDate: data.chat_reset_date ? new Date(data.chat_reset_date) : null,
+        webSearchResetDate: data.web_search_reset_date ? new Date(data.web_search_reset_date) : null,
         limitHitChatAt: data.limit_hit_chat_at ? new Date(data.limit_hit_chat_at) : null,
         limitHitUploadAt: data.limit_hit_upload_at ? new Date(data.limit_hit_upload_at) : null,
         profileImageUrl: data.profile_image_url,
@@ -65,7 +70,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 export async function getUsageStats(userId: string): Promise<UsageStats | null> {
     const { data, error } = await supabase
         .from('users')
-        .select('daily_chats, daily_file_uploads, chat_reset_date')
+        .select('daily_chats, daily_file_uploads, monthly_web_searches, chat_reset_date')
         .eq('id', userId)
         .single()
 
@@ -77,6 +82,7 @@ export async function getUsageStats(userId: string): Promise<UsageStats | null> 
     return {
         dailyChats: data.daily_chats || 0,
         dailyFileUploads: data.daily_file_uploads || 0,
+        monthlyWebSearches: data.monthly_web_searches || 0,
         chatResetDate: data.chat_reset_date ? new Date(data.chat_reset_date) : new Date()
     }
 }

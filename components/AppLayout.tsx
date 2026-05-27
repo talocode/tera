@@ -9,8 +9,11 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const [sidebarExpanded, setSidebarExpanded] = useState(false)
+  const [sidebarPinned, setSidebarPinned] = useState(false)
+  const [sidebarHovered, setSidebarHovered] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const sidebarExpanded = sidebarPinned || sidebarHovered
 
   const handleNewChat = () => {
     if (typeof window !== 'undefined') {
@@ -20,30 +23,24 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="relative flex min-h-[100dvh] w-full bg-transparent text-tera-primary">
-      {sidebarExpanded && (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setSidebarExpanded(false)}
-          aria-label="Close navigation"
-        />
-      )}
-
       <Sidebar
-        expanded={sidebarExpanded}
-        onToggle={() => setSidebarExpanded((current) => !current)}
+        pinned={sidebarPinned}
+        mobileOpen={mobileNavOpen}
+        onTogglePin={() => setSidebarPinned((current) => !current)}
+        onHoverChange={setSidebarHovered}
+        onCloseMobile={() => setMobileNavOpen(false)}
         onNewChat={handleNewChat}
         user={user}
         onSignOut={signOut}
       />
 
-      <main className={`relative flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarExpanded ? 'md:pl-[320px]' : 'md:pl-[104px]'}`}>
-        <div className="pointer-events-none sticky top-0 z-30 border-b border-tera-border/60 bg-tera-bg/88 backdrop-blur-xl md:hidden">
+      <main className={`relative flex min-w-0 flex-1 flex-col transition-[padding] duration-300 ${sidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[68px]'}`}>
+        <div className="pointer-events-none sticky top-0 z-30 border-b border-white/10 bg-[#050505]/92 backdrop-blur-xl md:hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-3.5">
             <button
               type="button"
               className="tera-icon-button pointer-events-auto h-11 w-11 rounded-2xl border-0 bg-transparent"
-              onClick={() => setSidebarExpanded(true)}
+              onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

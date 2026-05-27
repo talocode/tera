@@ -1,0 +1,4 @@
+[2026-04-20T14:01:25.320370100+00:00] Started execution for plan: d0c3c8e7-00bc-46e9-a4dc-650684f9a2ff
+[2026-04-20T14:01:25.392901100+00:00] [Provider] Refining step: Analyze workspace context
+[2026-04-20T14:01:51.628467+00:00] [Provider] Refinement failed: Request failed: error sending request for url (https://api.mistral.ai/v1/chat/completions). Using fallback.
+[2026-04-20T14:01:51.629282600+00:00] Resolved action: InspectFiles against 

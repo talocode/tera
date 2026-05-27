@@ -1,13 +1,18 @@
 import { supabaseServer } from './supabase-server'
 import type { PlanType } from './plan-config'
+import { getUsageLedgerWindowSummary } from './usage-ledger'
 
 const PLAN_MONTHLY_CREDIT_CAPS: Record<PlanType, number> = {
   free: 150,
   pro: 1500,
   plus: 5000
 }
-const RESET_INTERVAL_DAYS = 30
-const RESET_INTERVAL_MS = RESET_INTERVAL_DAYS * 24 * 60 * 60 * 1000
+const CREDIT_USAGE_CONFIG = {
+  resetIntervalDays: 30,
+  tokensPerCredit: 5000,
+} as const
+
+const RESET_INTERVAL_MS = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
 
 type CreditState = {
   used: number
@@ -21,6 +26,14 @@ type UserCreditRecord = {
   plan: PlanType
   used: number
   resetDate: Date | null
+  hasCreditLedger: boolean
+}
+
+class UsageReadError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message)
+    this.name = 'UsageReadError'
+  }
 }
 
 function isMissingColumnError(error: unknown, columnName: string) {
@@ -48,9 +61,21 @@ export function getPlanCreditCap(plan: PlanType): number {
   return PLAN_MONTHLY_CREDIT_CAPS[plan]
 }
 
+export function calculateCreditsForTokens(tokenCount: number): number {
+  const normalizedTokenCount = Number.isFinite(tokenCount)
+    ? Math.max(1, Math.round(tokenCount))
+    : 1
+
+  return Math.max(1, Math.ceil(normalizedTokenCount / CREDIT_USAGE_CONFIG.tokensPerCredit))
+}
+
+export function getTokensPerCredit() {
+  return CREDIT_USAGE_CONFIG.tokensPerCredit
+}
+
 function getNextResetDate(from: Date = new Date()) {
   const date = new Date(from)
-  date.setDate(date.getDate() + RESET_INTERVAL_DAYS)
+  date.setDate(date.getDate() + CREDIT_USAGE_CONFIG.resetIntervalDays)
   return date
 }
 
@@ -76,7 +101,11 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
       .eq('id', userId)
       .maybeSingle()
 
-    if (fallbackError || !fallbackData) {
+    if (fallbackError) {
+      throw new UsageReadError('Unable to read user plan while falling back from missing credit columns.', fallbackError)
+    }
+
+    if (!fallbackData) {
       return null
     }
 
@@ -84,10 +113,15 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
       plan: normalizePlan(fallbackData.subscription_plan),
       used: 0,
       resetDate: null,
+      hasCreditLedger: false,
     }
   }
 
-  if (error || !data) {
+  if (error) {
+    throw new UsageReadError('Unable to read user credit record.', error)
+  }
+
+  if (!data) {
     return null
   }
 
@@ -95,6 +129,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
     plan: normalizePlan(data.subscription_plan),
     used: Math.max(0, Number(data.free_plan_credits_used || 0)),
     resetDate: data.free_plan_credits_reset_date ? new Date(data.free_plan_credits_reset_date) : null,
+    hasCreditLedger: true,
   }
 }
 
@@ -105,7 +140,11 @@ async function getUserPlan(userId: string): Promise<PlanType> {
     .eq('id', userId)
     .maybeSingle()
 
-  if (error || !data) {
+  if (error) {
+    throw new UsageReadError('Unable to read user plan for credit usage.', error)
+  }
+
+  if (!data) {
     return 'free'
   }
 
@@ -126,18 +165,28 @@ async function getSessionCreditUsage(userId: string, windowStart: Date): Promise
       .eq('user_id', userId)
       .gte('created_at', windowStart.toISOString())
 
-    if (fallbackError || !fallbackData) {
+    if (fallbackError) {
+      throw new UsageReadError('Unable to read chat sessions while falling back from missing token usage column.', fallbackError)
+    }
+
+    if (!fallbackData) {
       return 0
     }
 
     return fallbackData.length
   }
 
-  if (error || !data) {
+  if (error) {
+    throw new UsageReadError('Unable to read session credit usage.', error)
+  }
+
+  if (!data) {
     return 0
   }
 
-  return data.reduce((sum: number, row: { token_usage?: number | null }) => sum + Math.max(0, Number(row.token_usage || 0)), 0)
+  return data.reduce((sum: number, row: { token_usage?: number | null }) => (
+    sum + calculateCreditsForTokens(Number(row.token_usage || 0))
+  ), 0)
 }
 
 export async function getUserCreditsRemaining(userId: string): Promise<CreditState> {
@@ -151,14 +200,20 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
       ? record.resetDate
       : getNextResetDate(now)
     const windowStart = new Date(activeResetDate.getTime() - RESET_INTERVAL_MS)
-    const sessionUsage = await getSessionCreditUsage(userId, windowStart)
+    const ledgerSummary = await getUsageLedgerWindowSummary(userId, windowStart)
+    const ledgerUsage = ledgerSummary?.creditsCharged ?? 0
+    const sessionUsage = record?.hasCreditLedger
+      ? 0
+      : await getSessionCreditUsage(userId, windowStart)
     const storedUsage = record?.resetDate && now <= record.resetDate ? record.used : 0
-    const used = Math.max(storedUsage, sessionUsage)
+    const used = ledgerSummary
+      ? ledgerUsage
+      : (record?.hasCreditLedger ? storedUsage : Math.max(storedUsage, sessionUsage))
     const remaining = Math.max(0, total - used)
     return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
   } catch (error) {
-    const resetDate = getNextResetDate().toISOString()
-    return { used: 0, remaining: PLAN_MONTHLY_CREDIT_CAPS.free, total: PLAN_MONTHLY_CREDIT_CAPS.free, resetDate, plan: 'free' }
+    console.error('[credit_usage_read_failed]', { userId, error })
+    throw error
   }
 }
 
@@ -166,7 +221,14 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
   try {
     const record = await getUserCreditRecord(userId)
 
-    if (!record) return true
+    if (!record) {
+      console.error('[credit_usage_accounting_failed]', {
+        userId,
+        cost,
+        reason: 'missing_user_credit_record',
+      })
+      return false
+    }
 
     const now = new Date()
     const resetDate = record.resetDate
@@ -187,8 +249,24 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
       .update(updatePayload)
       .eq('id', userId)
 
-    return !updateError
-  } catch (error) {
+    if (updateError) {
+      console.error('[credit_usage_accounting_failed]', {
+        userId,
+        cost,
+        reason: 'update_failed',
+        error: updateError,
+      })
+      return false
+    }
+
     return true
+  } catch (error) {
+    console.error('[credit_usage_accounting_failed]', {
+      userId,
+      cost,
+      reason: 'exception',
+      error,
+    })
+    return false
   }
 }
