@@ -236,8 +236,13 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
     const now = new Date()
     const resetDate = record.resetDate
 
+    const charge = Math.max(1, cost)
     let used = record.used
-    const updatePayload: { free_plan_credits_used: number; free_plan_credits_reset_date?: string } = { free_plan_credits_used: used }
+    const updatePayload: {
+      free_plan_credits_used: number
+      free_plan_credits_reset_date?: string
+      purchased_credits_balance?: number
+    } = { free_plan_credits_used: used }
 
     if (!resetDate || now > resetDate) {
       used = 0
@@ -245,7 +250,17 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
       updatePayload.free_plan_credits_reset_date = nextReset.toISOString()
     }
 
-    updatePayload.free_plan_credits_used = used + Math.max(1, cost)
+    // Consume one-time top-up credits first so spent balance does not reappear on the next reset.
+    const purchasedCreditsToConsume = record.hasCreditLedger
+      ? Math.min(record.purchasedCredits, charge)
+      : 0
+    const monthlyCreditsToConsume = charge - purchasedCreditsToConsume
+
+    if (record.hasCreditLedger) {
+      updatePayload.purchased_credits_balance = Math.max(0, record.purchasedCredits - purchasedCreditsToConsume)
+    }
+
+    updatePayload.free_plan_credits_used = used + monthlyCreditsToConsume
 
     const { error: updateError } = await supabaseServer
       .from('users')
