@@ -15,12 +15,23 @@ export interface LemonSqueezyCheckoutData {
 export interface LemonSqueezyWebhookData {
   id: string
   type: string
+  meta?: {
+    event_name?: string
+    custom_data?: {
+      user_id?: string
+      topup_credits?: string
+      topup_amount_usd?: string
+      topup_type?: string
+      [key: string]: string | undefined
+    }
+  }
   attributes: {
     status: 'pending' | 'completed' | 'failed' | 'refunded'
     refunded: boolean
     failed: boolean
     product_id: number
     variant_id: number
+    identifier: string
     customer_id: number
     subscription_id?: number
     order_number: string

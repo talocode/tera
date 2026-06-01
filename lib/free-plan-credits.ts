@@ -322,3 +322,48 @@ export async function addPurchasedCredits(userId: string, creditsToAdd: number):
     return false
   }
 }
+
+export async function applyPurchasedCreditTopup(
+  userId: string,
+  creditsToAdd: number,
+  orderIdentifier: string,
+  orderNumber: string,
+  amountUsd?: number | null,
+): Promise<'applied' | 'duplicate'> {
+  const credits = Math.max(0, Math.floor(Number(creditsToAdd || 0)))
+  if (credits <= 0) throw new Error('Top-up credits must be greater than zero')
+  if (!orderIdentifier) throw new Error('Missing Lemon Squeezy order identifier')
+  if (!orderNumber) throw new Error('Missing Lemon Squeezy order number')
+
+  try {
+    const { data, error } = await supabaseServer.rpc('apply_purchased_credit_topup', {
+      p_user_id: userId,
+      p_order_identifier: orderIdentifier,
+      p_order_number: orderNumber,
+      p_credits: credits,
+      p_amount_usd: amountUsd ?? null,
+    })
+
+    if (error) {
+      console.error('[credit_topup_fulfillment_failed]', {
+        userId,
+        orderIdentifier,
+        orderNumber,
+        credits,
+        error,
+      })
+      throw error
+    }
+
+    return data ? 'applied' : 'duplicate'
+  } catch (error) {
+    console.error('[credit_topup_fulfillment_failed]', {
+      userId,
+      orderIdentifier,
+      orderNumber,
+      credits,
+      error,
+    })
+    throw error
+  }
+}
