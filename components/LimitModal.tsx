@@ -30,7 +30,7 @@ const LIMIT_INFO = {
     credits: {
         title: 'Credit limit reached',
         message: 'Conversations are unlimited, but AI computational credits power responses. You have used your current credit allowance.',
-        upgrade: 'Upgrade for more computational credits, or wait for your reset date.',
+        upgrade: 'Upgrade for more computational credits, or buy a top-up pack to keep going now.',
     },
 } as const
 
@@ -124,10 +124,19 @@ export default function LimitModal({ isOpen, limitType, currentPlan: _currentPla
                     <button
                         type="button"
                         onClick={handleUpgrade}
-                        className="tera-button-primary flex-1 justify-center"
+                        className={`flex-1 justify-center ${limitType === 'credits' ? 'tera-button-secondary' : 'tera-button-primary'}`}
                     >
                         View plans
                     </button>
+                    {limitType === 'credits' && (
+                        <button
+                            type="button"
+                            onClick={() => router.push('/pricing#credit-packs')}
+                            className="tera-button-primary flex-1 justify-center"
+                        >
+                            Buy credits
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

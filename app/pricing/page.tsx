@@ -285,7 +285,7 @@ export default function PricingPage() {
           ))}
         </section>
 
-        <section className="tera-surface mt-8 p-6 md:p-8">
+        <section id="credit-packs" className="tera-surface mt-8 p-6 md:p-8">
           <p className="tera-eyebrow">Credit packs</p>
           <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Need more usage without upgrading?</h2>
           <p className="mt-3 text-sm leading-7 text-tera-secondary">Top up from $1 and above without changing your subscription plan.</p>

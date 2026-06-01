@@ -348,7 +348,7 @@ export default function ProfilePage() {
                 {usageCardsLoading ? 'Refreshing...' : 'Refresh usage'}
               </button>
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div id="credit-packs" className="mt-4 flex flex-wrap items-center gap-2">
               <input
                 type="number"
                 min={1}

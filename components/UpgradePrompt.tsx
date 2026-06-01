@@ -36,7 +36,7 @@ const PROMPTS = {
     credits: {
         title: 'Credit limit reached',
         description: 'Conversations are unlimited, but AI computational credits power responses.',
-        benefit: 'Upgrade to Pro or Plus for more computational credits, or wait for your reset date.',
+        benefit: 'Upgrade to Pro or Plus for more computational credits, or buy a top-up pack now.',
         icon: 'CR',
     },
 } as const
@@ -92,8 +92,8 @@ export default function UpgradePrompt({ type, onClose, inline = false }: Upgrade
                                 Maybe Later
                             </button>
                         )}
-                        <Link href="/pricing" className="tera-button-upgrade flex-1 rounded-lg px-4 py-3 text-center font-semibold">
-                            View Plans
+                        <Link href={type === 'credits' ? '/pricing#credit-packs' : '/pricing'} className="tera-button-upgrade flex-1 rounded-lg px-4 py-3 text-center font-semibold">
+                            {type === 'credits' ? 'Buy Credits' : 'View Plans'}
                         </Link>
                     </div>
                 </div>

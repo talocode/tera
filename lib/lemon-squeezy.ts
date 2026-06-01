@@ -31,6 +31,10 @@ export interface LemonSqueezyWebhookData {
     test_mode: boolean
     custom_data?: {
       user_id?: string
+      topup_credits?: string
+      topup_amount_usd?: string
+      topup_type?: string
+      [key: string]: string | undefined
     }
   }
 }
@@ -67,6 +71,10 @@ export interface LemonSqueezySubscriptionWebhook {
     test_mode: boolean
     custom_data?: {
       user_id?: string
+      topup_credits?: string
+      topup_amount_usd?: string
+      topup_type?: string
+      [key: string]: string | undefined
     }
   }
 }
