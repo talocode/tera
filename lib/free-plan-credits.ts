@@ -25,6 +25,7 @@ type CreditState = {
 type UserCreditRecord = {
   plan: PlanType
   used: number
+  purchasedCredits: number
   resetDate: Date | null
   hasCreditLedger: boolean
 }
@@ -90,11 +91,11 @@ function normalizePlan(plan: string | null | undefined): PlanType {
 async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | null> {
   const { data, error } = await supabaseServer
     .from('users')
-    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date')
+    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date, purchased_credits_balance')
     .eq('id', userId)
     .maybeSingle()
 
-  if (error && (isMissingColumnError(error, 'free_plan_credits_used') || isMissingColumnError(error, 'free_plan_credits_reset_date'))) {
+  if (error && (isMissingColumnError(error, 'free_plan_credits_used') || isMissingColumnError(error, 'free_plan_credits_reset_date') || isMissingColumnError(error, 'purchased_credits_balance'))) {
     const { data: fallbackData, error: fallbackError } = await supabaseServer
       .from('users')
       .select('subscription_plan')
@@ -112,6 +113,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
     return {
       plan: normalizePlan(fallbackData.subscription_plan),
       used: 0,
+      purchasedCredits: 0,
       resetDate: null,
       hasCreditLedger: false,
     }
@@ -128,6 +130,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
   return {
     plan: normalizePlan(data.subscription_plan),
     used: Math.max(0, Number(data.free_plan_credits_used || 0)),
+    purchasedCredits: Math.max(0, Number(data.purchased_credits_balance || 0)),
     resetDate: data.free_plan_credits_reset_date ? new Date(data.free_plan_credits_reset_date) : null,
     hasCreditLedger: true,
   }
@@ -194,7 +197,7 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const now = new Date()
     const record = await getUserCreditRecord(userId)
     const plan = record?.plan ?? await getUserPlan(userId)
-    const total = getPlanCreditCap(plan)
+    const total = getPlanCreditCap(plan) + Math.max(0, record?.purchasedCredits || 0)
 
     const activeResetDate = record?.resetDate && now <= record.resetDate
       ? record.resetDate
@@ -267,6 +270,40 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
       reason: 'exception',
       error,
     })
+    return false
+  }
+}
+
+export async function addPurchasedCredits(userId: string, creditsToAdd: number): Promise<boolean> {
+  const credits = Math.max(0, Math.floor(Number(creditsToAdd || 0)))
+  if (credits <= 0) return false
+
+  try {
+    const { data, error } = await supabaseServer
+      .from('users')
+      .select('purchased_credits_balance')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('[credit_topup_read_failed]', { userId, error })
+      return false
+    }
+
+    const nextBalance = Math.max(0, Number(data?.purchased_credits_balance || 0)) + credits
+    const { error: updateError } = await supabaseServer
+      .from('users')
+      .update({ purchased_credits_balance: nextBalance })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('[credit_topup_update_failed]', { userId, credits, error: updateError })
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[credit_topup_failed]', { userId, credits, error })
     return false
   }
 }

@@ -84,6 +84,7 @@ export default function PricingPage() {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [topupAmountUsd, setTopupAmountUsd] = useState('1')
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
   const [currency, setCurrency] = useState<CurrencyConfig>(CURRENCY_CODES.USD)
   const [countryCode, setCountryCode] = useState('')
@@ -157,6 +158,41 @@ export default function PricingPage() {
       console.error('Checkout error:', error)
       const message = error instanceof Error ? error.message : 'Failed to initiate checkout'
       alert(`Error: ${message}. Please try again or contact support.`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreditPackCheckout = async () => {
+    if (!user?.email) {
+      router.push('/auth/signin')
+      return
+    }
+
+    const amountUsd = Number(topupAmountUsd)
+    if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+      alert('Minimum top-up is $1.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/billing/create-credit-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountUsd,
+          email: user.email,
+          returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/profile`,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.checkoutUrl) throw new Error(data.details || data.error || 'Failed to create checkout session')
+      window.location.href = data.checkoutUrl
+    } catch (error) {
+      console.error('Credit pack checkout error:', error)
+      alert('Failed to start credit pack checkout. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -247,6 +283,26 @@ export default function PricingPage() {
               </button>
             </div>
           ))}
+        </section>
+
+        <section className="tera-surface mt-8 p-6 md:p-8">
+          <p className="tera-eyebrow">Credit packs</p>
+          <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Need more usage without upgrading?</h2>
+          <p className="mt-3 text-sm leading-7 text-tera-secondary">Top up from $1 and above without changing your subscription plan.</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={topupAmountUsd}
+              onChange={(event) => setTopupAmountUsd(event.target.value)}
+              className="tera-input h-11 w-[180px]"
+              aria-label="Top-up amount in USD"
+            />
+            <button type="button" onClick={() => void handleCreditPackCheckout()} disabled={loading} className="tera-button-secondary justify-center disabled:opacity-60">
+              {loading ? 'Processing...' : 'Buy credits ($1+)'}
+            </button>
+          </div>
         </section>
 
         <section className="tera-surface mt-8 overflow-hidden p-6 md:p-8">

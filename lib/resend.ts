@@ -30,7 +30,8 @@ function getEmailLogoUrl() {
 }
 
 function getFromAddress() {
-  return process.env.RESEND_FROM_EMAIL || 'TeraAI <onboarding@resend.dev>'
+  const raw = process.env.RESEND_FROM_EMAIL || 'TeraAI <onboarding@resend.dev>'
+  return raw.replace(/^["']|["']$/g, '').trim()
 }
 
 export function isResendConfigured() {

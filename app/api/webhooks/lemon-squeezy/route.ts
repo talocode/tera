@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { verifyWebhookSignature, mapVariantToPlan, type LemonSqueezyWebhookData, type LemonSqueezySubscriptionWebhook } from '@/lib/lemon-squeezy'
 import { sendSubscriptionEndedEmail, sendSubscriptionStartedEmail } from '@/lib/transactional-emails'
+import { addPurchasedCredits } from '@/lib/free-plan-credits'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,6 +70,18 @@ async function handleOrderCompleted(data: LemonSqueezyWebhookData) {
 
     const plan = mapVariantToPlan(data.attributes.variant_id.toString())
     if (!plan) {
+      const topupCredits = Number(customData?.topup_credits || 0)
+      const topupType = customData?.topup_type
+      if (topupType === 'credit_topup' && topupCredits > 0) {
+        const applied = await addPurchasedCredits(userId, topupCredits)
+        if (!applied) {
+          console.error(`Failed to apply credit top-up for user ${userId}`)
+          return
+        }
+        console.log(`✅ Applied ${topupCredits} top-up credits for user ${userId}`)
+        return
+      }
+
       console.warn(`Unknown variant ID: ${data.attributes.variant_id}`)
       return
     }
