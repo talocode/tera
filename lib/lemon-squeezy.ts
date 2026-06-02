@@ -15,12 +15,23 @@ export interface LemonSqueezyCheckoutData {
 export interface LemonSqueezyWebhookData {
   id: string
   type: string
+  meta?: {
+    event_name?: string
+    custom_data?: {
+      user_id?: string
+      topup_credits?: string
+      topup_amount_usd?: string
+      topup_type?: string
+      [key: string]: string | undefined
+    }
+  }
   attributes: {
     status: 'pending' | 'completed' | 'failed' | 'refunded'
     refunded: boolean
     failed: boolean
     product_id: number
     variant_id: number
+    identifier: string
     customer_id: number
     subscription_id?: number
     order_number: string
@@ -31,6 +42,10 @@ export interface LemonSqueezyWebhookData {
     test_mode: boolean
     custom_data?: {
       user_id?: string
+      topup_credits?: string
+      topup_amount_usd?: string
+      topup_type?: string
+      [key: string]: string | undefined
     }
   }
 }
@@ -67,6 +82,10 @@ export interface LemonSqueezySubscriptionWebhook {
     test_mode: boolean
     custom_data?: {
       user_id?: string
+      topup_credits?: string
+      topup_amount_usd?: string
+      topup_type?: string
+      [key: string]: string | undefined
     }
   }
 }
@@ -75,6 +94,8 @@ interface CheckoutOptions {
   email?: string
   userId?: string
   returnUrl?: string
+  customData?: Record<string, string>
+  customPriceUsd?: number
 }
 
 /**
@@ -91,7 +112,8 @@ export async function createCheckout(variantId: string, options: CheckoutOptions
 
     // Use Lemon Squeezy API to create checkout
     const customData: Record<string, string | undefined> = {
-      user_id: options.userId
+      user_id: options.userId,
+      ...(options.customData || {}),
     }
     
     if (options.returnUrl) {
@@ -102,6 +124,7 @@ export async function createCheckout(variantId: string, options: CheckoutOptions
       data: {
         type: 'checkouts',
         attributes: {
+          custom_price: options.customPriceUsd ? Math.round(options.customPriceUsd * 100) : undefined,
           checkout_data: {
             email: options.email,
             custom: customData
@@ -252,6 +275,31 @@ export async function getCheckoutUrlForPlan(
     email,
     userId,
     returnUrl
+  })
+}
+
+export async function getCheckoutUrlForCreditPack(
+  amountUsd: number,
+  credits: number,
+  email: string,
+  userId: string,
+  returnUrl?: string
+): Promise<string> {
+  const variantId = process.env.LEMON_SQUEEZY_CREDIT_TOPUP_VARIANT_ID
+  if (!variantId) {
+    throw new Error('Missing Lemon Squeezy top-up variant: LEMON_SQUEEZY_CREDIT_TOPUP_VARIANT_ID')
+  }
+
+  return createCheckout(variantId, {
+    email,
+    userId,
+    returnUrl,
+    customPriceUsd: amountUsd,
+    customData: {
+      topup_credits: String(credits),
+      topup_amount_usd: String(amountUsd),
+      topup_type: 'credit_topup',
+    },
   })
 }
 

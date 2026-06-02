@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCheckoutUrlForPlan, getCustomerPortalUrl } from '@/lib/lemon-squeezy'
+import { getCheckoutUrlForPlan, getCheckoutUrlForCreditPack, getCustomerPortalUrl } from '@/lib/lemon-squeezy'
 import { supabaseServer } from '@/lib/supabase-server'
 import { auth } from '@/lib/auth'
+import { calculateCreditsFromTopup, isValidTopupAmount } from '@/lib/credit-topup'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
     const { slug } = await params
@@ -16,6 +17,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             console.log(`[Billing API] Request body:`, { action, plan: body.plan, email: body.email })
         } else {
             console.log(`[Billing API] Processing action: ${action}`)
+        }
+
+        if (action === 'create-credit-session') {
+            const { amountUsd, email, returnUrl } = body
+            const session = await auth()
+            if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            const userId = session.user.id
+
+            const parsedAmount = Number(amountUsd)
+            if (!email || !isValidTopupAmount(parsedAmount)) {
+                return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+            }
+
+            const credits = calculateCreditsFromTopup(parsedAmount)
+            const checkoutUrl = await getCheckoutUrlForCreditPack(parsedAmount, credits, email, userId, returnUrl)
+            return NextResponse.json({ success: true, checkoutUrl, credits })
         }
 
         if (action === 'create-session') {

@@ -51,6 +51,8 @@ export default function ProfilePage() {
   const [recentSessions, setRecentSessions] = useState<any[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [topupAmountUsd, setTopupAmountUsd] = useState('1')
+  const [creditPackLoading, setCreditPackLoading] = useState(false)
 
   const loadUsageSummary = useCallback(async () => {
     if (!user) return
@@ -196,6 +198,36 @@ export default function ProfilePage() {
     }
   }
 
+  const handleAddCredits = async () => {
+    if (!user?.email) return
+    setCreditPackLoading(true)
+    try {
+      const amountUsd = Number(topupAmountUsd)
+      if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+        alert('Minimum top-up is $1.')
+        return
+      }
+
+      const response = await fetch('/api/billing/create-credit-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountUsd,
+          email: user.email,
+          returnUrl: `${window.location.origin}/profile`,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.checkoutUrl) throw new Error(data.error || 'Failed to create checkout session')
+      window.location.href = data.checkoutUrl
+    } catch (error) {
+      console.error('Error opening credit pack checkout:', error)
+      alert('Failed to load credit checkout. Please try again.')
+    } finally {
+      setCreditPackLoading(false)
+    }
+  }
+
   if (loading) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Loading profile...</div>
   }
@@ -314,6 +346,20 @@ export default function ProfilePage() {
               )}
               <button type="button" onClick={refreshUsage} disabled={usageCardsLoading} className="tera-button-secondary disabled:opacity-60">
                 {usageCardsLoading ? 'Refreshing...' : 'Refresh usage'}
+              </button>
+            </div>
+            <div id="credit-packs" className="mt-4 flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={topupAmountUsd}
+                onChange={(event) => setTopupAmountUsd(event.target.value)}
+                className="tera-input h-11 w-[150px]"
+                aria-label="Top-up amount in USD"
+              />
+              <button type="button" onClick={() => void handleAddCredits()} disabled={creditPackLoading} className="tera-button-secondary justify-center disabled:opacity-60">
+                {creditPackLoading ? 'Loading...' : 'Add credits ($1+)'}
               </button>
             </div>
           </div>

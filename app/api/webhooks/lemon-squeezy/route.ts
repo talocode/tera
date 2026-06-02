@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { verifyWebhookSignature, mapVariantToPlan, type LemonSqueezyWebhookData, type LemonSqueezySubscriptionWebhook } from '@/lib/lemon-squeezy'
 import { sendSubscriptionEndedEmail, sendSubscriptionStartedEmail } from '@/lib/transactional-emails'
+import { applyPurchasedCreditTopup } from '@/lib/free-plan-credits'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +24,9 @@ export async function POST(request: NextRequest) {
     console.log(`Processing webhook event: ${eventType}`)
 
     switch (eventType) {
+      case 'order_created':
       case 'order_completed':
-        await handleOrderCompleted(event.data as LemonSqueezyWebhookData)
+        await handleOrderCreated(event as { data: LemonSqueezyWebhookData; meta?: LemonSqueezyWebhookData['meta'] })
         break
 
       case 'subscription_created':
@@ -57,18 +59,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleOrderCompleted(data: LemonSqueezyWebhookData) {
+async function handleOrderCreated(event: { data: LemonSqueezyWebhookData; meta?: LemonSqueezyWebhookData['meta'] }) {
   try {
-    const customData = data.attributes.custom_data
+    const data = event.data
+    const customData = event.meta?.custom_data || data.meta?.custom_data || data.attributes.custom_data
     const userId = customData?.user_id
 
     if (!userId) {
-      console.warn('Order completed but no user_id in custom_data')
+      console.warn('Order created but no user_id in custom_data')
       return
     }
 
     const plan = mapVariantToPlan(data.attributes.variant_id.toString())
     if (!plan) {
+      const topupCredits = Number(customData?.topup_credits || 0)
+      const topupType = customData?.topup_type
+      if (topupType === 'credit_topup' && topupCredits > 0) {
+        const topupAmountUsd = Number(customData?.topup_amount_usd || 0) || null
+        const result = await applyPurchasedCreditTopup(
+          userId,
+          topupCredits,
+          data.attributes.identifier,
+          data.attributes.order_number,
+          topupAmountUsd,
+        )
+
+        if (result === 'duplicate') {
+          console.log(`↩️ Skipped duplicate top-up fulfillment for order ${data.attributes.identifier}`)
+          return
+        }
+
+        if (result !== 'applied') {
+          console.error(`Failed to apply credit top-up for user ${userId}`)
+          return
+        }
+        console.log(`✅ Applied ${topupCredits} top-up credits for user ${userId}`)
+        return
+      }
+
       console.warn(`Unknown variant ID: ${data.attributes.variant_id}`)
       return
     }
