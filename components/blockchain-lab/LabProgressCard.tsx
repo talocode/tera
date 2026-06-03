@@ -5,7 +5,8 @@ import React, { useState, useEffect } from 'react';
 interface ProgressData {
   completedLessons: number;
   totalLessons: number;
-  badges: { badge_slug: string; earned_at: string }[];
+  earned: string[];
+  available: string[];
   walletCount: number;
   transactions: { status: string }[];
 }
@@ -40,8 +41,9 @@ export default function LabProgressCard() {
 
   const completedLessons = progress?.completedLessons || 0;
   const totalLessons = progress?.totalLessons || 4;
-  const badgeCount = progress?.badges?.length || 0;
+  const badgeCount = progress?.earned?.length || 0;
   const walletCount = progress?.walletCount || 0;
+  const confirmedTransactions = progress?.transactions?.filter((t: { status: string }) => t.status === 'confirmed').length || 0;
 
   return (
     <div className="tera-card">
@@ -64,7 +66,7 @@ export default function LabProgressCard() {
         <div className="rounded-lg bg-tera-muted p-4">
           <p className="text-xs uppercase tracking-wide text-tera-secondary">Transactions</p>
           <p className="mt-2 text-2xl font-semibold text-tera-primary">
-            {progress?.transactions?.filter((t: any) => t.status === 'confirmed').length || 0}
+            {confirmedTransactions}
           </p>
         </div>
       </div>

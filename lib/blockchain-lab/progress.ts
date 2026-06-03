@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server';
 import type { BlockchainLabProgress, BlockchainLabUserBadge } from './schemas';
 import { BADGES, LESSONS } from './constants';
+import { getUserTransactions } from './transactions';
 
 export async function recordProgressEvent(
   userId: string,
@@ -71,6 +72,8 @@ export async function getUserLabProgress(
   badges: BlockchainLabUserBadge[];
   completedLessons: number;
   totalLessons: number;
+  walletCount: number;
+  transactions: Array<{ status: string }>;
 }> {
   const [progressResult, badgesResult] = await Promise.all([
     supabaseServer
@@ -86,6 +89,13 @@ export async function getUserLabProgress(
   const progress = progressResult.data || [];
   const badges = badgesResult.data || [];
   const completedLessons = progress.filter((p) => p.status === 'completed').length;
+  const [walletResult, transactions] = await Promise.all([
+    supabaseServer
+      .from('blockchain_lab_wallets')
+      .select('id')
+      .eq('user_id', userId),
+    getUserTransactions(userId),
+  ]);
 
   const { data: lessons } = await supabaseServer
     .from('blockchain_lab_lessons')
@@ -97,6 +107,8 @@ export async function getUserLabProgress(
     badges,
     completedLessons,
     totalLessons: lessons?.length || 4,
+    walletCount: walletResult.data?.length || 0,
+    transactions: transactions.map((transaction) => ({ status: transaction.status })),
   };
 }
 
