@@ -26,7 +26,7 @@ function getAppUrl() {
 }
 
 function getEmailLogoUrl() {
-  return `${getAppUrl()}/images/TERA_LOGO_ONLY.png`
+  return `${getAppUrl()}/assets/tera-logo.jpg`
 }
 
 function getFromAddress() {
@@ -87,10 +87,25 @@ export function renderProductUpdateEmail({
 }) {
   const appUrl = getAppUrl()
   const safeHeading = escapeHtml(heading)
-  const safeMessage = escapeHtml(message)
+  const messageBlocks = message
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map(escapeHtml)
   const safePreview = escapeHtml(previewText || heading)
   const safeCtaUrl = escapeHtml(ctaUrl || appUrl)
   const safeCtaLabel = ctaLabel || 'Open Tera'
+  const sectionTitles = new Set(['Why we built this', 'What it means for you', 'How it works'])
+  const renderedBlocks = messageBlocks
+    .map((block) => {
+      const isSectionTitle = sectionTitles.has(block)
+      if (isSectionTitle) {
+        return `<h2 style="margin:24px 0 12px;color:#f6f7f9;font-size:20px;line-height:1.3;font-weight:700;">${block}</h2>`
+      }
+
+      return `<p style="margin:0 0 16px;color:#c5ced8;font-size:17px;line-height:1.85;">${block.replace(/\n/g, '<br />')}</p>`
+    })
+    .join('')
 
   return `<!doctype html>
 <html>
@@ -104,23 +119,25 @@ export function renderProductUpdateEmail({
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0f14;padding:32px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#111820;border:1px solid rgba(255,255,255,0.10);border-radius:18px;overflow:hidden;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;background:#111820;border:1px solid rgba(255,255,255,0.10);border-radius:22px;overflow:hidden;">
             <tr>
-              <td style="padding:28px 28px 12px;">
-                <img src="${escapeHtml(getEmailLogoUrl())}" alt="TeraAI" width="96" height="96" style="display:block;width:48px;height:48px;object-fit:contain;margin:0 0 14px;" />
-                <p style="margin:0 0 14px;color:#9aa6b2;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">Tera update</p>
-                <h1 style="margin:0;color:#f6f7f9;font-size:28px;line-height:1.2;font-weight:700;">${safeHeading}</h1>
+              <td style="padding:32px 32px 16px;">
+                <img src="${escapeHtml(getEmailLogoUrl())}" alt="TeraAI" width="96" height="96" style="display:block;width:52px;height:52px;object-fit:cover;border-radius:12px;margin:0 0 16px;" />
+                <p style="margin:0 0 12px;color:#9aa6b2;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;">Tera account update</p>
+                <h1 style="margin:0;color:#f6f7f9;font-size:32px;line-height:1.15;font-weight:700;max-width:560px;">${safeHeading}</h1>
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 28px 24px;">
-                <p style="margin:0;color:#c5ced8;font-size:16px;line-height:1.7;white-space:pre-line;">${safeMessage}</p>
-                <a href="${safeCtaUrl}" style="display:inline-block;margin-top:24px;background:#ccff00;color:#08101a;text-decoration:none;font-weight:700;font-size:14px;padding:13px 18px;border-radius:10px;">${safeCtaLabel}</a>
+              <td style="padding:8px 32px 28px;">
+                ${renderedBlocks}
+                <div style="margin-top:28px;">
+                  <a href="${safeCtaUrl}" style="display:inline-block;background:#f6f7f9;color:#08101a;text-decoration:none;font-weight:700;font-size:15px;padding:14px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);">${safeCtaLabel}</a>
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="padding:20px 28px 28px;border-top:1px solid rgba(255,255,255,0.08);">
-                <p style="margin:0;color:#7f8b98;font-size:12px;line-height:1.6;">You are receiving this because you use Tera. We send product updates when Tera changes in ways that affect your learning workspace.</p>
+              <td style="padding:20px 32px 30px;border-top:1px solid rgba(255,255,255,0.08);">
+                <p style="margin:0;color:#7f8b98;font-size:12px;line-height:1.7;">You are receiving this because you use Tera and have email notifications enabled. We only send product updates when there is something useful to know about your account or workspace.</p>
               </td>
             </tr>
           </table>

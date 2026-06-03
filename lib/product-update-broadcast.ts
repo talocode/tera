@@ -14,6 +14,23 @@ export type ProductUpdateInput = {
   dryRun?: boolean
   source?: string
   sourceId?: string
+  scheduledAt?: string
+}
+
+type ProductUpdateBroadcastRow = {
+  id: number
+  source: string
+  source_id: string
+  subject: string
+  status: 'scheduled' | 'started' | 'sent' | 'failed' | 'skipped'
+  recipient_count: number | null
+  sent_count: number | null
+  failed_count: number | null
+  error_message: string | null
+  metadata: Record<string, any> | null
+  completed_at: string | null
+  scheduled_at: string | null
+  created_at: string
 }
 
 type Recipient = {
@@ -89,6 +106,71 @@ export async function logProductUpdateEmail({
   }
 }
 
+function buildBroadcastMetadata(input: ProductUpdateInput) {
+  return {
+    subject: input.subject,
+    heading: input.heading,
+    message: input.message,
+    previewText: input.previewText || null,
+    ctaLabel: input.ctaLabel || null,
+    ctaUrl: input.ctaUrl || null,
+    audience: input.audience,
+    source: input.source || 'announcement',
+    sourceId: input.sourceId || null,
+  }
+}
+
+async function upsertBroadcastRecord(input: ProductUpdateInput & { status: ProductUpdateBroadcastRow['status']; scheduledAt?: string | null; recipientCount?: number | null; sentCount?: number | null; failedCount?: number | null; errorMessage?: string | null; completedAt?: string | null }) {
+  const source = input.source || 'announcement'
+  const sourceId = input.sourceId || `${source}:${input.subject}:${input.scheduledAt || new Date().toISOString()}`
+  const { data, error } = await supabase
+    .from('product_update_broadcasts')
+    .upsert({
+      source,
+      source_id: sourceId,
+      subject: input.subject,
+      status: input.status,
+      recipient_count: input.recipientCount ?? null,
+      sent_count: input.sentCount ?? null,
+      failed_count: input.failedCount ?? null,
+      error_message: input.errorMessage ?? null,
+      metadata: buildBroadcastMetadata(input),
+      scheduled_at: input.scheduledAt || null,
+      completed_at: input.completedAt || null,
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[product_update_broadcast_upsert_failed]', { source, sourceId, error })
+    throw error
+  }
+
+  return data as ProductUpdateBroadcastRow
+}
+
+export async function scheduleProductUpdateBroadcast(input: ProductUpdateInput & { scheduledAt: string }) {
+  const scheduledAt = new Date(input.scheduledAt)
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw new Error('Invalid scheduledAt value')
+  }
+
+  const row = await upsertBroadcastRecord({
+    ...input,
+    status: 'scheduled',
+    scheduledAt: scheduledAt.toISOString(),
+  })
+
+  return {
+    ok: true,
+    scheduled: true,
+    broadcastId: row.id,
+    source: row.source,
+    sourceId: row.source_id,
+    scheduledAt: row.scheduled_at,
+  }
+}
+
 export async function sendProductUpdateBroadcast(input: ProductUpdateInput) {
   const recipients = await getProductUpdateRecipients(input.audience)
 
@@ -152,8 +234,107 @@ export async function sendProductUpdateBroadcast(input: ProductUpdateInput) {
 
   return {
     ok: results.failed === 0,
+    dryRun: false,
     audience: input.audience,
+    recipientCount: recipients.length,
     ...results,
     failures: results.failures.slice(0, 25),
+  }
+}
+
+export async function processScheduledProductUpdateBroadcasts(now = new Date(), limit = 10) {
+  const dueAt = now.toISOString()
+  const { data: dueBroadcasts, error: dueError } = await supabase
+    .from('product_update_broadcasts')
+    .select('*')
+    .eq('status', 'scheduled')
+    .lte('scheduled_at', dueAt)
+    .order('scheduled_at', { ascending: true })
+    .limit(limit)
+
+  if (dueError) throw dueError
+  if (!dueBroadcasts || dueBroadcasts.length === 0) {
+    return { ok: true, processed: 0, sent: 0, failed: 0, skipped: 0 }
+  }
+
+  const claimIds = dueBroadcasts.map((row: any) => row.id)
+  const { data: claimedBroadcasts, error: claimError } = await supabase
+    .from('product_update_broadcasts')
+    .update({ status: 'started' })
+    .in('id', claimIds)
+    .eq('status', 'scheduled')
+    .select('*')
+
+  if (claimError) throw claimError
+
+  let sent = 0
+  let failed = 0
+  let skipped = 0
+
+  for (const broadcast of (claimedBroadcasts || []) as ProductUpdateBroadcastRow[]) {
+    const metadata = (broadcast.metadata || {}) as Record<string, any>
+    const input: ProductUpdateInput = {
+      subject: broadcast.subject,
+      heading: String(metadata.heading || broadcast.subject),
+      message: String(metadata.message || ''),
+      previewText: metadata.previewText || undefined,
+      ctaLabel: metadata.ctaLabel || undefined,
+      ctaUrl: metadata.ctaUrl || undefined,
+      audience: (metadata.audience || 'email_notifications') as ProductUpdateAudience,
+      source: broadcast.source,
+      sourceId: broadcast.source_id,
+    }
+
+    try {
+      const result = await sendProductUpdateBroadcast(input) as {
+        ok: boolean
+        dryRun?: boolean
+        audience: ProductUpdateAudience
+        recipientCount: number
+        attempted?: number
+        sent?: number
+        failed?: number
+        failures?: Array<{ email: string; error: string }>
+      }
+
+      if (result.dryRun === true) {
+        skipped += 1
+      } else if (result.ok) {
+        sent += 1
+      } else {
+        failed += 1
+      }
+
+      await supabase
+        .from('product_update_broadcasts')
+        .update({
+          status: result.ok ? 'sent' : 'failed',
+          recipient_count: result.recipientCount ?? result.attempted ?? null,
+          sent_count: result.sent ?? null,
+          failed_count: result.failed ?? null,
+          error_message: result.ok ? null : (result.failures?.[0]?.error || 'Unknown send failure'),
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', broadcast.id)
+    } catch (error) {
+      failed += 1
+      const message = error instanceof Error ? error.message : 'Unknown scheduled broadcast failure'
+      await supabase
+        .from('product_update_broadcasts')
+        .update({
+          status: 'failed',
+          error_message: message,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', broadcast.id)
+    }
+  }
+
+  return {
+    ok: failed === 0,
+    processed: claimedBroadcasts?.length || 0,
+    sent,
+    failed,
+    skipped,
   }
 }

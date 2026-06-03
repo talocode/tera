@@ -13,6 +13,7 @@ import {
   fetchWeeklyUsageHistory,
   updateUserProfile,
 } from '@/app/actions/user'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { buildUsageMetricSummary, type ProfileUsageSummary } from '@/lib/profile-usage'
 import { TERA_USAGE_REFRESH_EVENT } from '@/lib/usage-events'
 import type { UserProfile } from '@/lib/usage-tracking'
@@ -27,6 +28,12 @@ type CreditUsageState = {
 type UsageHistoryData = {
   date: string
   used: number
+}
+
+type TopupCheckoutNotice = {
+  amountUsd: number
+  credits: number
+  rate: number
 }
 
 function formatMemberSince(createdAt: Date) {
@@ -53,6 +60,25 @@ export default function ProfilePage() {
   const [portalLoading, setPortalLoading] = useState(false)
   const [topupAmountUsd, setTopupAmountUsd] = useState('1')
   const [creditPackLoading, setCreditPackLoading] = useState(false)
+  const [topupCheckoutNotice, setTopupCheckoutNotice] = useState<TopupCheckoutNotice | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const storedNotice = window.sessionStorage.getItem('tera_credit_topup_checkout')
+    if (!storedNotice) return
+
+    try {
+      const parsed = JSON.parse(storedNotice) as TopupCheckoutNotice
+      if (Number.isFinite(parsed.amountUsd) && Number.isFinite(parsed.credits) && Number.isFinite(parsed.rate)) {
+        setTopupCheckoutNotice(parsed)
+      }
+    } catch (error) {
+      console.error('Error reading top-up checkout notice:', error)
+    } finally {
+      window.sessionStorage.removeItem('tera_credit_topup_checkout')
+    }
+  }, [])
 
   const loadUsageSummary = useCallback(async () => {
     if (!user) return
@@ -219,6 +245,16 @@ export default function ProfilePage() {
       })
       const data = await response.json()
       if (!response.ok || !data.checkoutUrl) throw new Error(data.error || 'Failed to create checkout session')
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(
+          'tera_credit_topup_checkout',
+          JSON.stringify({
+            amountUsd,
+            credits: Number(data.credits || 0),
+            rate: CREDITS_PER_USD,
+          }),
+        )
+      }
       window.location.href = data.checkoutUrl
     } catch (error) {
       console.error('Error opening credit pack checkout:', error)
@@ -227,6 +263,10 @@ export default function ProfilePage() {
       setCreditPackLoading(false)
     }
   }
+
+  const topupAmount = Number(topupAmountUsd)
+  const estimatedTopupCredits =
+    Number.isFinite(topupAmount) && topupAmount >= 1 ? Math.max(1, Math.floor(topupAmount * CREDITS_PER_USD)) : null
 
   if (loading) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Loading profile...</div>
@@ -281,6 +321,14 @@ export default function ProfilePage() {
   return (
     <div className="tera-page">
       <div className="tera-page-shell pt-24 md:pt-10">
+        {topupCheckoutNotice && (
+          <section className="tera-surface mb-8 border border-emerald-400/20 bg-emerald-500/10 px-6 py-4">
+            <p className="tera-eyebrow">Checkout confirmation</p>
+            <p className="mt-2 text-sm leading-7 text-tera-primary">
+              Your top-up checkout was created for ${topupCheckoutNotice.amountUsd.toFixed(2)} and will add {topupCheckoutNotice.credits.toLocaleString()} credits at {topupCheckoutNotice.rate.toLocaleString()} credits per $1 once payment completes.
+            </p>
+          </section>
+        )}
         <div className="tera-page-header">
           <div>
             <p className="tera-eyebrow">Workspace</p>
@@ -362,6 +410,10 @@ export default function ProfilePage() {
                 {creditPackLoading ? 'Loading...' : 'Add credits ($1+)'}
               </button>
             </div>
+            <p className="mt-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+              {CREDITS_PER_USD.toLocaleString()} credits per $1
+              {estimatedTopupCredits ? ` · ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
+            </p>
           </div>
         </div>
 
