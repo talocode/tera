@@ -27,7 +27,7 @@ function SettingToggle({
   onChange: () => void
 }) {
   return (
-    <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+    <div className="tera-card-subtle px-4 py-4 sm:px-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 pr-2">
           <p className="text-sm font-medium text-tera-primary">{label}</p>
@@ -36,7 +36,7 @@ function SettingToggle({
         <button
           type="button"
           onClick={onChange}
-          className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${checked ? 'border-tera-border bg-tera-highlight' : 'border-tera-border bg-white/[0.06]'}`}
+          className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${checked ? 'border-white/10 bg-tera-highlight' : 'border-white/10 bg-white/[0.06]'}`}
           aria-pressed={checked}
         >
           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${checked ? 'left-6' : 'left-1'}`} />
@@ -213,7 +213,7 @@ export default function SettingsPage() {
 
           <section className="tera-surface p-5 sm:p-6 lg:p-8">
             {message && (
-              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm ${messageType === 'success' ? 'border-tera-border bg-tera-highlight text-tera-primary' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
+              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm shadow-soft ${messageType === 'success' ? 'border-white/8 bg-tera-highlight text-tera-primary' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
                 {message}
               </div>
             )}
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-sm font-medium text-tera-primary">Data retention</p>
                         <p className="mt-1 text-sm leading-6 text-tera-secondary">Choose how long deleted data remains in our systems before cleanup.</p>
                         <select
@@ -263,7 +263,7 @@ export default function SettingsPage() {
                         </select>
                       </div>
 
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-sm font-medium text-tera-primary">Privacy policy</p>
                         <p className="mt-1 text-sm leading-6 text-tera-secondary">Review how Tera handles account data, uploads, and third-party providers.</p>
                         <Link href="/privacy" className="tera-button-secondary mt-4 w-full justify-center sm:w-auto">
@@ -283,12 +283,12 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">Email</p>
                         <p className="mt-2 break-all text-sm font-medium text-tera-primary">{user?.email || 'Unavailable'}</p>
                       </div>
 
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">Plan</p>
                         <p className="mt-2 text-sm font-medium text-tera-primary">
                           {userProfile?.subscriptionPlan === 'free' ? 'Free plan' : userProfile?.subscriptionPlan ?? 'Unknown'}
@@ -299,7 +299,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                    <div className="tera-card-subtle px-4 py-4 sm:px-5">
                       <p className="text-sm font-medium text-tera-primary">Billing and access</p>
                       <p className="mt-1 text-sm leading-6 text-tera-secondary">Open upgrade or billing management without leaving the settings flow.</p>
                       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
