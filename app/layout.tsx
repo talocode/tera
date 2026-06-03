@@ -1,9 +1,21 @@
 ﻿import '@/styles/globals.css'
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { AuthProvider } from '@/components/AuthProvider'
 import AppLayout from '@/components/AppLayout'
+import JsonLd from '@/components/seo/JsonLd'
 import { Analytics } from '@vercel/analytics/react'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_TITLE,
+  SITE_NAME,
+  SITE_URL,
+  organizationSchema,
+  softwareApplicationSchema,
+  websiteSchema,
+} from '@/lib/seo'
 
 const shouldRenderAnalytics =
   process.env.VERCEL === '1' ||
@@ -17,9 +29,40 @@ export const viewport = {
   themeColor: '#06080d',
 }
 
-export const metadata = {
-  title: 'Tera - Your AI Learning Companion for Anything',
-  description: 'Tera is your AI Learning Companion for anything - from school and work to skills, projects, and curiosity. Unlimited free conversations, homework help, skill building, and concept mastery.',
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: {
+    canonical: SITE_URL,
+  },
+  openGraph: {
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    type: 'website',
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+        alt: `${SITE_NAME} logo`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -37,7 +80,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Favicon is handled by metadata */}
+        <JsonLd
+          data={[organizationSchema(), websiteSchema(), softwareApplicationSchema()]}
+        />
       </head>
       <body className="min-h-screen bg-tera-bg font-sans text-tera-primary antialiased">
         <AuthProvider>
