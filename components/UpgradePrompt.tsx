@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 
 interface UpgradePromptProps {
     type: 'lesson-plans' | 'chats' | 'file-uploads' | 'research-mode' | 'credits'
@@ -36,7 +37,7 @@ const PROMPTS = {
     credits: {
         title: 'Credit limit reached',
         description: 'Conversations are unlimited, but AI computational credits power responses.',
-        benefit: 'Upgrade to Pro or Plus for more computational credits, or buy a top-up pack now.',
+        benefit: `Upgrade to Pro or Plus for more computational credits, or buy a top-up pack now. Current rate: ${CREDITS_PER_USD.toLocaleString()} credits per $1.`,
         icon: 'CR',
     },
 } as const

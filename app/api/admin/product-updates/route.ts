@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { isAdminUser } from '@/lib/admin'
-import { sendProductUpdateBroadcast } from '@/lib/product-update-broadcast'
+import { scheduleProductUpdateBroadcast, sendProductUpdateBroadcast } from '@/lib/product-update-broadcast'
 
 const productUpdateSchema = z.object({
   subject: z.string().min(4).max(140),
@@ -13,6 +13,7 @@ const productUpdateSchema = z.object({
   ctaUrl: z.string().url().optional(),
   audience: z.enum(['all', 'email_notifications', 'marketing']).default('email_notifications'),
   dryRun: z.boolean().default(false),
+  scheduledAt: z.string().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -23,6 +24,15 @@ export async function POST(request: NextRequest) {
     }
 
     const input = productUpdateSchema.parse(await request.json())
+
+    if (input.scheduledAt) {
+      const scheduled = await scheduleProductUpdateBroadcast({
+        ...input,
+        scheduledAt: input.scheduledAt,
+      })
+      return NextResponse.json(scheduled, { status: 201 })
+    }
+
     const results = await sendProductUpdateBroadcast(input)
 
     return NextResponse.json(results, { status: results.ok ? 200 : 207 })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { verifyWebhookSignature, mapVariantToPlan, type LemonSqueezyWebhookData, type LemonSqueezySubscriptionWebhook } from '@/lib/lemon-squeezy'
-import { sendSubscriptionEndedEmail, sendSubscriptionStartedEmail } from '@/lib/transactional-emails'
+import { sendCreditTopupPurchasedEmail, sendSubscriptionEndedEmail, sendSubscriptionStartedEmail } from '@/lib/transactional-emails'
 import { applyPurchasedCreditTopup } from '@/lib/free-plan-credits'
 
 export async function POST(request: NextRequest) {
@@ -94,6 +94,13 @@ async function handleOrderCreated(event: { data: LemonSqueezyWebhookData; meta?:
           return
         }
         console.log(`✅ Applied ${topupCredits} top-up credits for user ${userId}`)
+        await sendCreditTopupPurchasedEmail({
+          userId,
+          email: data.attributes.user_email,
+          credits: topupCredits,
+          amountUsd: topupAmountUsd,
+          orderIdentifier: data.attributes.identifier,
+        }).catch((error) => console.error('[credit_topup_receipt_failed]', { userId, orderIdentifier: data.attributes.identifier, error }))
         return
       }
 

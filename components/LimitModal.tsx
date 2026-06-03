@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 
 interface LimitModalProps {
     isOpen: boolean
@@ -30,7 +31,7 @@ const LIMIT_INFO = {
     credits: {
         title: 'Credit limit reached',
         message: 'Conversations are unlimited, but AI computational credits power responses. You have used your current credit allowance.',
-        upgrade: 'Upgrade for more computational credits, or buy a top-up pack to keep going now.',
+        upgrade: `Upgrade for more computational credits, or buy a top-up pack to keep going now. Current rate: ${CREDITS_PER_USD.toLocaleString()} credits per $1.`,
     },
 } as const
 

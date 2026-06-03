@@ -1,4 +1,5 @@
 import { getPlanCreditCap, getTokensPerCredit } from '@/lib/free-plan-credits'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import type { PlanType } from '@/lib/plan-config'
 import { PLAN_CONFIGS } from '@/lib/plan-config'
 import { sendResendEmail } from '@/lib/resend'
@@ -7,6 +8,7 @@ import { supabaseServer } from '@/lib/supabase-server'
 type TransactionalEmailType =
   | 'welcome'
   | 'credit_limit_reached'
+  | 'credit_topup_purchased'
   | 'subscription_started'
   | 'subscription_cancelled'
   | 'subscription_expired'
@@ -228,6 +230,31 @@ export function sendCreditLimitReachedEmail(input: {
     ctaLabel: 'View plans',
     ctaUrl: `${appUrl()}/pricing`,
     dedupeKey: `credit-limit:${input.userId}:${today}`,
+  })
+}
+
+export function sendCreditTopupPurchasedEmail(input: {
+  userId: string
+  email: string
+  credits: number
+  amountUsd: number | null
+  orderIdentifier?: string | null
+}) {
+  const amountLabel = input.amountUsd !== null && Number.isFinite(input.amountUsd)
+    ? `$${input.amountUsd.toFixed(2)}`
+    : 'your selected amount'
+
+  return sendImportantEmail({
+    type: 'credit_topup_purchased',
+    userId: input.userId,
+    to: input.email,
+    subject: 'Your Tera credit top-up is confirmed',
+    heading: 'Credit top-up confirmed',
+    previewText: `${input.credits.toLocaleString()} credits were added to your account.`,
+    message: `Your credit top-up is confirmed. You purchased ${input.credits.toLocaleString()} credits for ${amountLabel} at ${CREDITS_PER_USD.toLocaleString()} credits per $1.\n\nYour updated balance is available in your account after fulfillment completes.`,
+    ctaLabel: 'Open profile',
+    ctaUrl: `${appUrl()}/profile`,
+    dedupeKey: `credit-topup:${input.orderIdentifier || `${input.userId}:${input.credits}:${input.amountUsd ?? 'na'}`}`,
   })
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { PLAN_CONFIGS } from '@/lib/plan-config'
 
 type CurrencyConfig = {
@@ -189,6 +190,16 @@ export default function PricingPage() {
 
       const data = await response.json()
       if (!response.ok || !data.checkoutUrl) throw new Error(data.details || data.error || 'Failed to create checkout session')
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(
+          'tera_credit_topup_checkout',
+          JSON.stringify({
+            amountUsd,
+            credits: Number(data.credits || 0),
+            rate: CREDITS_PER_USD,
+          }),
+        )
+      }
       window.location.href = data.checkoutUrl
     } catch (error) {
       console.error('Credit pack checkout error:', error)
@@ -197,6 +208,10 @@ export default function PricingPage() {
       setLoading(false)
     }
   }
+
+  const topupAmount = Number(topupAmountUsd)
+  const estimatedTopupCredits =
+    Number.isFinite(topupAmount) && topupAmount >= 1 ? Math.max(1, Math.floor(topupAmount * CREDITS_PER_USD)) : null
 
   const plans = [
     {
@@ -303,6 +318,10 @@ export default function PricingPage() {
               {loading ? 'Processing...' : 'Buy credits ($1+)'}
             </button>
           </div>
+          <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+            {CREDITS_PER_USD.toLocaleString()} credits per $1
+            {estimatedTopupCredits ? ` · ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
+          </p>
         </section>
 
         <section className="tera-surface mt-8 overflow-hidden p-6 md:p-8">
