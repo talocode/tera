@@ -139,7 +139,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
 
       <aside
         className={[
-          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border/70 bg-tera-bg text-tera-primary transition-[width,transform] duration-300 ease-out dark:border-tera-border/70',
+          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/5 bg-tera-bg text-tera-primary shadow-[0_0_40px_rgba(0,0,0,0.12)] transition-[width,transform] duration-300 ease-out',
           mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
           expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
         ].join(' ')}
@@ -160,7 +160,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             <button
               type="button"
               onClick={onTogglePin}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-tera-border bg-tera-panel transition-all duration-200 hover:bg-tera-highlight"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-white/8 bg-tera-panel/90 shadow-soft transition-all duration-200 hover:-translate-y-px hover:bg-tera-highlight"
               aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
               <div className="relative h-6 w-6">
@@ -192,10 +192,10 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
                   }}
                   title={item.label}
                   className={[
-                    'flex h-[44px] items-center gap-3 rounded-[14px] border px-3 text-[13px] font-medium tracking-[-0.01em] transition-all duration-150',
+                    'flex h-[44px] items-center gap-3 rounded-[14px] px-3 text-[13px] font-medium tracking-[-0.01em] transition-all duration-150',
                     isActive
-                      ? 'border-tera-border bg-tera-primary text-tera-bg'
-                      : 'border-transparent text-tera-secondary hover:border-tera-border hover:bg-tera-panel/70 hover:text-tera-primary',
+                      ? 'bg-tera-primary text-tera-bg shadow-soft'
+                      : 'text-tera-secondary hover:bg-tera-panel/70 hover:text-tera-primary',
                   ].join(' ')}
                 >
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
@@ -212,7 +212,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
           </nav>
 
           {/* Bottom: User */}
-          <div className="border-t border-tera-border pt-3">
+          <div className="pt-3">
             <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
           </div>
         </div>

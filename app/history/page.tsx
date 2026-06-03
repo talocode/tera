@@ -242,7 +242,7 @@ export default function HistoryPage() {
         </div>
 
         <div className="tera-surface mt-8 flex min-h-[60vh] flex-col p-6 md:p-8">
-          <div className="flex items-center justify-between gap-4 border-b border-tera-border pb-5">
+          <div className="flex items-center justify-between gap-4 pb-5">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sessions</p>
               <h2 className="mt-2 text-xl font-semibold text-tera-primary">Your recent conversations</h2>
@@ -257,7 +257,7 @@ export default function HistoryPage() {
             {conversations.map((conversation, index) => (
               <div
                 key={`${conversation.session_id}-${conversation.created_at}-${index}`}
-                className="rounded-[24px] border border-tera-border bg-white/[0.04] p-5 transition hover:border-white/16 hover:bg-white/[0.06]"
+                className="tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px hover:bg-white/[0.06]"
               >
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
@@ -281,7 +281,7 @@ export default function HistoryPage() {
             ))}
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-tera-border pt-5">
+          <div className="mt-6 flex items-center justify-between pt-5">
             <button
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
