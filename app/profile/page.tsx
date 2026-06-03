@@ -1,19 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import UsageMetricCard from '@/components/UsageMetricCard'
 import UsageHistoryChart from '@/components/UsageHistoryChart'
 import {
+  addUserMemory,
   fetchCreditUsage,
+  fetchUserMemories,
   fetchUserProfile,
   fetchUserSessions,
   fetchUserUsageSummary,
   fetchWeeklyUsageHistory,
+  deleteUserMemory,
   updateUserProfile,
 } from '@/app/actions/user'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
+import { createSavedWorkflow, loadSavedWorkflows, persistSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 import { buildUsageMetricSummary, type ProfileUsageSummary } from '@/lib/profile-usage'
 import { TERA_USAGE_REFRESH_EVENT } from '@/lib/usage-events'
 import type { UserProfile } from '@/lib/usage-tracking'
@@ -34,6 +38,12 @@ type TopupCheckoutNotice = {
   amountUsd: number
   credits: number
   rate: number
+}
+
+type UserMemory = {
+  id: string
+  memory_text: string
+  created_at: string
 }
 
 function formatMemberSince(createdAt: Date) {
@@ -61,6 +71,16 @@ export default function ProfilePage() {
   const [topupAmountUsd, setTopupAmountUsd] = useState('1')
   const [creditPackLoading, setCreditPackLoading] = useState(false)
   const [topupCheckoutNotice, setTopupCheckoutNotice] = useState<TopupCheckoutNotice | null>(null)
+  const [memories, setMemories] = useState<UserMemory[]>([])
+  const [memoriesLoading, setMemoriesLoading] = useState(true)
+  const [memoryDraft, setMemoryDraft] = useState('')
+  const [memorySaving, setMemorySaving] = useState(false)
+  const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
+  const [workflowName, setWorkflowName] = useState('')
+  const [workflowPrompt, setWorkflowPrompt] = useState('')
+  const [memorySearch, setMemorySearch] = useState('')
+  const [workflowSearch, setWorkflowSearch] = useState('')
+  const [savedWorkflowsLoaded, setSavedWorkflowsLoaded] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -79,6 +99,16 @@ export default function ProfilePage() {
       window.sessionStorage.removeItem('tera_credit_topup_checkout')
     }
   }, [])
+
+  useEffect(() => {
+    setSavedWorkflows(loadSavedWorkflows())
+    setSavedWorkflowsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!savedWorkflowsLoaded) return
+    persistSavedWorkflows(savedWorkflows)
+  }, [savedWorkflows, savedWorkflowsLoaded])
 
   const loadUsageSummary = useCallback(async () => {
     if (!user) return
@@ -148,6 +178,21 @@ export default function ProfilePage() {
     }
   }, [user])
 
+  const loadMemories = useCallback(async () => {
+    if (!user) return
+
+    setMemoriesLoading(true)
+    try {
+      const items = await fetchUserMemories(user.id)
+      setMemories(items as UserMemory[])
+    } catch (error) {
+      console.error('Error loading memories:', error)
+      setMemories([])
+    } finally {
+      setMemoriesLoading(false)
+    }
+  }, [user])
+
   const loadProfile = useCallback(async () => {
     if (!user) return
 
@@ -180,8 +225,9 @@ export default function ProfilePage() {
       loadCreditUsage(),
       loadUsageHistory(),
       loadRecentSessions(),
+      loadMemories(),
     ])
-  }, [loadCreditUsage, loadProfile, loadRecentSessions, loadUsageSummary, loadUsageHistory, user])
+  }, [loadCreditUsage, loadMemories, loadProfile, loadRecentSessions, loadUsageSummary, loadUsageHistory, user])
 
   useEffect(() => {
     window.addEventListener(TERA_USAGE_REFRESH_EVENT, refreshUsage)
@@ -263,6 +309,74 @@ export default function ProfilePage() {
       setCreditPackLoading(false)
     }
   }
+
+  const handleSaveMemory = async () => {
+    if (!user?.id) return
+
+    const cleaned = memoryDraft.trim()
+    if (!cleaned) return
+
+    setMemorySaving(true)
+    try {
+      const created = await addUserMemory(user.id, cleaned)
+      if (created) {
+        setMemories((current) => [{ id: created.id, memory_text: created.memory_text, created_at: created.created_at }, ...current])
+        setMemoryDraft('')
+      }
+    } catch (error) {
+      console.error('Error saving memory:', error)
+    } finally {
+      setMemorySaving(false)
+    }
+  }
+
+  const handleDeleteMemory = async (memoryId: string) => {
+    if (!user?.id) return
+
+    const removed = await deleteUserMemory(user.id, memoryId)
+    if (removed) {
+      setMemories((current) => current.filter((memory) => memory.id !== memoryId))
+    }
+  }
+
+  const handleSaveWorkflow = () => {
+    const name = workflowName.trim()
+    const prompt = workflowPrompt.trim()
+
+    if (!name || !prompt) return
+
+    setSavedWorkflows((current) => [createSavedWorkflow(name, prompt), ...current])
+    setWorkflowName('')
+    setWorkflowPrompt('')
+  }
+
+  const handleDeleteWorkflow = (workflowId: string) => {
+    setSavedWorkflows((current) => current.filter((workflow) => workflow.id !== workflowId))
+  }
+
+  const exportJson = (filename: string, payload: unknown) => {
+    if (typeof window === 'undefined') return
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }
+
+  const filteredMemories = useMemo(
+    () => memories.filter((memory) => memory.memory_text.toLowerCase().includes(memorySearch.toLowerCase())),
+    [memorySearch, memories],
+  )
+
+  const filteredWorkflows = useMemo(
+    () => savedWorkflows.filter((workflow) => `${workflow.name} ${workflow.prompt}`.toLowerCase().includes(workflowSearch.toLowerCase())),
+    [savedWorkflows, workflowSearch],
+  )
 
   const topupAmount = Number(topupAmountUsd)
   const estimatedTopupCredits =
@@ -346,6 +460,172 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Link href="/history" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+            <p className="tera-eyebrow">Search</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Chat history</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Search past sessions and reopen them instantly.</p>
+          </Link>
+          <Link href="/notes" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+            <p className="tera-eyebrow">Notes</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Saved notes</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Review extracted ideas and working context.</p>
+          </Link>
+          <Link href="/images" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+            <p className="tera-eyebrow">Uploads</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">File and image archive</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Review uploaded assets in one place.</p>
+          </Link>
+          <button
+            type="button"
+            onClick={() => exportJson('tera-profile-data.json', { memories, workflows: savedWorkflows, profile, usageSummary, creditUsage })}
+            className="tera-surface p-5 text-left transition hover:border-white/16 hover:bg-white/[0.05]"
+          >
+            <p className="tera-eyebrow">Export</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Profile data</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Download memories, workflows, and profile data as JSON.</p>
+          </button>
+        </section>
+
+        <section className="tera-surface mt-8 p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="tera-eyebrow">Project memory</p>
+              <h2 className="mt-3 text-2xl font-semibold text-tera-primary">What Tera should remember about you</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-tera-secondary">
+                Add persistent facts, preferences, or project context. Tera already learns from conversations automatically, and these entries give you direct control over the most important memory signals.
+              </p>
+            </div>
+            <div className="w-full max-w-2xl">
+              <div className="flex flex-col gap-3 md:flex-row">
+                <input
+                  value={memoryDraft}
+                  onChange={(event) => setMemoryDraft(event.target.value)}
+                  className="tera-input flex-1"
+                  placeholder="Example: Prefer concise answers with code examples."
+                />
+                <button type="button" onClick={handleSaveMemory} disabled={memorySaving || !memoryDraft.trim()} className="tera-button-secondary justify-center disabled:opacity-60">
+                  {memorySaving ? 'Saving...' : 'Save memory'}
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <input
+                  value={memorySearch}
+                  onChange={(event) => setMemorySearch(event.target.value)}
+                  className="tera-input h-11 flex-1 min-w-[14rem]"
+                  placeholder="Search memories"
+                />
+                <button
+                  type="button"
+                  onClick={() => exportJson('tera-memories.json', memories)}
+                  className="tera-button-secondary justify-center"
+                >
+                  Export memories
+                </button>
+              </div>
+              <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+                {filteredMemories.length.toLocaleString()} visible memory{filteredMemories.length === 1 ? '' : 'ies'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {memoriesLoading ? (
+              <p className="text-sm text-tera-secondary">Loading memories...</p>
+            ) : filteredMemories.length === 0 ? (
+              <p className="text-sm text-tera-secondary">{memories.length === 0 ? 'No saved memories yet.' : 'No memories match that search.'}</p>
+            ) : (
+              filteredMemories.map((memory) => (
+                <div key={memory.id} className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm leading-7 text-tera-primary">{memory.memory_text}</p>
+                    <button type="button" onClick={() => void handleDeleteMemory(memory.id)} className="text-xs uppercase tracking-[0.22em] text-tera-secondary transition hover:text-tera-primary">
+                      Remove
+                    </button>
+                  </div>
+                  <p className="mt-3 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
+                    {new Date(memory.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="tera-surface mt-8 p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="tera-eyebrow">Saved workflows</p>
+              <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Reusable prompts you can launch again</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-tera-secondary">
+                Save a prompt once, then open it back in chat with one click. This uses the existing `initialPrompt` path and keeps repetitive work out of your head.
+              </p>
+            </div>
+            <div className="w-full max-w-2xl space-y-3">
+              <input
+                value={workflowName}
+                onChange={(event) => setWorkflowName(event.target.value)}
+                className="tera-input w-full"
+                placeholder="Workflow name"
+              />
+              <textarea
+                value={workflowPrompt}
+                onChange={(event) => setWorkflowPrompt(event.target.value)}
+                className="tera-input min-h-[120px] w-full resize-y"
+                placeholder="Prompt text to reuse"
+              />
+              <div className="flex justify-end">
+                <button type="button" onClick={handleSaveWorkflow} disabled={!workflowName.trim() || !workflowPrompt.trim()} className="tera-button-secondary justify-center disabled:opacity-60">
+                  Save workflow
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  value={workflowSearch}
+                  onChange={(event) => setWorkflowSearch(event.target.value)}
+                  className="tera-input h-11 flex-1 min-w-[14rem]"
+                  placeholder="Search workflows"
+                />
+                <button
+                  type="button"
+                  onClick={() => exportJson('tera-workflows.json', savedWorkflows)}
+                  className="tera-button-secondary justify-center"
+                >
+                  Export workflows
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {filteredWorkflows.length === 0 ? (
+              <p className="text-sm text-tera-secondary">{savedWorkflows.length === 0 ? 'No saved workflows yet.' : 'No workflows match that search.'}</p>
+            ) : (
+              filteredWorkflows.map((workflow) => (
+                <div key={workflow.id} className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-tera-primary">{workflow.name}</p>
+                      <p className="mt-2 text-sm leading-7 text-tera-secondary line-clamp-3">{workflow.prompt}</p>
+                    </div>
+                    <button type="button" onClick={() => handleDeleteWorkflow(workflow.id)} className="text-xs uppercase tracking-[0.22em] text-tera-secondary transition hover:text-tera-primary">
+                      Remove
+                    </button>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link href={`/new?prompt=${encodeURIComponent(workflow.prompt)}`} className="tera-button-primary">
+                      Launch in chat
+                    </Link>
+                    <p className="self-center text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
+                      {new Date(workflow.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="tera-surface p-6 md:p-8">

@@ -18,6 +18,13 @@ export type TavilySearchResponse = {
   }
 }
 
+export type ResearchCitation = {
+  title: string
+  url: string
+  snippet?: string | null
+  publishedDate?: string | null
+}
+
 export type TavilySearchInput = {
   query: string
   searchDepth?: 'basic' | 'advanced'
@@ -79,4 +86,16 @@ export function formatTavilyResearchContext(response: TavilySearchResponse): str
   }
 
   return lines.join('\n')
+}
+
+export function buildResearchCitations(response: TavilySearchResponse): ResearchCitation[] {
+  return (response.results || [])
+    .slice(0, 5)
+    .map((result) => ({
+      title: result.title?.trim() || 'Untitled result',
+      url: result.url?.trim() || '',
+      snippet: result.content?.trim() || result.raw_content?.trim() || null,
+      publishedDate: result.published_date || null,
+    }))
+    .filter((result) => Boolean(result.url))
 }

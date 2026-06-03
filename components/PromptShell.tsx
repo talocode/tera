@@ -30,6 +30,12 @@ type Message = {
     attachments?: AttachmentReference[]
     timestamp?: number
     chatMode?: ChatMode
+    citations?: Array<{
+        title: string
+        url: string
+        snippet?: string | null
+        publishedDate?: string | null
+    }>
 }
 
 type NoteSaveStatus = {
@@ -497,7 +503,14 @@ export default function PromptShell({
                 }
 
                 if (result.sessionId && result.sessionId !== currentSessionId) setCurrentSessionId(result.sessionId)
-                const assistantMessage: Message = { id: createId(), role: 'tera', content: result.answer, timestamp: Date.now(), chatMode: outgoingChatMode }
+                const assistantMessage: Message = {
+                    id: createId(),
+                    role: 'tera',
+                    content: result.answer,
+                    timestamp: Date.now(),
+                    chatMode: outgoingChatMode,
+                    citations: result.citations,
+                }
                 setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage, sessionId: result.sessionId } : e))
                 setAttachmentMessage(result.warning || null)
                 dispatchUsageRefresh('messages')
@@ -609,11 +622,12 @@ export default function PromptShell({
             if (data) {
                 const loaded: ConversationEntry[] = data.map(s => {
                     const mode = getChatModeForTool(s.tool ?? tool.name)
+                    const citations = Array.isArray((s as any).metadata?.citations) ? (s as any).metadata.citations : undefined
 
                     return {
                         id: s.id, sessionId: s.id,
                         userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: s.attachments as AttachmentReference[], timestamp: new Date(s.created_at).getTime(), chatMode: mode },
-                        assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode: mode }
+                        assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode: mode, citations }
                     }
                 })
                 setConversations(prev => loaded.length === 0 && prev.length > 0 ? prev : loaded)
@@ -727,6 +741,33 @@ export default function PromptShell({
                                                         return block.type === 'text' ? <div key={idx} className="w-full animate-in fade-in duration-300"><MarkdownRenderer content={block.content} /></div> : null
                                                     })}
                                                 </div>
+                                                {entry.assistantMessage.citations && entry.assistantMessage.citations.length > 0 && (
+                                                    <div className="mt-4 rounded-[22px] border border-tera-border bg-black/10 px-4 py-3">
+                                                        <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
+                                                        <div className="mt-3 space-y-3">
+                                                            {entry.assistantMessage.citations.map((citation, index) => (
+                                                                <a
+                                                                    key={`${citation.url}-${index}`}
+                                                                    href={citation.url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="block rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 transition hover:border-tera-neon/30 hover:bg-white/[0.05]"
+                                                                >
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-tera-primary">{citation.title}</p>
+                                                                            <p className="mt-1 break-all text-xs text-tera-secondary">{citation.url}</p>
+                                                                        </div>
+                                                                        <span className="text-[0.65rem] uppercase tracking-[0.22em] text-tera-secondary">#{index + 1}</span>
+                                                                    </div>
+                                                                    {citation.snippet && (
+                                                                        <p className="mt-2 text-sm leading-6 text-tera-secondary">{citation.snippet}</p>
+                                                                    )}
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-tera-border">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <span className="text-xs text-tera-secondary/60">Tera</span>
@@ -911,4 +952,4 @@ export default function PromptShell({
         </div>
     )
 }
-
+
