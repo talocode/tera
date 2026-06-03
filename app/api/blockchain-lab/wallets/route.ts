@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { createSimulatedWallet, getUserWalletsWithBalances, createDemoWallet } from '@/lib/blockchain-lab/wallet';
+import { createSimulatedWallet, createDemoWallet, getUserWalletsWithBalances } from '@/lib/blockchain-lab/wallet';
 import { CreateWalletInputSchema } from '@/lib/blockchain-lab/schemas';
 
 export async function GET(request: NextRequest) {
@@ -35,10 +35,8 @@ export async function POST(request: NextRequest) {
     const { label, createDemo } = parsed.data;
 
     if (createDemo) {
-      const wallet = await createDemoWallet(session.user.id);
-      const balances = await getUserWalletsWithBalances(session.user.id);
-      const createdWallet = balances.find((w) => w.id === wallet.id);
-      return NextResponse.json({ wallet: createdWallet });
+      const { wallet, balances } = await createDemoWallet(session.user.id);
+      return NextResponse.json({ wallet: { ...wallet, balances } });
     }
 
     const { wallet, balances } = await createSimulatedWallet(session.user.id, label);

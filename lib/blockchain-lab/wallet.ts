@@ -80,25 +80,8 @@ export async function getUserWalletsWithBalances(
 
 export async function createDemoWallet(
   userId: string
-): Promise<SimulatedWallet> {
-  const address = generateFakeAddress();
-
-  const { data: wallet, error } = await supabaseServer
-    .from('blockchain_lab_wallets')
-    .insert({
-      user_id: userId,
-      label: 'Demo Wallet',
-      address,
-      network: 'tera-simnet',
-    })
-    .select()
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  await createStarterBalances(wallet.id);
-
-  return wallet;
+): Promise<{ wallet: SimulatedWallet; balances: SimulatedBalance[] }> {
+  return createSimulatedWallet(userId, 'Demo Wallet');
 }
 
 async function createStarterBalances(

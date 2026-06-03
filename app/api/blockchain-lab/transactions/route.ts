@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     let receiverWalletId = toWalletId;
     if (createDemoReceiver && !toWalletId) {
-      const demoWallet = await createDemoWallet(session.user.id);
+      const { wallet: demoWallet } = await createDemoWallet(session.user.id);
       receiverWalletId = demoWallet.id;
     }
 
