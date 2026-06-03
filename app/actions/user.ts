@@ -195,7 +195,7 @@ export async function fetchChatHistory(userId: string, sessionId: string) {
 
         const { data, error } = await supabaseServer
             .from('chat_sessions')
-            .select('id, prompt, response, attachments, created_at, tool')
+            .select('id, prompt, response, attachments, created_at, tool, metadata')
             .eq('user_id', userId)
             .eq('session_id', sessionId)
             .order('created_at', { ascending: true })
@@ -206,6 +206,87 @@ export async function fetchChatHistory(userId: string, sessionId: string) {
     } catch (error) {
         console.error('Error fetching chat history:', error)
         return []
+    }
+}
+
+export interface UserMemory {
+    id: string
+    memory_text: string
+    created_at: string
+}
+
+export async function fetchUserMemories(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return []
+
+        const { data, error } = await supabaseServer
+            .from('user_memories')
+            .select('id, memory_text, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(20)
+
+        if (error) {
+            console.error('Error fetching memories:', error)
+            return []
+        }
+
+        return data || []
+    } catch (error) {
+        console.error('Error fetching memories:', error)
+        return []
+    }
+}
+
+export async function addUserMemory(userId: string, memoryText: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return null
+
+        const cleanedMemory = memoryText.trim()
+        if (!cleanedMemory) return null
+
+        const { data, error } = await supabaseServer
+            .from('user_memories')
+            .insert([{ user_id: userId, memory_text: cleanedMemory }])
+            .select('id, memory_text, created_at')
+            .single()
+
+        if (error) {
+            console.error('Error adding memory:', error)
+            return null
+        }
+
+        revalidatePath('/profile')
+        return data
+    } catch (error) {
+        console.error('Error adding memory:', error)
+        return null
+    }
+}
+
+export async function deleteUserMemory(userId: string, memoryId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return false
+
+        const { error } = await supabaseServer
+            .from('user_memories')
+            .delete()
+            .eq('id', memoryId)
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error deleting memory:', error)
+            return false
+        }
+
+        revalidatePath('/profile')
+        return true
+    } catch (error) {
+        console.error('Error deleting memory:', error)
+        return false
     }
 }
 

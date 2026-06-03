@@ -8,7 +8,7 @@ import { calculateCreditsForTokens, getUserCreditsRemaining, incrementUserCredit
 import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
 import { recordUsageLedgerEvent } from '@/lib/usage-ledger'
 import { normalizeChatMode } from '@/lib/ai/chat-modes'
-import { formatTavilyResearchContext, searchTavily } from '@/lib/tavily'
+import { buildResearchCitations, formatTavilyResearchContext, searchTavily } from '@/lib/tavily'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {
@@ -181,6 +181,7 @@ export async function generateAnswerForPrompt({
   }
 
   let researchContext = ''
+  let researchCitations: NonNullable<GenerateAnswerResult['citations']> = []
   if (researchMode) {
     const planConfig = getPlanConfig(userProfile.subscriptionPlan)
     const monthlyWebSearchLimit = planConfig.limits.webSearchesPerMonth
@@ -227,6 +228,7 @@ export async function generateAnswerForPrompt({
       })
 
       researchContext = formatTavilyResearchContext(tavilyResponse)
+      researchCitations = buildResearchCitations(tavilyResponse)
       await incrementWebSearchesServer(authorId)
 
       await recordUsageLedgerEvent({
@@ -271,7 +273,10 @@ export async function generateAnswerForPrompt({
   const creditsToCharge = calculateCreditsForTokens(tokenCost)
   const currentSessionId = sessionId || crypto.randomUUID()
   const persistedChatMode = chatMode ?? (researchMode ? 'research' : 'ask')
-  const metadata = { chatMode: persistedChatMode }
+  const metadata = {
+    chatMode: persistedChatMode,
+    citations: researchCitations.length > 0 ? researchCitations : undefined,
+  }
 
   let existingTitle: string | null = null
   if (sessionId) {
@@ -410,14 +415,15 @@ export async function generateAnswerForPrompt({
     creditsCharged: creditsToCharge,
     chatSessionId: savedChatId ?? null,
     sessionId: currentSessionId,
-    metadata: {
-      researchMode,
-      chatMode: normalizedChatMode,
-      persistenceWarning: persistenceWarning ?? null,
-      usageAccountingSucceeded,
-      attachmentCount: attachments.length,
-    },
-  })
+      metadata: {
+        researchMode,
+        chatMode: normalizedChatMode,
+        persistenceWarning: persistenceWarning ?? null,
+        usageAccountingSucceeded,
+        attachmentCount: attachments.length,
+        citationsCount: researchCitations.length,
+      },
+    })
 
   const warning = [persistenceWarning, !usageAccountingSucceeded ? 'Your response was generated, but usage accounting is delayed.' : '']
     .filter(Boolean)
@@ -433,6 +439,7 @@ export async function generateAnswerForPrompt({
     answer,
     sessionId: chatPersisted ? currentSessionId : (sessionId ?? null),
     chatId: savedChatId,
+    citations: researchCitations,
     warning,
   }
 }

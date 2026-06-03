@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchHistoryPageData } from '@/app/actions/user'
+import { createSavedWorkflow, loadSavedWorkflows, persistSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 
 interface ChatSession {
   id?: string
@@ -67,6 +68,9 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
+  const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
+  const [savedWorkflowSessionId, setSavedWorkflowSessionId] = useState<string | null>(null)
+  const [savedWorkflowsLoaded, setSavedWorkflowsLoaded] = useState(false)
   const pageSize = 25
 
   const fetchHistory = useCallback(async () => {
@@ -93,6 +97,16 @@ export default function HistoryPage() {
   useEffect(() => {
     fetchHistory()
   }, [fetchHistory])
+
+  useEffect(() => {
+    setSavedWorkflows(loadSavedWorkflows())
+    setSavedWorkflowsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!savedWorkflowsLoaded) return
+    persistSavedWorkflows(savedWorkflows)
+  }, [savedWorkflows, savedWorkflowsLoaded])
 
   const handleExportJson = () => {
     const data = buildExportRows(conversations)
@@ -178,6 +192,23 @@ export default function HistoryPage() {
     setTimeout(() => printWindow.print(), 300)
   }
 
+  const handleSaveWorkflow = (conversation: ChatSession) => {
+    const workflow = createSavedWorkflow(
+      conversation.title || `Workflow from ${conversation.tool || 'chat'}`,
+      conversation.last_message || conversation.title || '',
+    )
+
+    setSavedWorkflowSessionId(conversation.session_id)
+    setSavedWorkflows((current) => [
+      workflow,
+      ...current.filter((item) => item.prompt !== workflow.prompt || item.name !== workflow.name),
+    ])
+
+    window.setTimeout(() => {
+      setSavedWorkflowSessionId((current) => (current === conversation.session_id ? null : current))
+    }, 1200)
+  }
+
   return (
     <div className="tera-page">
       <div className="tera-page-shell pt-24 md:pt-10">
@@ -224,10 +255,9 @@ export default function HistoryPage() {
             {!loading && !user && <p className="text-sm text-tera-secondary">Sign in to view your history.</p>}
             {!loading && user && conversations.length === 0 && <p className="text-sm text-tera-secondary">No conversations found.</p>}
             {conversations.map((conversation, index) => (
-              <Link
+              <div
                 key={`${conversation.session_id}-${conversation.created_at}-${index}`}
-                href={`/new/${conversation.session_id}`}
-                className="block rounded-[24px] border border-tera-border bg-white/[0.04] p-5 transition hover:border-white/16 hover:bg-white/[0.06]"
+                className="rounded-[24px] border border-tera-border bg-white/[0.04] p-5 transition hover:border-white/16 hover:bg-white/[0.06]"
               >
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
@@ -239,7 +269,15 @@ export default function HistoryPage() {
                     {new Date(conversation.created_at).toLocaleString()}
                   </p>
                 </div>
-              </Link>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Link href={`/new/${conversation.session_id}`} className="tera-button-primary">
+                    Open
+                  </Link>
+                  <button type="button" onClick={() => handleSaveWorkflow(conversation)} className="tera-button-secondary">
+                    {savedWorkflowSessionId === conversation.session_id ? 'Saved workflow' : 'Save workflow'}
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
 

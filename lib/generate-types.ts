@@ -17,6 +17,12 @@ export type GenerateAnswerResult = {
   answer: string
   sessionId: string | null
   chatId?: string
+  citations?: Array<{
+    title: string
+    url: string
+    snippet?: string | null
+    publishedDate?: string | null
+  }>
   warning?: string
   error?: string
 }
