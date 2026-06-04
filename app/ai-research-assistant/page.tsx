@@ -14,7 +14,7 @@ const faqs = [
   {
     question: 'Does TeraAI provide citations?',
     answer:
-      'Yes. Web-backed research on TeraAI can include citations so you can verify sources and continue reading.',
+      'Yes, on Pro and Plus. Deep Research uses Tavily-backed web search and can include citations so you can verify sources and continue reading.',
   },
   {
     question: 'What is Deep Research on TeraAI?',
@@ -36,7 +36,7 @@ const faqs = [
 export const metadata: Metadata = buildPageMetadata({
   title: 'AI Research Assistant with Cited Web Answers | TeraAI',
   description:
-    'Research better with TeraAI: cited web answers, deeper research on Pro and Plus, and a workspace to compare sources and build clear briefs.',
+    'Research better with TeraAI on Pro and Plus: Deep Research with cited web sources, structured briefs, and a workspace to compare findings.',
   path: '/ai-research-assistant',
 })
 
@@ -52,8 +52,8 @@ export default function AiResearchAssistantPage() {
               AI Research Assistant for Clearer, Cited Work
             </h1>
             <p className="mt-6 max-w-3xl text-base leading-8 text-tera-secondary md:text-lg">
-              Frame better questions, pull in cited web information, and synthesize what you find—whether you are
-              writing a paper, exploring a topic, or planning a project.
+              On Pro and Plus, frame better questions, pull in cited web information with Deep Research, and synthesize
+              what you find—whether you are writing a paper, exploring a topic, or planning a project.
             </p>
             <div className="mt-8">
               <Link href="/new" className="tera-button-primary">
@@ -67,7 +67,7 @@ export default function AiResearchAssistantPage() {
           <h2 className="text-2xl font-semibold text-tera-primary">Research workflows TeraAI supports</h2>
           <ul className="mt-4 space-y-3 text-sm leading-7 text-tera-secondary">
             <li>Define objectives and key questions</li>
-            <li>Find current information with citations</li>
+            <li>Find current information with citations (Pro and Plus)</li>
             <li>Compare viewpoints and evidence quality</li>
             <li>Draft structured briefs and recommendations</li>
             <li>Keep notes and history in one workspace</li>
@@ -77,8 +77,9 @@ export default function AiResearchAssistantPage() {
         <section className="mt-8 tera-card">
           <h2 className="text-2xl font-semibold text-tera-primary">Plans and depth</h2>
           <p className="mt-4 text-sm leading-7 text-tera-secondary md:text-base">
-            Free includes a limited number of Tavily-backed web research requests per month. Pro and Plus increase limits
-            and unlock Deep Research for longer, structured briefs.
+            Deep Research with Tavily-backed web search and citations is available on Pro and Plus. The free plan
+            includes unlimited AI conversations and core learning tools; upgrade when you need structured research
+            briefs with sources.
           </p>
           <Link href="/pricing" className="tera-button-secondary mt-6 inline-flex">
             Compare plans

@@ -38,6 +38,7 @@ export const ROBOTS_DISALLOW_PATHS = [
   '/profile',
   '/images',
   '/skills',
+  '/tools',
   '/tools/',
   '/lab/',
   '/plus/',

@@ -37,13 +37,9 @@ export const metadata: Metadata = {
   },
   description: DEFAULT_DESCRIPTION,
   applicationName: SITE_NAME,
-  alternates: {
-    canonical: SITE_URL,
-  },
   openGraph: {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
-    url: SITE_URL,
     siteName: SITE_NAME,
     type: 'website',
     images: [
