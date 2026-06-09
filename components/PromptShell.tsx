@@ -2,6 +2,7 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
@@ -699,6 +700,9 @@ export default function PromptShell({
                                     }}
                                     compact
                                 />
+                                <Link href="/search" className="mt-4 tera-button-secondary">
+                                    Search workspace
+                                </Link>
                             </div>
                         </div>
                     ) : (

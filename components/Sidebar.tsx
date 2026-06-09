@@ -27,7 +27,7 @@ type NavItem = {
 
 export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
-  { label: 'Search chats', icon: 'search', href: '/history' },
+  { label: 'Workspace search', icon: 'search', href: '/search' },
   { label: 'Images', icon: 'images', href: '/images' },
   { label: 'Skills', icon: 'apps', href: '/skills' },
   { label: 'Deep research', icon: 'research', href: '/deep-research' },
@@ -175,7 +175,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
                 ? pathname?.startsWith('/new')
-                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
+                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
 
               return (
                 <Link
