@@ -425,22 +425,31 @@ export default function ProfilePage() {
   const usageCardsUnavailable = !usageCardsLoading && (!usageSummary || !creditMetric)
   const weeklyTotal = usageHistory.reduce((sum, day) => sum + day.used, 0)
   const sessionCount = Math.max(1, recentSessions.length)
-  const hasCreditWarning = !!creditUsage && creditUsage.remaining <= Math.max(5, Math.round((creditUsage.total || 0) * 0.15))
+  const creditWarningThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
+  const uploadWarningThreshold = usageSummary ? Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25)) : 0
+  const hasCreditWarning = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= creditWarningThreshold
+  const hasUploadWarning = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= uploadWarningThreshold
 
   const activeLimitNotice = (() => {
     if (!usageSummary || !creditUsage) return null
 
-    if (creditUsage.remaining <= 0) {
+    if (creditUsage.remaining <= creditWarningThreshold) {
       return {
-        title: 'Computational credits reached',
-        message: 'Tera blocks new prompts when AI computational credits are exhausted.',
+        title: creditUsage.remaining <= 0 ? 'Computational credits reached' : 'Computational credits running low',
+        message:
+          creditUsage.remaining <= 0
+            ? 'Tera blocks new prompts when AI computational credits are exhausted.'
+            : `${creditUsage.remaining.toLocaleString()} credits remain before you hit zero.`,
       }
     }
 
-    if (!usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining === 0) {
+    if (!usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining <= uploadWarningThreshold) {
       return {
-        title: 'File upload limit reached',
-        message: 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.',
+        title: usageSummary.uploads.remaining <= 0 ? 'File upload limit reached' : 'File uploads running low',
+        message:
+          usageSummary.uploads.remaining <= 0
+            ? 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.'
+            : `${usageSummary.uploads.remaining.toLocaleString()} file uploads remain before your daily limit hits zero.`,
       }
     }
 
@@ -822,6 +831,9 @@ export default function ProfilePage() {
                   <p className="mt-3 text-xl font-semibold text-tera-primary">
                     {usageSummary.uploads.isUnlimited ? 'Unlimited' : `${usageSummary.uploads.remaining} left`}
                   </p>
+                  {hasUploadWarning && (
+                    <p className="mt-2 text-[0.62rem] uppercase tracking-[0.22em] text-amber-100">Running low</p>
+                  )}
                   <p className="mt-2 text-sm leading-6 text-tera-secondary">
                     {usageSummary.uploads.isUnlimited ? 'No reset needed.' : 'Usage resets daily.'}
                   </p>
