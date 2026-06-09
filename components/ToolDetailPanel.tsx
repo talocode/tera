@@ -15,7 +15,7 @@ const samplePrompts: Record<string, string> = {
 
 export default function ToolDetailPanel({ tool }: { tool: TeacherTool }) {
   return (
-    <section className="flex w-96 flex-col gap-6 p-6 rounded-[32px] border border-white/10 bg-gradient-to-b from-[#111111] to-[#050505] shadow-glow-md">
+    <section className="flex w-96 flex-col gap-6 rounded-[32px] border border-tera-border bg-gradient-to-b from-[#111111] to-[#050505] p-6 shadow-glow-md">
       <header className="flex flex-col gap-1">
         <p className="text-xs uppercase tracking-[0.4em] text-white/50">Tool insight</p>
         <div className="flex items-center gap-2">
@@ -24,18 +24,18 @@ export default function ToolDetailPanel({ tool }: { tool: TeacherTool }) {
         </div>
         <p className="text-sm text-white/60">{tool.description}</p>
       </header>
-      <div className="flex flex-col gap-3 rounded-[26px] border border-white/5 bg-tera-panel/80 p-4">
+      <div className="flex flex-col gap-3 rounded-[26px] border border-tera-border bg-tera-panel/80 p-4">
         <p className="text-xs uppercase tracking-[0.35em] text-white/40">Sample Prompt</p>
         <p className="text-sm text-white/70">{samplePrompts[tool.name]}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {tool.tags.map((tag) => (
-            <span key={tag} className="rounded-full border border-white/10 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white/60">
+          <span key={tag} className="rounded-full border border-tera-border px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white/60">
               {tag}
             </span>
           ))}
         </div>
       </div>
-      <div className="flex flex-col gap-2 rounded-[26px] border border-white/5 bg-tera-panel/90 p-4">
+      <div className="flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel/90 p-4">
         <p className="text-xs uppercase tracking-[0.35em] text-white/40">Workflow</p>
         <ol className="flex flex-col gap-2 text-sm text-white/60">
           <li className="flex items-start gap-2">

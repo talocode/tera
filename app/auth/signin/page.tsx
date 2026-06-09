@@ -25,7 +25,7 @@ export default function SignInPage() {
     <div className="tera-page flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-[32px] border border-tera-border bg-tera-panel/82 p-8 shadow-panel backdrop-blur-2xl md:p-10">
         <div className="flex justify-center">
-          <div className="relative h-16 w-16 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
+          <div className="relative h-16 w-16 rounded-[24px] border border-tera-border bg-white/[0.04] p-3">
             <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="hidden object-contain p-3 dark:block" />
             <Image src="/images/TERA_LOGO_ONLY1.png" alt="Tera" fill className="object-contain p-3 dark:hidden" />
           </div>
@@ -49,7 +49,7 @@ export default function SignInPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="mt-8 flex w-full items-center justify-center gap-3 rounded-[20px] border border-white/10 bg-white px-4 py-3 font-medium text-[#111827] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-tera-border dark:bg-tera-muted dark:text-white dark:hover:bg-tera-panel"
+          className="mt-8 flex w-full items-center justify-center gap-3 rounded-[20px] border border-tera-border bg-white px-4 py-3 font-medium text-[#111827] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-tera-muted dark:text-white dark:hover:bg-tera-panel"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
