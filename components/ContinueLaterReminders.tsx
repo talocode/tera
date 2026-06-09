@@ -168,7 +168,7 @@ export default function ContinueLaterReminders() {
       )}
 
       {notificationPermission === 'unsupported' && (
-        <div className="mt-6 rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm leading-7 text-tera-secondary">
+        <div className="mt-6 tera-card-subtle px-5 py-4 text-sm leading-7 text-tera-secondary">
           Your browser does not support notifications. The reminder queue still works inside Tera.
         </div>
       )}
@@ -226,14 +226,14 @@ export default function ContinueLaterReminders() {
         )}
 
         {upcoming.length === 0 ? (
-          <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-6 text-sm text-tera-secondary">
+          <div className="tera-card-subtle px-5 py-6 text-sm text-tera-secondary">
             No reminders yet. Add one from search or history to make a return path explicit.
           </div>
         ) : (
           upcoming.map((reminder) => (
             <div
               key={`${reminder.kind}-${reminder.id}`}
-              className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 transition hover:border-white/16 hover:bg-white/[0.06]"
+              className="tera-card-subtle px-5 py-4 transition hover:bg-white/[0.06]"
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
