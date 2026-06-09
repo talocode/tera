@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchCreditUsage, fetchUserSessions, fetchUserUsageSummary } from '@/app/actions/user'
 import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
+import { getBookmarks, type SearchBookmark } from '@/app/actions/search'
 import type { ProfileUsageSummary } from '@/lib/profile-usage'
 import { CONTINUE_LATER_CHANGE_EVENT, getContinueLaterOverview } from '@/lib/continue-later'
 import { loadSavedWorkflows } from '@/lib/saved-workflows'
@@ -34,6 +35,15 @@ type RecentItem =
       href: string
       timestamp: string
     }
+
+type BookmarkItem = {
+  id: string
+  title: string
+  url: string
+  snippet: string
+  source: string
+  createdAt: string
+}
   | {
       kind: 'workflow'
       id: string
@@ -91,6 +101,7 @@ export default function HomeWorkspaceOverview() {
   const [noteCount, setNoteCount] = useState(0)
   const [workflowCount, setWorkflowCount] = useState(0)
   const [recentItems, setRecentItems] = useState<RecentItem[]>([])
+  const [recentBookmarks, setRecentBookmarks] = useState<BookmarkItem[]>([])
   const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
   const [creditState, setCreditState] = useState<CreditState | null>(null)
   const [overview, setOverview] = useState(() => getContinueLaterOverview())
@@ -119,6 +130,7 @@ export default function HomeWorkspaceOverview() {
           setNoteCount(0)
           setWorkflowCount(0)
           setRecentItems([])
+          setRecentBookmarks([])
           setUsageSummary(null)
           setCreditState(null)
           setLoading(false)
@@ -129,9 +141,10 @@ export default function HomeWorkspaceOverview() {
       setLoading(true)
 
       try {
-        const [sessions, notes, summary, credits] = await Promise.all([
+        const [sessions, notes, bookmarks, summary, credits] = await Promise.all([
           fetchUserSessions(user.id, 1),
           fetchWorkspaceNotes(user.id),
+          getBookmarks(user.id, 3),
           fetchUserUsageSummary(user.id),
           fetchCreditUsage(user.id),
         ])
@@ -160,6 +173,14 @@ export default function HomeWorkspaceOverview() {
           timestamp: workflow.createdAt,
         }))
         setRecentItems([...recentNoteItems, ...recentWorkflowItems].slice(0, 4))
+        setRecentBookmarks((bookmarks as SearchBookmark[]).slice(0, 3).map((bookmark) => ({
+          id: bookmark.id,
+          title: bookmark.title,
+          url: bookmark.url,
+          snippet: bookmark.snippet,
+          source: bookmark.source,
+          createdAt: bookmark.createdAt,
+        })))
         setUsageSummary(summary)
         setCreditState(credits)
       } catch (error) {
@@ -299,6 +320,44 @@ export default function HomeWorkspaceOverview() {
             <Link href="/profile#saved-workflows" className="tera-button-secondary">
               Open workflows
             </Link>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Recent bookmarks</p>
+              <p className="mt-2 text-lg font-medium text-tera-primary">Saved research sources</p>
+            </div>
+            <Link href="/search" className="tera-button-secondary">
+              Open bookmarks
+            </Link>
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentBookmarks.length === 0 ? (
+              <p className="text-sm leading-7 text-tera-secondary">
+                No saved research sources yet. Save a citation from research mode to keep it here.
+              </p>
+            ) : (
+              recentBookmarks.map((bookmark) => (
+                <a
+                  key={bookmark.id}
+                  href={bookmark.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-tera-primary">{bookmark.title}</p>
+                    <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">
+                      {new Date(bookmark.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-tera-secondary">{bookmark.snippet}</p>
+                  <p className="mt-3 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">{bookmark.source}</p>
+                </a>
+              ))
+            )}
           </div>
         </div>
 
