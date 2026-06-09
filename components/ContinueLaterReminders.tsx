@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import {
+  CONTINUE_LATER_CHANGE_EVENT,
   loadContinueLaterReminders,
   removeContinueLaterReminder,
   type ContinueLaterReminder,
@@ -18,6 +19,17 @@ export default function ContinueLaterReminders() {
 
   useEffect(() => {
     setReminders(loadContinueLaterReminders())
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => setReminders(loadContinueLaterReminders())
+    window.addEventListener(CONTINUE_LATER_CHANGE_EVENT, refresh)
+    window.addEventListener('storage', refresh)
+
+    return () => {
+      window.removeEventListener(CONTINUE_LATER_CHANGE_EVENT, refresh)
+      window.removeEventListener('storage', refresh)
+    }
   }, [])
 
   useEffect(() => {

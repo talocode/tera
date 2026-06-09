@@ -9,6 +9,7 @@ import { loadSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 import {
   loadContinueLaterQueue,
   pinContinueLaterItem,
+  setContinueLaterReminder,
   unpinContinueLaterItem,
   type ContinueLaterItem,
   type ContinueLaterSourceItem,
@@ -25,6 +26,13 @@ const labels: Record<QueueItem['kind'], string> = {
 
 function toPinnedKey(item: ContinueLaterSourceItem) {
   return `${item.kind}:${item.id}`
+}
+
+function scheduleTomorrow(item: ContinueLaterSourceItem) {
+  const remindAt = new Date()
+  remindAt.setDate(remindAt.getDate() + 1)
+  remindAt.setHours(9, 0, 0, 0)
+  setContinueLaterReminder(item, remindAt.toISOString())
 }
 
 export default function ContinueLaterQueue() {
@@ -202,13 +210,22 @@ export default function ContinueLaterQueue() {
                     <p className="text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">
                       {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => (isPinned ? handleUnpin(item.kind, item.id) : handlePin(item))}
-                      className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
-                    >
-                      {isPinned ? 'Pinned' : 'Pin'}
-                    </button>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scheduleTomorrow(item)}
+                        className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                      >
+                        Remind tomorrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => (isPinned ? handleUnpin(item.kind, item.id) : handlePin(item))}
+                        className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                      >
+                        {isPinned ? 'Pinned' : 'Pin'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
