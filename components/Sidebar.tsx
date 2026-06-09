@@ -27,6 +27,7 @@ type NavItem = {
 
 export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
+  { label: 'Continue later', icon: 'queue', href: '/queue' },
   { label: 'Workspace search', icon: 'search', href: '/search' },
   { label: 'Images', icon: 'images', href: '/images' },
   { label: 'Skills', icon: 'apps', href: '/skills' },
@@ -58,6 +59,13 @@ const IconSearch = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="7" />
     <path d="m20 20-3.5-3.5" />
+  </svg>
+)
+
+const IconQueue = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 8v5l3 2" />
+    <circle cx="12" cy="12" r="8" />
   </svg>
 )
 
@@ -111,6 +119,7 @@ const getIcon = (iconName: string): React.ReactNode => {
   const icons: Record<string, () => React.ReactNode> = {
     chat: IconChat,
     search: IconSearch,
+    queue: IconQueue,
     images: IconImages,
     apps: IconApps,
     research: IconResearch,
@@ -175,7 +184,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
                 ? pathname?.startsWith('/new')
-                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
+                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/queue') && pathname?.startsWith('/queue')) || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
 
               return (
                 <Link
