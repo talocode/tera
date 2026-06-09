@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
     getSearchHistory,
     clearSearchHistory,
@@ -19,6 +19,7 @@ interface SearchHistoryProps {
 
 export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark }: SearchHistoryProps) {
     const [activeTab, setActiveTab] = useState<'history' | 'bookmarks'>('history')
+    const [bookmarkFilter, setBookmarkFilter] = useState('')
     const [history, setHistory] = useState<SearchHistoryEntry[]>([])
     const [bookmarks, setBookmarks] = useState<SearchBookmark[]>([])
     const [bookmarkNotes, setBookmarkNotes] = useState<Record<string, string>>({})
@@ -114,6 +115,26 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
         }
     }
 
+    const filteredBookmarks = useMemo(() => {
+        const needle = bookmarkFilter.trim().toLowerCase()
+        if (!needle) return bookmarks
+
+        return bookmarks.filter((bookmark) => {
+            const searchable = [
+                bookmark.title,
+                bookmark.url,
+                bookmark.snippet,
+                bookmark.source,
+                bookmark.notes || '',
+                ...(bookmark.tags || []),
+            ]
+                .join(' ')
+                .toLowerCase()
+
+            return searchable.includes(needle)
+        })
+    }, [bookmarkFilter, bookmarks])
+
     return (
         <div className="w-full max-w-md bg-tera-panel border border-tera-border rounded-xl overflow-hidden shadow-xl">
             {/* Tabs */}
@@ -182,12 +203,24 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                     </div>
                 ) : (
                     <div className="space-y-2">
+                        <div className="px-1 pb-1">
+                            <input
+                                value={bookmarkFilter}
+                                onChange={(event) => setBookmarkFilter(event.target.value)}
+                                placeholder="Filter bookmarks by title, notes, tags, or URL"
+                                className="w-full rounded-lg border border-tera-border bg-tera-bg/60 px-3 py-2 text-xs text-tera-primary placeholder:text-tera-secondary/60"
+                            />
+                        </div>
                         {bookmarks.length === 0 ? (
                             <div className="text-center p-8 text-tera-secondary text-sm">
                                 No bookmarks saved yet
                             </div>
+                        ) : filteredBookmarks.length === 0 ? (
+                            <div className="text-center p-8 text-tera-secondary text-sm">
+                                No bookmarks match your filter.
+                            </div>
                         ) : (
-                            bookmarks.map((bookmark) => (
+                            filteredBookmarks.map((bookmark) => (
                                 <div
                                     key={bookmark.id}
                                     onClick={() => onSelectBookmark(bookmark.url)}
@@ -233,6 +266,16 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                                                     className="rounded-full bg-tera-primary px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-tera-bg transition hover:opacity-90"
                                                 >
                                                     {savingBookmarkIds[bookmark.id] ? 'Saving...' : 'Save details'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation()
+                                                        onSelectBookmark(bookmark.url)
+                                                    }}
+                                                    className="rounded-full border border-tera-border px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-tera-secondary transition hover:border-tera-primary hover:text-tera-primary"
+                                                >
+                                                    Open source
                                                 </button>
                                                 {bookmark.tags && bookmark.tags.length > 0 && (
                                                     <div className="flex flex-wrap gap-1">
