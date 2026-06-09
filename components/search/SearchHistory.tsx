@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
     getSearchHistory,
     clearSearchHistory,
     getBookmarks,
+    saveBookmark,
     deleteBookmark,
     type SearchHistoryEntry,
     type SearchBookmark
@@ -18,8 +19,12 @@ interface SearchHistoryProps {
 
 export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark }: SearchHistoryProps) {
     const [activeTab, setActiveTab] = useState<'history' | 'bookmarks'>('history')
+    const [bookmarkFilter, setBookmarkFilter] = useState('')
     const [history, setHistory] = useState<SearchHistoryEntry[]>([])
     const [bookmarks, setBookmarks] = useState<SearchBookmark[]>([])
+    const [bookmarkNotes, setBookmarkNotes] = useState<Record<string, string>>({})
+    const [bookmarkTags, setBookmarkTags] = useState<Record<string, string>>({})
+    const [savingBookmarkIds, setSavingBookmarkIds] = useState<Record<string, boolean>>({})
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -35,6 +40,8 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
             } else {
                 const data = await getBookmarks(userId)
                 setBookmarks(data)
+                setBookmarkNotes(Object.fromEntries(data.map((bookmark) => [bookmark.id, bookmark.notes || ''])))
+                setBookmarkTags(Object.fromEntries(data.map((bookmark) => [bookmark.id, (bookmark.tags || []).join(', ')])))
             }
         } catch (error) {
             console.error('Failed to load search data', error)
@@ -54,7 +61,79 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
         e.stopPropagation()
         await deleteBookmark(userId, id)
         setBookmarks(prev => prev.filter(b => b.id !== id))
+        setBookmarkNotes((current) => {
+            const next = { ...current }
+            delete next[id]
+            return next
+        })
+        setBookmarkTags((current) => {
+            const next = { ...current }
+            delete next[id]
+            return next
+        })
     }
+
+    const handleSaveBookmarkDetails = async (bookmark: SearchBookmark) => {
+        setSavingBookmarkIds((current) => ({ ...current, [bookmark.id]: true }))
+
+        try {
+            const notes = bookmarkNotes[bookmark.id] || undefined
+            const tags = bookmarkTags[bookmark.id]
+                ?.split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean)
+
+            const saved = await saveBookmark(
+                userId,
+                {
+                    title: bookmark.title,
+                    url: bookmark.url,
+                    snippet: bookmark.snippet,
+                    source: bookmark.source,
+                },
+                notes,
+                tags && tags.length > 0 ? tags : undefined
+            )
+
+            if (saved) {
+                setBookmarks((current) =>
+                    current.map((item) =>
+                        item.id === bookmark.id
+                            ? {
+                                ...item,
+                                notes,
+                                tags,
+                            }
+                            : item
+                    )
+                )
+            }
+        } catch (error) {
+            console.error('Failed to save bookmark details', error)
+        } finally {
+            setSavingBookmarkIds((current) => ({ ...current, [bookmark.id]: false }))
+        }
+    }
+
+    const filteredBookmarks = useMemo(() => {
+        const needle = bookmarkFilter.trim().toLowerCase()
+        if (!needle) return bookmarks
+
+        return bookmarks.filter((bookmark) => {
+            const searchable = [
+                bookmark.title,
+                bookmark.url,
+                bookmark.snippet,
+                bookmark.source,
+                bookmark.notes || '',
+                ...(bookmark.tags || []),
+            ]
+                .join(' ')
+                .toLowerCase()
+
+            return searchable.includes(needle)
+        })
+    }, [bookmarkFilter, bookmarks])
 
     return (
         <div className="w-full max-w-md bg-tera-panel border border-tera-border rounded-xl overflow-hidden shadow-xl">
@@ -124,12 +203,24 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                     </div>
                 ) : (
                     <div className="space-y-2">
+                        <div className="px-1 pb-1">
+                            <input
+                                value={bookmarkFilter}
+                                onChange={(event) => setBookmarkFilter(event.target.value)}
+                                placeholder="Filter bookmarks by title, notes, tags, or URL"
+                                className="w-full rounded-lg border border-tera-border bg-tera-bg/60 px-3 py-2 text-xs text-tera-primary placeholder:text-tera-secondary/60"
+                            />
+                        </div>
                         {bookmarks.length === 0 ? (
                             <div className="text-center p-8 text-tera-secondary text-sm">
                                 No bookmarks saved yet
                             </div>
+                        ) : filteredBookmarks.length === 0 ? (
+                            <div className="text-center p-8 text-tera-secondary text-sm">
+                                No bookmarks match your filter.
+                            </div>
                         ) : (
-                            bookmarks.map((bookmark) => (
+                            filteredBookmarks.map((bookmark) => (
                                 <div
                                     key={bookmark.id}
                                     onClick={() => onSelectBookmark(bookmark.url)}
@@ -150,6 +241,51 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                                                 <span className="text-[10px] text-tera-secondary/60">
                                                     {new Date(bookmark.createdAt).toLocaleDateString()}
                                                 </span>
+                                            </div>
+                                            <textarea
+                                                value={bookmarkNotes[bookmark.id] || ''}
+                                                onChange={(event) => setBookmarkNotes((current) => ({ ...current, [bookmark.id]: event.target.value }))}
+                                                onClick={(event) => event.stopPropagation()}
+                                                placeholder="Add notes about why this source matters..."
+                                                className="mt-3 min-h-[72px] w-full rounded-lg border border-tera-border bg-tera-bg/60 px-3 py-2 text-xs text-tera-primary placeholder:text-tera-secondary/60"
+                                            />
+                                            <input
+                                                value={bookmarkTags[bookmark.id] || ''}
+                                                onChange={(event) => setBookmarkTags((current) => ({ ...current, [bookmark.id]: event.target.value }))}
+                                                onClick={(event) => event.stopPropagation()}
+                                                placeholder="Tags, comma separated"
+                                                className="mt-2 w-full rounded-lg border border-tera-border bg-tera-bg/60 px-3 py-2 text-xs text-tera-primary placeholder:text-tera-secondary/60"
+                                            />
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation()
+                                                        void handleSaveBookmarkDetails(bookmark)
+                                                    }}
+                                                    className="rounded-full bg-tera-primary px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-tera-bg transition hover:opacity-90"
+                                                >
+                                                    {savingBookmarkIds[bookmark.id] ? 'Saving...' : 'Save details'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation()
+                                                        onSelectBookmark(bookmark.url)
+                                                    }}
+                                                    className="rounded-full border border-tera-border px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-tera-secondary transition hover:border-tera-primary hover:text-tera-primary"
+                                                >
+                                                    Open source
+                                                </button>
+                                                {bookmark.tags && bookmark.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {bookmark.tags.map((tag) => (
+                                                            <span key={tag} className="rounded-full border border-tera-border px-2 py-0.5 text-[10px] text-tera-secondary">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <button
