@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import {
   CONTINUE_LATER_CHANGE_EVENT,
+  archiveContinueLaterItem,
   loadContinueLaterReminders,
   removeContinueLaterReminder,
   type ContinueLaterReminder,
@@ -71,6 +72,12 @@ export default function ContinueLaterReminders() {
 
   const handleRemoveReminder = (kind: ContinueLaterReminder['kind'], id: string) => {
     const next = removeContinueLaterReminder(kind, id)
+    setReminders(next)
+  }
+
+  const handleMarkDone = (reminder: ContinueLaterReminder) => {
+    archiveContinueLaterItem(reminder)
+    const next = removeContinueLaterReminder(reminder.kind, reminder.id)
     setReminders(next)
   }
 
@@ -199,6 +206,13 @@ export default function ContinueLaterReminders() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => handleMarkDone(reminder)}
+                      className="tera-button-secondary"
+                    >
+                      Done
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleRemoveReminder(reminder.kind, reminder.id)}
                       className="tera-button-secondary"
                     >
@@ -240,6 +254,13 @@ export default function ContinueLaterReminders() {
                     className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
                   >
                     Snooze 1d
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMarkDone(reminder)}
+                    className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                  >
+                    Done
                   </button>
                   <button
                     type="button"
