@@ -1,13 +1,63 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import SearchHistory from '@/components/search/SearchHistory'
+import { getBookmarks, type SearchBookmark } from '@/app/actions/search'
 
 export default function BookmarksPage() {
     const router = useRouter()
     const { user } = useAuth()
+    const [bookmarks, setBookmarks] = useState<SearchBookmark[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        let cancelled = false
+
+        const loadBookmarks = async () => {
+            if (!user) {
+                if (!cancelled) setLoading(false)
+                return
+            }
+
+            setLoading(true)
+            const data = await getBookmarks(user.id)
+            if (!cancelled) {
+                setBookmarks(data)
+                setLoading(false)
+            }
+        }
+
+        void loadBookmarks()
+
+        return () => {
+            cancelled = true
+        }
+    }, [user])
+
+    const bookmarkStats = useMemo(() => {
+        const total = bookmarks.length
+        const tagged = bookmarks.filter((bookmark) => (bookmark.tags?.length || 0) > 0).length
+        const latest = bookmarks[0]
+
+        const tagFrequency = new Map<string, number>()
+        bookmarks.forEach((bookmark) => {
+            bookmark.tags?.forEach((tag) => {
+                tagFrequency.set(tag, (tagFrequency.get(tag) || 0) + 1)
+            })
+        })
+
+        const topTag = Array.from(tagFrequency.entries()).sort((a, b) => b[1] - a[1])[0]
+
+        return {
+            total,
+            tagged,
+            latest,
+            topTag: topTag?.[0] || null,
+        }
+    }, [bookmarks])
 
     if (!user) {
         return (
@@ -59,6 +109,34 @@ export default function BookmarksPage() {
                     >
                         Open workspace search
                     </button>
+                </div>
+            </div>
+
+            <div className="mb-6 grid gap-4 md:grid-cols-3">
+                <div className="rounded-[24px] border border-white/10 bg-tera-panel/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                    <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Saved sources</p>
+                    <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">
+                        {loading ? '-' : bookmarkStats.total}
+                    </p>
+                    <p className="mt-2 text-sm text-tera-secondary">Bookmarks from research answers and source cards.</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-tera-panel/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                    <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Tagged sources</p>
+                    <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">
+                        {loading ? '-' : bookmarkStats.tagged}
+                    </p>
+                    <p className="mt-2 text-sm text-tera-secondary">
+                        {bookmarkStats.topTag ? `Top tag: ${bookmarkStats.topTag}` : 'Add tags to organize long-term research.'}
+                    </p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-tera-panel/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                    <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Latest save</p>
+                    <p className="mt-3 line-clamp-2 text-lg font-medium tracking-[-0.02em] text-tera-primary">
+                        {loading ? 'Loading...' : bookmarkStats.latest?.title || 'No bookmarks yet'}
+                    </p>
+                    <p className="mt-2 text-sm text-tera-secondary">
+                        {bookmarkStats.latest ? new Date(bookmarkStats.latest.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : 'Bookmark a source from research mode to populate this card.'}
+                    </p>
                 </div>
             </div>
 
