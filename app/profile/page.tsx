@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -458,7 +458,7 @@ export default function ProfilePage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         {topupCheckoutNotice && (
           <section className="tera-surface mb-8 border border-emerald-400/20 bg-emerald-500/10 px-6 py-4">
             <p className="tera-eyebrow">Checkout confirmation</p>

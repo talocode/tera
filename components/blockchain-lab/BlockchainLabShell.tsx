@@ -25,7 +25,7 @@ export default function BlockchainLabShell({ title, description, children }: Blo
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <div className="tera-page-header">
           <div>
             <p className="tera-eyebrow">Blockchain Lab</p>
