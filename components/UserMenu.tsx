@@ -1,6 +1,6 @@
-﻿'use client'
+'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 type User = {
@@ -85,10 +85,10 @@ export default function UserMenu({ user, expanded, onSignOut }: UserMenuProps) {
   return (
     <div className="relative" ref={dropdownRef}>
       {dropdownOpen && (
-        <div className={`absolute bottom-full mb-3 w-[292px] overflow-hidden rounded-[26px] border border-white/8 bg-tera-elevated/96 shadow-panel backdrop-blur-xl ${expanded ? 'left-0' : 'left-1/2 -translate-x-1/2'}`}>
+        <div className={`absolute bottom-full mb-3 w-[292px] overflow-hidden rounded-[26px] border border-tera-border bg-tera-elevated/96 shadow-panel backdrop-blur-xl ${expanded ? 'left-0' : 'left-1/2 -translate-x-1/2'}`}>
           <div className="px-4 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-white/8 bg-tera-highlight text-sm font-semibold text-tera-primary shadow-soft">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-tera-border bg-tera-highlight text-sm font-semibold text-tera-primary shadow-soft">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
@@ -149,9 +149,9 @@ export default function UserMenu({ user, expanded, onSignOut }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setDropdownOpen((current) => !current)}
-        className={`flex w-full items-center gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-3 py-3 text-left transition hover:bg-white/[0.05] ${expanded ? '' : 'justify-center'}`}
+        className={`flex w-full items-center gap-3 rounded-[22px] border border-tera-border bg-white/[0.03] px-3 py-3 text-left transition hover:bg-white/[0.05] ${expanded ? '' : 'justify-center'}`}
       >
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-white/8 bg-tera-highlight text-sm font-semibold text-tera-primary shadow-soft">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-tera-border bg-tera-highlight text-sm font-semibold text-tera-primary shadow-soft">
           {initials}
         </div>
 
