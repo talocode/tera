@@ -252,7 +252,7 @@ export default function PricingPage() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-[30px] border p-7 backdrop-blur-2xl transition-transform duration-200 hover:-translate-y-px ${plan.highlighted ? 'border-white/10 bg-tera-elevated/92 shadow-panel' : 'border-white/6 bg-tera-panel/78 shadow-soft-lg'}`}
+              className={`tera-card p-7 transition-transform duration-200 hover:-translate-y-px ${plan.highlighted ? 'ring-1 ring-white/5' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -263,7 +263,7 @@ export default function PricingPage() {
                 {plan.highlighted && <span className="tera-badge border-tera-neon/20 bg-tera-highlight text-tera-neon">Popular</span>}
               </div>
 
-              <div className="mt-8 border-t border-white/8 pt-6">
+              <div className="mt-8 border-t border-tera-border pt-6">
                 <div className="flex items-end gap-2">
                   <span className="text-4xl font-semibold tracking-[-0.04em] text-tera-primary">{currency.symbol}{plan.displayPrice.toFixed(2)}</span>
                   <span className="pb-1 text-sm text-tera-secondary">{plan.period}</span>
@@ -273,7 +273,7 @@ export default function PricingPage() {
                 )}
               </div>
 
-              <div className="mt-6 space-y-3 border-t border-white/8 pt-6">
+              <div className="mt-6 space-y-3 border-t border-tera-border pt-6">
                 {plan.features.map((feature) => (
                   <div key={feature} className="flex items-start gap-3 text-sm leading-7 text-tera-secondary">
                     <span className="mt-2 h-2.5 w-2.5 rounded-full bg-tera-neon" />
@@ -334,7 +334,7 @@ export default function PricingPage() {
           <div className="custom-scrollbar mt-6 overflow-x-auto">
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/8 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
+                <tr className="border-b border-tera-border text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
                   <th className="px-4 py-3 font-medium">Feature</th>
                   <th className="px-4 py-3 font-medium">Free</th>
                   <th className="px-4 py-3 font-medium">Pro</th>
@@ -343,7 +343,7 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {comparisonRows.map((row) => (
-                  <tr key={row.feature} className="border-b border-white/6 last:border-0">
+                  <tr key={row.feature} className="border-b border-tera-border last:border-0">
                     <td className="px-4 py-4 text-tera-primary">{row.feature}</td>
                     <td className="px-4 py-4 text-tera-secondary">{row.free}</td>
                     <td className="px-4 py-4 text-tera-secondary">{row.pro}</td>

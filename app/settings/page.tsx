@@ -37,7 +37,7 @@ function SettingToggle({
         <button
           type="button"
           onClick={onChange}
-          className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${checked ? 'border-white/10 bg-tera-highlight' : 'border-white/10 bg-white/[0.06]'}`}
+          className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${checked ? 'border-tera-border bg-tera-highlight' : 'border-tera-border bg-white/[0.05]'}`}
           aria-pressed={checked}
         >
           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${checked ? 'left-6' : 'left-1'}`} />
@@ -216,7 +216,7 @@ export default function SettingsPage() {
 
           <section className="tera-surface p-5 sm:p-6 lg:p-8">
             {message && (
-              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm shadow-soft ${messageType === 'success' ? 'border-white/8 bg-tera-highlight text-tera-primary' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
+              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm shadow-soft ${messageType === 'success' ? 'border-tera-border bg-tera-highlight text-tera-primary' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
                 {message}
               </div>
             )}
