@@ -61,7 +61,51 @@ type QueuedMessage = {
     chatMode: ChatMode
 }
 
+type DraftMessage = QueuedMessage & {
+    updatedAt: string
+}
+
+const PROMPT_DRAFT_STORAGE_PREFIX = 'tera_prompt_draft'
+
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
+
+const getPromptDraftStorageKey = (sessionId: string | null) => `${PROMPT_DRAFT_STORAGE_PREFIX}:${sessionId || 'new'}`
+
+const loadPromptDraft = (sessionId: string | null): DraftMessage | null => {
+    if (typeof window === 'undefined') return null
+
+    const stored = window.localStorage.getItem(getPromptDraftStorageKey(sessionId))
+    if (!stored) return null
+
+    try {
+        const parsed = JSON.parse(stored) as Partial<DraftMessage>
+        return {
+            prompt: parsed.prompt ?? '',
+            attachments: Array.isArray(parsed.attachments) ? parsed.attachments : [],
+            chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'ask',
+            updatedAt: parsed.updatedAt || new Date().toISOString(),
+        }
+    } catch (error) {
+        console.error('Failed to load prompt draft:', error)
+        return null
+    }
+}
+
+const savePromptDraft = (sessionId: string | null, draft: QueuedMessage) => {
+    if (typeof window === 'undefined') return
+
+    const payload: DraftMessage = {
+        ...draft,
+        updatedAt: new Date().toISOString(),
+    }
+
+    window.localStorage.setItem(getPromptDraftStorageKey(sessionId), JSON.stringify(payload))
+}
+
+const clearPromptDraft = (sessionId: string | null) => {
+    if (typeof window === 'undefined') return
+    window.localStorage.removeItem(getPromptDraftStorageKey(sessionId))
+}
 
 const inferChatMode = (tool: TeacherTool, researchMode: boolean) => {
     if (researchMode) return 'research'
@@ -403,8 +447,26 @@ export default function PromptShell({
         return 'Tera is Thinking...'
     }
 
-    useEffect(() => { setCurrentSessionId(sessionId || null) }, [sessionId])
-    useEffect(() => { if (initialPrompt) setPrompt(initialPrompt) }, [initialPrompt])
+    useEffect(() => {
+        setCurrentSessionId(sessionId || null)
+    }, [sessionId])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const draft = loadPromptDraft(sessionId || null)
+        if (draft) {
+            setPrompt(draft.prompt)
+            setPendingAttachments(draft.attachments)
+            setChatMode(draft.chatMode)
+            setSelectedMode(draft.chatMode === 'image' ? 'image' : 'chat')
+            return
+        }
+
+        if (initialPrompt) {
+            setPrompt(initialPrompt)
+        }
+    }, [initialPrompt, sessionId])
     useEffect(() => {
         if (!user?.id || !userReady) return
 
@@ -449,6 +511,31 @@ export default function PromptShell({
         window.addEventListener('keydown', handleEscape)
         return () => window.removeEventListener('keydown', handleEscape)
     }, [attachmentOpen])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const trimmedPrompt = prompt.trim()
+        const shouldPersist =
+            trimmedPrompt.length > 0 ||
+            pendingAttachments.length > 0 ||
+            chatMode !== 'ask'
+
+        if (!shouldPersist) {
+            clearPromptDraft(currentSessionId)
+            return
+        }
+
+        const timeout = window.setTimeout(() => {
+            savePromptDraft(currentSessionId, {
+                prompt,
+                attachments: pendingAttachments,
+                chatMode,
+            })
+        }, 300)
+
+        return () => window.clearTimeout(timeout)
+    }, [chatMode, currentSessionId, pendingAttachments, prompt])
 
     const uploadAttachment = async (file: File, type: AttachmentType) => {
         const formData = new FormData()
@@ -615,6 +702,7 @@ export default function PromptShell({
             setPrompt('')
             setPendingAttachments([])
             setEditingMessageId(null)
+            clearPromptDraft(currentSessionId)
             return
         }
 
@@ -633,6 +721,7 @@ export default function PromptShell({
         setPrompt('')
         setPendingAttachments([])
         processMessage(messageToSend, atts, chatMode)
+        clearPromptDraft(currentSessionId)
     }
 
     useEffect(() => {
@@ -654,6 +743,7 @@ export default function PromptShell({
             processMessage(queuedMessage.prompt, queuedMessage.attachments, queuedMessage.chatMode)
             localStorage.removeItem('tera_queued_message')
             setQueuedMessage(null)
+            clearPromptDraft(currentSessionId)
         }
     }, [userReady, queuedMessage, processMessage])
 
