@@ -7,6 +7,9 @@ import { useRouter } from 'next/navigation'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
 import type { TeacherTool } from './ToolCard'
+import { fetchCreditUsage, fetchUserUsageSummary } from '@/app/actions/user'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
+import type { ProfileUsageSummary } from '@/lib/profile-usage'
 
 type User = {
     id: string
@@ -370,6 +373,9 @@ export default function PromptShell({
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
     const [noteSaveStatuses, setNoteSaveStatuses] = useState<Record<string, NoteSaveStatus>>({})
     const [savingNoteIds, setSavingNoteIds] = useState<Record<string, boolean>>({})
+    const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
+    const [creditUsage, setCreditUsage] = useState<{ used: number; remaining: number; total: number; resetDate: string | null } | null>(null)
+    const [usageLoading, setUsageLoading] = useState(false)
     const requestIdRef = useRef(0)
     const selectedChatModeConfig = getChatModeConfig(chatMode)
     const textareaPlaceholder = isListening ? 'Listening...' : selectedChatModeConfig.placeholder
@@ -399,6 +405,40 @@ export default function PromptShell({
 
     useEffect(() => { setCurrentSessionId(sessionId || null) }, [sessionId])
     useEffect(() => { if (initialPrompt) setPrompt(initialPrompt) }, [initialPrompt])
+    useEffect(() => {
+        if (!user?.id || !userReady) return
+
+        let cancelled = false
+        setUsageLoading(true)
+
+        const loadUsage = async () => {
+            try {
+                const [summary, credits] = await Promise.all([
+                    fetchUserUsageSummary(user.id),
+                    fetchCreditUsage(user.id),
+                ])
+
+                if (cancelled) return
+
+                setUsageSummary(summary)
+                setCreditUsage(credits)
+            } catch (error) {
+                console.error('Error loading prompt usage signals:', error)
+                if (!cancelled) {
+                    setUsageSummary(null)
+                    setCreditUsage(null)
+                }
+            } finally {
+                if (!cancelled) setUsageLoading(false)
+            }
+        }
+
+        void loadUsage()
+
+        return () => {
+            cancelled = true
+        }
+    }, [user?.id, userReady])
     useEffect(() => {
         if (!attachmentOpen) return
 
@@ -670,11 +710,36 @@ export default function PromptShell({
     const hideInitialHero = attachmentOpen && showInitialPrompt
     const backgroundDimClass = attachmentOpen ? 'opacity-20 saturate-0 blur-[0.75px]' : 'opacity-100'
     const composerDimClass = attachmentOpen ? 'opacity-25' : 'opacity-100'
+    const lowCreditThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
+    const lowCredits = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= lowCreditThreshold
+    const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
             <div className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-24 md:px-10 md:pb-10 md:pt-10 transition-all duration-200 ${backgroundDimClass}`} ref={conversationRef}>
                 <div className="mx-auto min-h-full max-w-4xl space-y-8">
+                    {(usageLoading ? false : (lowCredits || lowUploads)) && (
+                        <div className="rounded-[24px] border border-amber-400/20 bg-amber-500/10 px-5 py-4 shadow-soft">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <p className="text-[0.62rem] uppercase tracking-[0.3em] text-amber-100/90">Usage alert</p>
+                                    <p className="mt-2 text-sm leading-7 text-amber-50">
+                                        {lowCredits
+                                            ? `${creditUsage?.remaining.toLocaleString()} computational credits remain before your balance hits zero.`
+                                            : `${usageSummary?.uploads.remaining} file uploads remain before your daily limit hits zero.`}
+                                    </p>
+                                </div>
+                                <Link href="/profile#credit-packs" className="tera-button-secondary self-start">
+                                    Add credits
+                                </Link>
+                            </div>
+                            <p className="mt-3 text-xs uppercase tracking-[0.22em] text-amber-50/80">
+                                {lowCredits
+                                    ? `${CREDITS_PER_USD.toLocaleString()} credits per $1`
+                                    : 'Usage resets are listed in profile'}
+                            </p>
+                        </div>
+                    )}
                     {showInitialPrompt ? (
                         <div
                             className={`absolute inset-x-0 top-0 bottom-0 flex items-center justify-center px-4 text-center pointer-events-none -mt-16 transition-all duration-200 ease-out ${

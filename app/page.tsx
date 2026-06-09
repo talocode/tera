@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import SeoFooter from '@/components/seo/SeoFooter'
 import PromptStarterTemplates from '@/components/PromptStarterTemplates'
+import HomeRecentActivity from '@/components/HomeRecentActivity'
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -66,6 +67,8 @@ export default function HomePage() {
         </section>
 
         <PromptStarterTemplates launchPathPrefix="/new" />
+
+        <HomeRecentActivity />
 
         <section className="mt-8 tera-card">
           <p className="tera-eyebrow">Built for real learning workflows</p>

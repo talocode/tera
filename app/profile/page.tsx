@@ -50,6 +50,20 @@ function formatMemberSince(createdAt: Date) {
   return createdAt.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
+function formatResetLabel(resetAt: string | null) {
+  if (!resetAt) return 'Not scheduled'
+
+  const resetDate = new Date(resetAt)
+  if (Number.isNaN(resetDate.getTime())) return 'Not scheduled'
+
+  return resetDate.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export default function ProfilePage() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -411,21 +425,31 @@ export default function ProfilePage() {
   const usageCardsUnavailable = !usageCardsLoading && (!usageSummary || !creditMetric)
   const weeklyTotal = usageHistory.reduce((sum, day) => sum + day.used, 0)
   const sessionCount = Math.max(1, recentSessions.length)
+  const creditWarningThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
+  const uploadWarningThreshold = usageSummary ? Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25)) : 0
+  const hasCreditWarning = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= creditWarningThreshold
+  const hasUploadWarning = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= uploadWarningThreshold
 
   const activeLimitNotice = (() => {
     if (!usageSummary || !creditUsage) return null
 
-    if (creditUsage.remaining <= 0) {
+    if (creditUsage.remaining <= creditWarningThreshold) {
       return {
-        title: 'Computational credits reached',
-        message: 'Tera blocks new prompts when AI computational credits are exhausted.',
+        title: creditUsage.remaining <= 0 ? 'Computational credits reached' : 'Computational credits running low',
+        message:
+          creditUsage.remaining <= 0
+            ? 'Tera blocks new prompts when AI computational credits are exhausted.'
+            : `${creditUsage.remaining.toLocaleString()} credits remain before you hit zero.`,
       }
     }
 
-    if (!usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining === 0) {
+    if (!usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining <= uploadWarningThreshold) {
       return {
-        title: 'File upload limit reached',
-        message: 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.',
+        title: usageSummary.uploads.remaining <= 0 ? 'File upload limit reached' : 'File uploads running low',
+        message:
+          usageSummary.uploads.remaining <= 0
+            ? 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.'
+            : `${usageSummary.uploads.remaining.toLocaleString()} file uploads remain before your daily limit hits zero.`,
       }
     }
 
@@ -774,6 +798,67 @@ export default function ProfilePage() {
               </>
             )}
           </div>
+
+          {!usageCardsLoading && usageSummary && creditUsage && (
+            <div className="mt-6 tera-surface p-6 md:p-8">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="tera-eyebrow">Forecast</p>
+                  <h2 className="mt-3 text-2xl font-semibold text-tera-primary">When usage resets</h2>
+                  <p className="mt-3 text-sm leading-7 text-tera-secondary">
+                    A clearer view of your next reset dates and current headroom.
+                  </p>
+                </div>
+                {hasCreditWarning && (
+                  <Link href="#credit-packs" className="tera-button-secondary self-start">
+                    Add credits
+                  </Link>
+                )}
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Chats</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {usageSummary.chats.isUnlimited ? 'Unlimited' : `${usageSummary.chats.remaining} left`}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    Resets {formatResetLabel(usageSummary.chats.resetAt)}
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Uploads</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {usageSummary.uploads.isUnlimited ? 'Unlimited' : `${usageSummary.uploads.remaining} left`}
+                  </p>
+                  {hasUploadWarning && (
+                    <p className="mt-2 text-[0.62rem] uppercase tracking-[0.22em] text-amber-100">Running low</p>
+                  )}
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    {usageSummary.uploads.isUnlimited ? 'No reset needed.' : 'Usage resets daily.'}
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Web searches</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {usageSummary.webSearches.isUnlimited ? 'Unlimited' : `${usageSummary.webSearches.remaining} left`}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    Resets {formatResetLabel(usageSummary.webSearches.resetAt)}
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Credits</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {creditUsage.remaining.toLocaleString()} remaining
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    {creditUsage.resetDate ? `Resets ${formatResetLabel(creditUsage.resetDate)}` : 'No reset date available.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.5fr]">
