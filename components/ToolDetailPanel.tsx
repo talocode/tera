@@ -15,12 +15,12 @@ const samplePrompts: Record<string, string> = {
 
 export default function ToolDetailPanel({ tool }: { tool: TeacherTool }) {
   return (
-    <section className="flex w-96 flex-col gap-6 rounded-[32px] border border-tera-border bg-gradient-to-b from-[#111111] to-[#050505] p-6 shadow-glow-md">
+    <section className="flex w-full max-w-[22rem] flex-col gap-5 rounded-[32px] border border-tera-border bg-gradient-to-b from-[#111111] to-[#050505] p-5 shadow-glow-md md:w-96 md:gap-6 md:p-6">
       <header className="flex flex-col gap-1">
         <p className="text-xs uppercase tracking-[0.4em] text-white/50">Tool insight</p>
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{tool.icon}</span>
-          <h2 className="text-xl font-semibold text-white">{tool.name}</h2>
+          <span className="text-xl md:text-2xl">{tool.icon}</span>
+          <h2 className="text-lg font-semibold text-white md:text-xl">{tool.name}</h2>
         </div>
         <p className="text-sm text-white/60">{tool.description}</p>
       </header>
