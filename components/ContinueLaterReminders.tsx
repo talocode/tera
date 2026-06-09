@@ -80,6 +80,19 @@ export default function ContinueLaterReminders() {
     setNotificationPermission(permission)
   }
 
+  const handleSnoozeReminder = (reminder: ContinueLaterReminder, days: number) => {
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + days)
+    nextDate.setHours(9, 0, 0, 0)
+    const next = [
+      ...reminders.filter((item) => !(item.kind === reminder.kind && item.id === reminder.id)),
+      { ...reminder, remindAt: nextDate.toISOString() },
+    ]
+    window.localStorage.setItem('tera_continue_later_reminders', JSON.stringify(next))
+    window.dispatchEvent(new Event(CONTINUE_LATER_CHANGE_EVENT))
+    setReminders(next)
+  }
+
   const upcoming = useMemo(
     () => [...reminders].sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime()).slice(0, 5),
     [reminders],
@@ -172,6 +185,20 @@ export default function ContinueLaterReminders() {
                     </Link>
                     <button
                       type="button"
+                      onClick={() => handleSnoozeReminder(reminder, 1)}
+                      className="tera-button-secondary"
+                    >
+                      Snooze 1d
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSnoozeReminder(reminder, 3)}
+                      className="tera-button-secondary"
+                    >
+                      Snooze 3d
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleRemoveReminder(reminder.kind, reminder.id)}
                       className="tera-button-secondary"
                     >
@@ -207,6 +234,13 @@ export default function ContinueLaterReminders() {
                   <Link href={reminder.href} className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]">
                     Open
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleSnoozeReminder(reminder, 1)}
+                    className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                  >
+                    Snooze 1d
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleRemoveReminder(reminder.kind, reminder.id)}
