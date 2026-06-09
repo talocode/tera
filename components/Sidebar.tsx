@@ -30,6 +30,7 @@ export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
   { label: 'Continue later', icon: 'queue', href: '/queue' },
   { label: 'Workspace search', icon: 'search', href: '/search' },
+  { label: 'Bookmarks', icon: 'bookmark', href: '/bookmarks' },
   { label: 'Images', icon: 'images', href: '/images' },
   { label: 'Skills', icon: 'apps', href: '/skills' },
   { label: 'Deep research', icon: 'research', href: '/deep-research' },
@@ -60,6 +61,12 @@ const IconSearch = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="7" />
     <path d="m20 20-3.5-3.5" />
+  </svg>
+)
+
+const IconBookmark = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 4.5h12a1.5 1.5 0 0 1 1.5 1.5v14l-7.5-4.25L4.5 20V6A1.5 1.5 0 0 1 6 4.5Z" />
   </svg>
 )
 
@@ -120,6 +127,7 @@ const getIcon = (iconName: string): React.ReactNode => {
   const icons: Record<string, () => React.ReactNode> = {
     chat: IconChat,
     search: IconSearch,
+    bookmark: IconBookmark,
     queue: IconQueue,
     images: IconImages,
     apps: IconApps,
@@ -210,7 +218,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
                 ? pathname?.startsWith('/new')
-                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/queue') && pathname?.startsWith('/queue')) || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
+                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/queue') && pathname?.startsWith('/queue')) || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/bookmarks') && pathname?.startsWith('/bookmarks')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
 
               return (
                 <Link

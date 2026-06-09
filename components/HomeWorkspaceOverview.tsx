@@ -329,7 +329,7 @@ export default function HomeWorkspaceOverview() {
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Recent bookmarks</p>
               <p className="mt-2 text-lg font-medium text-tera-primary">Saved research sources</p>
             </div>
-            <Link href="/search" className="tera-button-secondary">
+            <Link href="/bookmarks" className="tera-button-secondary">
               Open bookmarks
             </Link>
           </div>

@@ -15,6 +15,7 @@ const quickActions: QuickAction[] = [
   { label: 'New chat', description: 'Start a fresh session', href: '/new', keywords: ['new', 'chat', 'session', 'start'] },
   { label: 'Continue later', description: 'Open your queue and reminders', href: '/queue', keywords: ['queue', 'later', 'reminder', 'continue'] },
   { label: 'Workspace search', description: 'Search chats, notes, memories, and workflows', href: '/search', keywords: ['search', 'find', 'workspace', 'everything'] },
+  { label: 'Bookmarks', description: 'Review saved research sources', href: '/bookmarks', keywords: ['bookmarks', 'sources', 'research', 'saved'] },
   { label: 'Notes', description: 'View and edit saved notes', href: '/notes', keywords: ['notes', 'note', 'memo'] },
   { label: 'Deep research', description: 'Use web-backed research mode', href: '/deep-research', keywords: ['research', 'web', 'sources', 'deep'] },
   { label: 'Study assistant', description: 'Open the study assistant page', href: '/ai-study-assistant', keywords: ['study', 'assistant', 'learn'] },
