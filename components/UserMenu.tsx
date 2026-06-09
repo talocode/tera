@@ -115,7 +115,7 @@ export default function UserMenu({ user, expanded, onSignOut }: UserMenuProps) {
               <Link
                 key={item.label}
                 href={item.href}
-                className="flex items-center justify-between rounded-[18px] px-3 py-3 text-sm text-tera-primary transition hover:bg-white/[0.05]"
+                className="flex items-center justify-between rounded-[18px] px-3 py-3 text-sm text-tera-primary transition hover:bg-tera-highlight"
                 onClick={() => setDropdownOpen(false)}
               >
                 <span>{item.label}</span>
@@ -149,7 +149,7 @@ export default function UserMenu({ user, expanded, onSignOut }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setDropdownOpen((current) => !current)}
-        className={`flex w-full items-center gap-3 rounded-[22px] border border-tera-border bg-white/[0.03] px-3 py-3 text-left transition hover:bg-white/[0.05] ${expanded ? '' : 'justify-center'}`}
+        className={`flex w-full items-center gap-3 rounded-[22px] border border-tera-border bg-tera-muted px-3 py-3 text-left transition hover:bg-tera-highlight ${expanded ? '' : 'justify-center'}`}
       >
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-tera-border bg-tera-highlight text-sm font-semibold text-tera-primary shadow-soft">
           {initials}

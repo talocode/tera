@@ -91,7 +91,7 @@ export default function LimitModal({ isOpen, limitType, currentPlan: _currentPla
             onClick={closeModal}
         >
             <div
-                className={`relative w-full max-w-md rounded-2xl border border-tera-border bg-tera-panel p-6 shadow-2xl transition-all duration-200 ${isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
+                className={`relative w-full max-w-md rounded-2xl border border-tera-border bg-tera-panel p-6 shadow-panel transition-all duration-200 ${isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
                 onClick={(event) => event.stopPropagation()}
             >
                 <button

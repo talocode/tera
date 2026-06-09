@@ -458,7 +458,7 @@ export default function ProfilePage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         {topupCheckoutNotice && (
           <section className="tera-surface mb-8 border border-emerald-400/20 bg-emerald-500/10 px-6 py-4">
             <p className="tera-eyebrow">Checkout confirmation</p>
@@ -486,27 +486,27 @@ export default function ProfilePage() {
         </div>
 
         <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <Link href="/search" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
+          <Link href="/search" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
             <p className="tera-eyebrow">Search</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Workspace search</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Find chats, notes, memories, and workflows from one page.</p>
           </Link>
-          <Link href="/queue" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
+          <Link href="/queue" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
             <p className="tera-eyebrow">Queue</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Continue later</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Resume unfinished work from a single queue.</p>
           </Link>
-          <Link href="/history" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
+          <Link href="/history" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
             <p className="tera-eyebrow">History</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Chat history</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Search past sessions and reopen them instantly.</p>
           </Link>
-          <Link href="/notes" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
+          <Link href="/notes" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
             <p className="tera-eyebrow">Notes</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Saved notes</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Review extracted ideas and working context.</p>
           </Link>
-          <Link href="/images" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
+          <Link href="/images" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
             <p className="tera-eyebrow">Uploads</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">File and image archive</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Review uploaded assets in one place.</p>
@@ -514,7 +514,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => exportJson('tera-profile-data.json', { memories, workflows: savedWorkflows, profile, usageSummary, creditUsage })}
-            className="tera-surface p-5 text-left transition hover:border-tera-primary hover:bg-white/[0.05]"
+            className="tera-surface p-5 text-left transition hover:border-tera-primary hover:bg-tera-highlight"
           >
             <p className="tera-eyebrow">Export</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Profile data</h2>
@@ -726,7 +726,7 @@ export default function ProfilePage() {
             </div>
             <p className="mt-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">
               {CREDITS_PER_USD.toLocaleString()} credits per $1
-              {estimatedTopupCredits ? ` · ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
+              {estimatedTopupCredits ? ` Â· ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
             </p>
           </div>
         </div>
@@ -877,7 +877,7 @@ export default function ProfilePage() {
               ) : usageHistory.length > 0 ? (
                 <div className="space-y-6">
                   <UsageHistoryChart data={usageHistory} />
-                  <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-6">
+                  <div className="grid grid-cols-2 gap-4 border-t border-tera-border pt-6">
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Avg. intensity</p>
                       <p className="mt-1 text-xl font-semibold text-tera-primary">
@@ -907,9 +907,9 @@ export default function ProfilePage() {
                 <p className="text-sm text-tera-secondary">Loading recent sessions...</p>
               ) : recentSessions.length > 0 ? (
                 recentSessions.map((session) => (
-                  <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]">
+                  <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-tera-highlight">
                     <p className="truncate text-sm font-medium text-tera-primary">{session.title || 'Untitled session'}</p>
-                    <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} Â· {new Date(session.created_at).toLocaleDateString()}</p>
+                    <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} · {new Date(session.created_at).toLocaleDateString()}</p>
                   </Link>
                 ))
               ) : (

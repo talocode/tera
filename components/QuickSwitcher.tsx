@@ -79,7 +79,7 @@ export default function QuickSwitcher() {
         className="fixed bottom-3 right-3 z-40 flex rounded-full border border-tera-border bg-tera-panel/90 px-4 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:-translate-y-px hover:border-tera-primary hover:text-tera-primary md:bottom-4 md:right-4"
       >
         Quick switch
-        <span className="ml-3 rounded-full border border-tera-border bg-white/[0.03] px-2 py-1 text-[0.55rem] tracking-[0.12em] text-tera-secondary">
+        <span className="ml-3 rounded-full border border-tera-border bg-tera-muted px-2 py-1 text-[0.55rem] tracking-[0.12em] text-tera-secondary">
           ⌘K
         </span>
       </button>
@@ -131,7 +131,7 @@ export default function QuickSwitcher() {
                 key={action.href}
                 href={action.href}
                 onClick={() => setOpen(false)}
-                className="block rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.06]"
+                className="block rounded-[20px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.06]"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div>

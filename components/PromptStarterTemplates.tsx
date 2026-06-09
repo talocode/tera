@@ -73,7 +73,7 @@ function StarterTile({
   launchPathPrefix?: string
 }) {
   const content = (
-    <div className="group flex h-full flex-col rounded-[22px] border border-tera-border bg-white/[0.03] p-4 text-left transition hover:-translate-y-px hover:bg-white/[0.05]">
+    <div className="group flex h-full flex-col rounded-[22px] border border-tera-border bg-tera-muted p-4 text-left transition hover:-translate-y-px hover:bg-tera-highlight">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">{badge}</p>

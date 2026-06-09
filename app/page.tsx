@@ -36,7 +36,7 @@ const highlights = [
 export default function HomePage() {
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-14">
           <div className="max-w-4xl">
             <p className="tera-eyebrow">TeraAI</p>

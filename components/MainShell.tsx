@@ -137,7 +137,7 @@ function MainShellContent() {
         {authDialog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setAuthDialog(null)} />
-            <div className="relative z-10 w-full max-w-md rounded-3xl border border-tera-border bg-tera-panel p-6 shadow-2xl">
+            <div className="relative z-10 w-full max-w-md rounded-3xl border border-tera-border bg-tera-panel p-6 shadow-panel">
               <div className="flex items-center justify-between text-xs uppercase tracking-[0.4em] text-tera-secondary">
                 <span>{authDialog === 'signIn' ? 'Log In' : 'Sign Up'}</span>
                 <button className="text-tera-secondary hover:text-tera-primary" onClick={() => setAuthDialog(null)}>

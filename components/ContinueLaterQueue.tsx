@@ -263,7 +263,7 @@ export default function ContinueLaterQueue() {
             {archivedItems.map((item) => (
               <div
                 key={`archived-${item.kind}-${item.id}`}
-                className="flex flex-col gap-3 rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-3 md:flex-row md:items-center md:justify-between"
+                className="flex flex-col gap-3 rounded-[18px] border border-tera-border bg-tera-muted px-4 py-3 md:flex-row md:items-center md:justify-between"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-tera-primary">{item.title}</p>

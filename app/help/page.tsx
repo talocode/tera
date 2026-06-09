@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -82,7 +82,7 @@ export default function HelpPage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-12">
           <p className="tera-eyebrow">Help center</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Support for plans, billing, and product questions.</h1>
@@ -101,7 +101,7 @@ export default function HelpPage() {
               key={section.id}
               type="button"
               onClick={() => toggleSection(section.id)}
-              className="tera-card-subtle text-left transition hover:-translate-y-px hover:bg-white/[0.05]"
+              className="tera-card-subtle text-left transition hover:-translate-y-px hover:bg-tera-highlight"
             >
               <p className="tera-eyebrow">Section</p>
               <h2 className="mt-3 text-xl font-semibold text-tera-primary">{section.title}</h2>

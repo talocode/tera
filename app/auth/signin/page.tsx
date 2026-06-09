@@ -23,7 +23,7 @@ export default function SignInPage() {
 
   return (
     <div className="tera-page flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-[32px] border border-tera-border bg-tera-panel/82 p-8 shadow-panel backdrop-blur-2xl md:p-10">
+      <div className="w-full max-w-md rounded-[32px] border border-tera-border bg-tera-panel/82 p-8 shadow-soft-lg backdrop-blur-2xl md:p-10">
         <div className="flex justify-center">
           <div className="relative h-16 w-16 rounded-[24px] border border-tera-border bg-white/[0.04] p-3">
             <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="hidden object-contain p-3 dark:block" />
@@ -60,7 +60,7 @@ export default function SignInPage() {
           {loading ? 'Signing in...' : 'Continue with Google'}
         </button>
 
-          <div className="mt-8 space-y-3 rounded-[24px] border border-tera-border bg-white/[0.03] p-5">
+          <div className="tera-card-subtle mt-8 space-y-3 p-5">
           <div className="flex items-start gap-3 text-sm leading-7 text-tera-secondary">
             <span className="mt-2 h-2.5 w-2.5 rounded-full bg-tera-neon" />
             <span>Unlimited AI conversations on the free plan.</span>
