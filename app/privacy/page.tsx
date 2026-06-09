@@ -8,7 +8,7 @@ export default function PrivacyPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-tera-border pb-6">
             <div>
               <p className="tera-eyebrow">Legal</p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Privacy policy</h1>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl lg:text-5xl">Privacy policy</h1>
             </div>
             <Link href="/terms" className="tera-button-secondary">
               View terms

@@ -48,7 +48,7 @@ export default function AiResearchAssistantPage() {
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-14">
           <div className="max-w-4xl">
             <p className="tera-eyebrow">AI research assistant</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-6xl">
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl lg:text-6xl">
               AI Research Assistant for Clearer, Cited Work
             </h1>
             <p className="mt-6 max-w-3xl text-base leading-8 text-tera-secondary md:text-lg">

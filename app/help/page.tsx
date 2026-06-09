@@ -85,7 +85,7 @@ export default function HelpPage() {
       <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-12">
           <p className="tera-eyebrow">Help center</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Support for plans, billing, and product questions.</h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl lg:text-5xl">Support for plans, billing, and product questions.</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-tera-secondary">
             Browse the most common account and pricing questions, or contact support directly if you need help with a specific issue.
           </p>

@@ -40,10 +40,10 @@ export default function HomePage() {
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-14">
           <div className="max-w-4xl">
             <p className="tera-eyebrow">TeraAI</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-6xl">
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl lg:text-6xl">
               Your AI learning companion for deep learning and research
             </h1>
-            <p className="mt-6 max-w-3xl text-base leading-8 text-tera-secondary md:text-lg">
+            <p className="mt-5 max-w-3xl text-base leading-7 text-tera-secondary md:text-lg md:leading-8">
               TeraAI helps students, curious learners, researchers, and builders learn anything deeply,
               understand difficult topics, research with clearer context, and turn what they study into real projects.
             </p>

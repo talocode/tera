@@ -242,7 +242,7 @@ export default function PricingPage() {
       <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-12">
           <p className="tera-eyebrow">Pricing</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Choose the level of Tera that fits your work.</h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl lg:text-5xl">Choose the level of Tera that fits your work.</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-tera-secondary">
             Conversations stay free. Upgrade when you need more computational credits, larger file limits, Tavily-backed deep research, or analytics.
           </p>
@@ -257,7 +257,7 @@ export default function PricingPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="tera-eyebrow">Plan</p>
-                  <h2 className="mt-3 text-2xl font-semibold text-tera-primary">{plan.displayName}</h2>
+                  <h2 className="mt-3 text-xl font-semibold text-tera-primary md:text-2xl">{plan.displayName}</h2>
                   <p className="mt-3 text-sm leading-7 text-tera-secondary">{plan.description}</p>
                 </div>
                 {plan.highlighted && <span className="tera-badge border-tera-neon/20 bg-tera-highlight text-tera-neon">Popular</span>}
@@ -265,7 +265,7 @@ export default function PricingPage() {
 
               <div className="mt-8 border-t border-tera-border pt-6">
                 <div className="flex items-end gap-2">
-                  <span className="text-4xl font-semibold tracking-[-0.04em] text-tera-primary">{currency.symbol}{plan.displayPrice.toFixed(2)}</span>
+                  <span className="text-3xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl">{currency.symbol}{plan.displayPrice.toFixed(2)}</span>
                   <span className="pb-1 text-sm text-tera-secondary">{plan.period}</span>
                 </div>
                 {currency.code !== 'USD' && (
@@ -302,7 +302,7 @@ export default function PricingPage() {
 
         <section id="credit-packs" className="tera-surface mt-8 p-6 md:p-8">
           <p className="tera-eyebrow">Credit packs</p>
-          <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Need more usage without upgrading?</h2>
+          <h2 className="mt-3 text-xl font-semibold text-tera-primary md:text-2xl">Need more usage without upgrading?</h2>
           <p className="mt-3 text-sm leading-7 text-tera-secondary">Top up from $1 and above without changing your subscription plan.</p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <input
@@ -328,7 +328,7 @@ export default function PricingPage() {
           <div className="flex items-center justify-between gap-4 pb-5">
             <div>
               <p className="tera-eyebrow">Comparison</p>
-              <h2 className="mt-2 text-2xl font-semibold text-tera-primary">Plan breakdown</h2>
+              <h2 className="mt-2 text-xl font-semibold text-tera-primary md:text-2xl">Plan breakdown</h2>
             </div>
           </div>
           <div className="custom-scrollbar mt-6 overflow-x-auto">

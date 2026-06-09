@@ -892,7 +892,7 @@ export default function PromptShell({
                                         <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain hidden dark:block opacity-80" />
                                     </div>
                                 </div>
-                                <h2 className="text-4xl font-semibold tracking-[-0.03em] text-tera-primary md:text-5xl">How can Tera help you today?</h2>
+                                <h2 className="text-3xl font-semibold tracking-[-0.03em] text-tera-primary md:text-4xl lg:text-5xl">How can Tera help you today?</h2>
                                 <PromptStarterTemplates
                                     onSelectPrompt={(value) => {
                                         setPrompt(value)
