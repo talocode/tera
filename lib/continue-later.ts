@@ -18,6 +18,12 @@ export type ContinueLaterReminder = ContinueLaterSourceItem & {
 
 export const CONTINUE_LATER_STORAGE_KEY = 'tera_continue_later_queue'
 export const CONTINUE_LATER_REMINDERS_STORAGE_KEY = 'tera_continue_later_reminders'
+export const CONTINUE_LATER_CHANGE_EVENT = 'tera-continue-later-change'
+
+function dispatchContinueLaterChange() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(CONTINUE_LATER_CHANGE_EVENT))
+}
 
 export function loadContinueLaterQueue(): ContinueLaterItem[] {
   if (typeof window === 'undefined') return []
@@ -37,6 +43,7 @@ export function loadContinueLaterQueue(): ContinueLaterItem[] {
 export function persistContinueLaterQueue(items: ContinueLaterItem[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(CONTINUE_LATER_STORAGE_KEY, JSON.stringify(items))
+  dispatchContinueLaterChange()
 }
 
 export function pinContinueLaterItem(item: ContinueLaterSourceItem) {
@@ -73,6 +80,7 @@ export function loadContinueLaterReminders(): ContinueLaterReminder[] {
 export function persistContinueLaterReminders(items: ContinueLaterReminder[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(CONTINUE_LATER_REMINDERS_STORAGE_KEY, JSON.stringify(items))
+  dispatchContinueLaterChange()
 }
 
 export function setContinueLaterReminder(item: ContinueLaterSourceItem, remindAt: string) {
@@ -89,4 +97,16 @@ export function removeContinueLaterReminder(kind: ContinueLaterKind, id: string)
   const next = current.filter((item) => !(item.kind === kind && item.id === id))
   persistContinueLaterReminders(next)
   return next
+}
+
+export function getContinueLaterOverview(now = Date.now()) {
+  const queue = loadContinueLaterQueue()
+  const reminders = loadContinueLaterReminders()
+  const dueSoon = reminders.filter((reminder) => new Date(reminder.remindAt).getTime() <= now + 24 * 60 * 60 * 1000)
+
+  return {
+    queueCount: queue.length,
+    reminderCount: reminders.length,
+    dueSoonCount: dueSoon.length,
+  }
 }
