@@ -8,6 +8,7 @@ import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
 import type { TeacherTool } from './ToolCard'
 import { fetchCreditUsage, fetchUserUsageSummary } from '@/app/actions/user'
+import { saveBookmark } from '@/app/actions/search'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import type { ProfileUsageSummary } from '@/lib/profile-usage'
 
@@ -45,6 +46,11 @@ type Message = {
 
 type NoteSaveStatus = {
     type: 'success' | 'error'
+    message: string
+}
+
+type BookmarkSaveStatus = {
+    type: 'success' | 'error' | 'saving'
     message: string
 }
 
@@ -425,6 +431,7 @@ export default function PromptShell({
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
     const [noteSaveStatuses, setNoteSaveStatuses] = useState<Record<string, NoteSaveStatus>>({})
     const [savingNoteIds, setSavingNoteIds] = useState<Record<string, boolean>>({})
+    const [bookmarkSaveStatuses, setBookmarkSaveStatuses] = useState<Record<string, BookmarkSaveStatus>>({})
     const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
     const [creditUsage, setCreditUsage] = useState<{ used: number; remaining: number; total: number; resetDate: string | null } | null>(null)
     const [usageLoading, setUsageLoading] = useState(false)
@@ -684,6 +691,39 @@ export default function PromptShell({
             setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'error', message: 'Could not save note.' } }))
         } finally {
             setSavingNoteIds((prev) => ({ ...prev, [assistantMessage.id]: false }))
+        }
+    }
+
+    const handleSaveBookmark = async (citation: NonNullable<Message['citations']>[number]) => {
+        if (!user?.id) {
+            setBookmarkSaveStatuses((prev) => ({ ...prev, [citation.url]: { type: 'error', message: 'Sign in to save bookmarks.' } }))
+            onRequireSignIn?.()
+            return
+        }
+
+        setBookmarkSaveStatuses((prev) => ({ ...prev, [citation.url]: { type: 'saving', message: 'Saving...' } }))
+
+        try {
+            const saved = await saveBookmark(
+                user.id,
+                {
+                    title: citation.title,
+                    url: citation.url,
+                    snippet: citation.snippet || '',
+                    source: 'Tera research',
+                },
+                citation.publishedDate ? `Published: ${citation.publishedDate}` : undefined,
+                ['research', 'citation']
+            )
+
+            setBookmarkSaveStatuses((prev) => ({
+                ...prev,
+                [citation.url]: saved
+                    ? { type: 'success', message: 'Saved bookmark.' }
+                    : { type: 'error', message: 'Could not save bookmark.' },
+            }))
+        } catch (error) {
+            setBookmarkSaveStatuses((prev) => ({ ...prev, [citation.url]: { type: 'error', message: 'Could not save bookmark.' } }))
         }
     }
 
@@ -951,6 +991,24 @@ export default function PromptShell({
                                                                     {citation.snippet && (
                                                                         <p className="mt-2 text-sm leading-6 text-tera-secondary">{citation.snippet}</p>
                                                                     )}
+                                                                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(event) => {
+                                                                                event.preventDefault()
+                                                                                event.stopPropagation()
+                                                                                void handleSaveBookmark(citation)
+                                                                            }}
+                                                                            className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary"
+                                                                        >
+                                                                            {bookmarkSaveStatuses[citation.url]?.type === 'saving' ? 'Saving...' : 'Save bookmark'}
+                                                                        </button>
+                                                                        {bookmarkSaveStatuses[citation.url] && bookmarkSaveStatuses[citation.url].type !== 'saving' && (
+                                                                            <span className={`text-[0.65rem] ${bookmarkSaveStatuses[citation.url].type === 'success' ? 'text-tera-accent' : 'text-red-400'}`}>
+                                                                                {bookmarkSaveStatuses[citation.url].message}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </a>
                                                             ))}
                                                         </div>
