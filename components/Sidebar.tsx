@@ -182,7 +182,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
 
       <aside
         className={[
-          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-white/5 bg-tera-bg text-tera-primary shadow-[0_0_40px_rgba(0,0,0,0.12)] transition-[width,transform] duration-300 ease-out',
+          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary shadow-[0_0_40px_rgba(0,0,0,0.12)] transition-[width,transform] duration-300 ease-out',
           mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
           expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
         ].join(' ')}
@@ -203,7 +203,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             <button
               type="button"
               onClick={onTogglePin}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-white/8 bg-tera-panel/90 shadow-soft transition-all duration-200 hover:-translate-y-px hover:bg-tera-highlight"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-tera-border bg-tera-panel/90 shadow-soft transition-all duration-200 hover:-translate-y-px hover:bg-tera-highlight"
               aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
               <div className="relative h-6 w-6">
