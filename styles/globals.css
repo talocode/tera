@@ -210,6 +210,11 @@
 
   .tera-surface:hover {
     transform: translateY(-1px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  }
+
+  .tera-surface:active {
+    transform: translateY(0) scale(0.996);
   }
 
   .tera-surface-muted {
@@ -228,6 +233,11 @@
 
   .tera-card:hover {
     transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .tera-card:active {
+    transform: translateY(0) scale(0.996);
   }
 
   .tera-card-subtle {
@@ -239,11 +249,24 @@
 
   .tera-card-subtle:hover {
     transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  }
+
+  .tera-card-subtle:active {
+    transform: translateY(0) scale(0.996);
   }
 
   .tera-button {
     @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none;
     letter-spacing: 0;
+  }
+
+  .tera-button:focus-visible,
+  .tera-icon-button:focus-visible,
+  .tera-badge:focus-visible,
+  .tera-segmented-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(219, 188, 142, 0.18);
   }
 
   .tera-button-primary {
@@ -262,6 +285,10 @@
     box-shadow:
       0 18px 32px rgba(0, 0, 0, 0.26),
       inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  }
+
+  .tera-button-primary:active {
+    transform: translateY(0) scale(0.99);
   }
 
   .tera-button-primary:active {
@@ -302,6 +329,10 @@
     box-shadow:
       0 14px 24px rgba(0, 0, 0, 0.22),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .tera-button-secondary:active {
+    transform: translateY(0) scale(0.99);
   }
 
   .tera-button-secondary:active {
@@ -349,6 +380,10 @@
     color: var(--text-tera-primary);
   }
 
+  .tera-icon-button:active {
+    transform: translateY(0) scale(0.97);
+  }
+
   .composer-action-button {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-tera-secondary transition-all duration-150;
     border: 0;
@@ -382,6 +417,10 @@
     background-color: var(--bg-tera-highlight);
   }
 
+  .composer-menu-row:active {
+    transform: scale(0.995);
+  }
+
   .tera-input {
     @apply rounded-2xl border border-tera-border bg-tera-input px-4 py-3 text-tera-primary focus:outline-none;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -399,6 +438,15 @@
   .tera-badge {
     @apply inline-flex items-center gap-2 rounded-full border border-tera-border px-3 py-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary;
     background-color: rgba(255, 255, 255, 0.03);
+    transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  }
+
+  .tera-badge:hover {
+    transform: translateY(-1px);
+  }
+
+  .tera-badge:active {
+    transform: translateY(0) scale(0.99);
   }
 
   .tera-segmented {
@@ -407,6 +455,14 @@
 
   .tera-segmented-item {
     @apply rounded-full px-4 py-2 text-sm font-medium text-tera-secondary transition;
+  }
+
+  .tera-segmented-item:hover {
+    color: var(--text-tera-primary);
+  }
+
+  .tera-segmented-item:active {
+    transform: scale(0.99);
   }
 
   .tera-segmented-item[data-active="true"] {
