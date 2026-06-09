@@ -309,6 +309,14 @@ const AttachmentIcon = () => (
     </svg>
 )
 
+const HistoryIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 0 3-6.75" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5v4.5h4.5" />
+    </svg>
+)
+
 const MicIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-12 0v1.5a6 6 0 006 6m0 0v3m-3-3h6M12 3.75a3 3 0 00-3 3v6a3 3 0 006 0v-6a3 3 0 00-3-3z" />
@@ -990,6 +998,19 @@ export default function PromptShell({
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-white/8 bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                             <div className="flex items-center">
+                                <button
+                                    onClick={() => {
+                                        if (!user?.id) {
+                                            onRequireSignIn?.()
+                                            return
+                                        }
+                                        setSearchHistoryOpen(true)
+                                    }}
+                                    className="composer-action-button"
+                                    title="Search history and bookmarks"
+                                >
+                                    <HistoryIcon />
+                                </button>
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment">
                                     <AttachmentIcon />
                                 </button>
