@@ -266,7 +266,7 @@ export default function QuizRenderer({ quiz, onComplete }: QuizRendererProps) {
                                         key={optIdx}
                                         className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${answers[question.id] === optIdx
                                             ? 'bg-tera-neon/20 border-tera-neon'
-                                            : 'bg-black/20 border-transparent hover:bg-white/5'
+                                            : 'bg-black/20 border-transparent hover:bg-white/[0.06]'
                                             } border`}
                                     >
                                         <input

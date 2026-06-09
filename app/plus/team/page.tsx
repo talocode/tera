@@ -93,7 +93,7 @@ export default function TeamPage() {
           <div className="mt-4 space-y-3">
             {members.length === 0 && <p className="text-sm text-tera-secondary">No members yet.</p>}
             {members.map((member) => (
-              <div key={member.id} className="flex flex-col gap-2 rounded-xl border border-tera-border bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
+              <div key={member.id} className="tera-card-subtle flex flex-col gap-2 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="font-medium text-tera-primary">{member.memberEmail}</p>
                   <p className="text-xs uppercase tracking-[0.2em] text-tera-secondary">{member.role} • Joined {new Date(member.joinedAt).toLocaleDateString()}</p>

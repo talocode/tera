@@ -178,7 +178,7 @@ export default function AdminPage() {
                 <p className="tera-eyebrow">Recent signups</p>
                 <div className="mt-4 space-y-3">
                   {analytics.recentSignups.length > 0 ? analytics.recentSignups.map((item) => (
-                    <div key={item.id} className="rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4">
+                    <div key={item.id} className="tera-card-subtle px-4 py-4">
                       <p className="text-sm font-medium text-tera-primary">{item.email}</p>
                       <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{item.subscription_plan || 'free'} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
@@ -190,7 +190,7 @@ export default function AdminPage() {
                 <p className="tera-eyebrow">Top users</p>
                 <div className="mt-4 space-y-3">
                   {analytics.topActiveUsers.length > 0 ? analytics.topActiveUsers.map((item) => (
-                    <div key={item.id} className="rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4">
+                    <div key={item.id} className="tera-card-subtle px-4 py-4">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <p className="text-sm font-medium text-tera-primary">{item.email}</p>

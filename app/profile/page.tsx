@@ -486,27 +486,27 @@ export default function ProfilePage() {
         </div>
 
         <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <Link href="/search" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+          <Link href="/search" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
             <p className="tera-eyebrow">Search</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Workspace search</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Find chats, notes, memories, and workflows from one page.</p>
           </Link>
-          <Link href="/queue" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+          <Link href="/queue" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
             <p className="tera-eyebrow">Queue</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Continue later</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Resume unfinished work from a single queue.</p>
           </Link>
-          <Link href="/history" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+          <Link href="/history" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
             <p className="tera-eyebrow">History</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Chat history</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Search past sessions and reopen them instantly.</p>
           </Link>
-          <Link href="/notes" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+          <Link href="/notes" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
             <p className="tera-eyebrow">Notes</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Saved notes</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Review extracted ideas and working context.</p>
           </Link>
-          <Link href="/images" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+          <Link href="/images" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-white/[0.05]">
             <p className="tera-eyebrow">Uploads</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">File and image archive</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Review uploaded assets in one place.</p>
@@ -514,7 +514,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => exportJson('tera-profile-data.json', { memories, workflows: savedWorkflows, profile, usageSummary, creditUsage })}
-            className="tera-surface p-5 text-left transition hover:border-white/16 hover:bg-white/[0.05]"
+            className="tera-surface p-5 text-left transition hover:border-tera-primary hover:bg-white/[0.05]"
           >
             <p className="tera-eyebrow">Export</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Profile data</h2>
@@ -665,7 +665,7 @@ export default function ProfilePage() {
           <div className="tera-surface p-6 md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-5">
-                <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-br from-tera-neon/20 to-white/[0.04] text-3xl font-semibold text-tera-primary">
+                <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-tera-border bg-gradient-to-br from-tera-neon/20 to-white/[0.04] text-3xl font-semibold text-tera-primary">
                   {initials}
                 </div>
                 <div className="min-w-0">

@@ -60,7 +60,7 @@ export default function SignInPage() {
           {loading ? 'Signing in...' : 'Continue with Google'}
         </button>
 
-        <div className="mt-8 space-y-3 rounded-[24px] border border-tera-border bg-white/[0.03] p-5">
+          <div className="mt-8 space-y-3 rounded-[24px] border border-tera-border bg-white/[0.03] p-5">
           <div className="flex items-start gap-3 text-sm leading-7 text-tera-secondary">
             <span className="mt-2 h-2.5 w-2.5 rounded-full bg-tera-neon" />
             <span>Unlimited AI conversations on the free plan.</span>

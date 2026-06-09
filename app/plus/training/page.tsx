@@ -87,7 +87,7 @@ export default function TrainingPage() {
           <div className="mt-4 space-y-3">
             {jobs.length === 0 && <p className="text-sm text-tera-secondary">No jobs yet.</p>}
             {jobs.map((job) => (
-              <div key={job.id} className="rounded-xl border border-tera-border bg-white/[0.03] p-4">
+              <div key={job.id} className="tera-card-subtle p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-medium text-tera-primary">{job.name}</p>
