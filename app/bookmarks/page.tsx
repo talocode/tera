@@ -61,8 +61,9 @@ export default function BookmarksPage() {
 
     if (!user) {
         return (
-            <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-6 py-16">
-                <div className="w-full max-w-xl rounded-[28px] border border-white/10 bg-tera-panel/90 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+            <main className="tera-page">
+                <div className="tera-page-shell flex min-h-[100dvh] items-center justify-center">
+                    <div className="tera-surface w-full max-w-xl p-8">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Bookmarks</p>
                     <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">
                         Save research sources in one place.
@@ -73,16 +74,17 @@ export default function BookmarksPage() {
                     <div className="mt-6 flex flex-wrap gap-3">
                         <Link
                             href="/auth/signin"
-                            className="rounded-full bg-tera-primary px-4 py-2 text-sm font-medium text-tera-bg transition hover:opacity-90"
+                            className="tera-button-primary"
                         >
                             Sign in
                         </Link>
                         <Link
                             href="/search"
-                            className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-tera-primary transition hover:border-white/20 hover:bg-white/5"
+                            className="tera-button-secondary"
                         >
                             Workspace search
                         </Link>
+                    </div>
                     </div>
                 </div>
             </main>
@@ -90,8 +92,9 @@ export default function BookmarksPage() {
     }
 
     return (
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mb-6 flex flex-col gap-4 rounded-[28px] border border-white/10 bg-tera-panel/90 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.22)] sm:flex-row sm:items-end sm:justify-between">
+        <main className="tera-page">
+            <div className="tera-page-shell">
+            <div className="mb-6 tera-surface flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Bookmarks</p>
                     <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">
@@ -105,7 +108,7 @@ export default function BookmarksPage() {
                     <button
                         type="button"
                         onClick={() => router.push('/search')}
-                        className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-tera-primary transition hover:border-white/20 hover:bg-white/5"
+                        className="tera-button-secondary"
                     >
                         Open workspace search
                     </button>
@@ -113,14 +116,14 @@ export default function BookmarksPage() {
             </div>
 
             <div className="mb-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-[24px] border border-white/10 bg-tera-panel/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                <div className="tera-card">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Saved sources</p>
                     <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">
                         {loading ? '-' : bookmarkStats.total}
                     </p>
                     <p className="mt-2 text-sm text-tera-secondary">Bookmarks from research answers and source cards.</p>
                 </div>
-                <div className="rounded-[24px] border border-white/10 bg-tera-panel/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                <div className="tera-card">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Tagged sources</p>
                     <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">
                         {loading ? '-' : bookmarkStats.tagged}
@@ -129,7 +132,7 @@ export default function BookmarksPage() {
                         {bookmarkStats.topTag ? `Top tag: ${bookmarkStats.topTag}` : 'Add tags to organize long-term research.'}
                     </p>
                 </div>
-                <div className="rounded-[24px] border border-white/10 bg-tera-panel/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
+                <div className="tera-card">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Latest save</p>
                     <p className="mt-3 line-clamp-2 text-lg font-medium tracking-[-0.02em] text-tera-primary">
                         {loading ? 'Loading...' : bookmarkStats.latest?.title || 'No bookmarks yet'}
@@ -149,6 +152,7 @@ export default function BookmarksPage() {
                 className="max-w-none"
                 contentClassName="max-h-none"
             />
+            </div>
         </main>
     )
 }

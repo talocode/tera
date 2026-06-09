@@ -191,7 +191,7 @@ export default function SearchHistory({
         .join(' ')
 
     return (
-        <div className={['w-full bg-tera-panel border border-tera-border rounded-xl overflow-hidden shadow-xl', className].filter(Boolean).join(' ')}>
+        <div className={['tera-surface w-full overflow-hidden', className].filter(Boolean).join(' ')}>
             <div className="flex border-b border-tera-border">
                 {showHistoryTab && (
                     <button
@@ -237,10 +237,10 @@ export default function SearchHistory({
                                     </button>
                                 </div>
                                 {history.map((entry) => (
-                                    <button
+                                <button
                                         key={entry.id}
                                         onClick={() => onSelectQuery(entry.query)}
-                                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-tera-muted/50 transition-colors text-left group"
+                                        className="group flex w-full items-center justify-between rounded-[18px] px-3 py-3 text-left transition-colors hover:bg-white/[0.04]"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm text-tera-primary truncate">{entry.query}</p>
@@ -297,7 +297,7 @@ export default function SearchHistory({
                                 <div
                                     key={bookmark.id}
                                     onClick={() => onSelectBookmark(bookmark.url)}
-                                    className="group relative w-full cursor-pointer rounded-lg border border-tera-border bg-tera-muted/20 p-3 transition-colors hover:bg-tera-muted/50"
+                                    className="group relative w-full cursor-pointer rounded-[20px] border border-tera-border bg-white/[0.025] p-3 transition-all hover:-translate-y-px hover:bg-white/[0.05]"
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0 flex-1">
