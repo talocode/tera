@@ -19,9 +19,10 @@ export default function ChatPage() {
   useEffect(() => {
     if (!sessionId) {
       const newId = crypto.randomUUID()
-      router.replace(`/new/${newId}`)
+      const promptQuery = initialPrompt ? `?prompt=${encodeURIComponent(initialPrompt)}` : ''
+      router.replace(`/new/${newId}${promptQuery}`)
     }
-  }, [sessionId, router])
+  }, [initialPrompt, sessionId, router])
 
   const handleRequireSignIn = () => {
     router.push('/auth/signin')
