@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import {
   loadContinueLaterReminders,
   removeContinueLaterReminder,
@@ -23,6 +24,17 @@ export default function ContinueLaterReminders() {
     () => [...reminders].sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime()).slice(0, 5),
     [reminders],
   )
+  const dueSoon = useMemo(() => {
+    const now = Date.now()
+    const soon = now + 24 * 60 * 60 * 1000
+    return reminders
+      .filter((reminder) => {
+        const remindAt = new Date(reminder.remindAt).getTime()
+        return remindAt <= soon
+      })
+      .sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime())
+      .slice(0, 3)
+  }, [reminders])
 
   return (
     <section className="tera-surface mt-8 p-6 md:p-8">
@@ -37,6 +49,36 @@ export default function ContinueLaterReminders() {
       </div>
 
       <div className="mt-6 space-y-3">
+        {dueSoon.length > 0 && (
+          <div className="rounded-[22px] border border-amber-400/20 bg-amber-500/10 px-5 py-4">
+            <p className="text-[0.62rem] uppercase tracking-[0.3em] text-amber-100/90">Due soon</p>
+            <div className="mt-3 space-y-3">
+              {dueSoon.map((reminder) => (
+                <div key={`${reminder.kind}-${reminder.id}`} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-amber-50">{reminder.title}</p>
+                    <p className="mt-1 text-sm text-amber-50/80">
+                      {new Date(reminder.remindAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={reminder.href} className="tera-button-secondary">
+                      Open
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveReminder(reminder.kind, reminder.id)}
+                      className="tera-button-secondary"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {upcoming.length === 0 ? (
           <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-6 text-sm text-tera-secondary">
             No reminders yet. Add one from search or history to make a return path explicit.
