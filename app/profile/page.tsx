@@ -491,6 +491,11 @@ export default function ProfilePage() {
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Workspace search</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Find chats, notes, memories, and workflows from one page.</p>
           </Link>
+          <Link href="/queue" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+            <p className="tera-eyebrow">Queue</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Continue later</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Resume unfinished work from a single queue.</p>
+          </Link>
           <Link href="/history" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
             <p className="tera-eyebrow">History</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Chat history</h2>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchHistoryPageData } from '@/app/actions/user'
 import { createSavedWorkflow, loadSavedWorkflows, persistSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
+import { loadContinueLaterQueue, pinContinueLaterItem, setContinueLaterReminder, unpinContinueLaterItem } from '@/lib/continue-later'
 
 interface ChatSession {
   id?: string
@@ -71,6 +72,7 @@ export default function HistoryPage() {
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
   const [savedWorkflowSessionId, setSavedWorkflowSessionId] = useState<string | null>(null)
   const [savedWorkflowsLoaded, setSavedWorkflowsLoaded] = useState(false)
+  const [pinnedMap, setPinnedMap] = useState<Record<string, true>>({})
   const pageSize = 25
 
   const fetchHistory = useCallback(async () => {
@@ -101,6 +103,11 @@ export default function HistoryPage() {
   useEffect(() => {
     setSavedWorkflows(loadSavedWorkflows())
     setSavedWorkflowsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    const queue = loadContinueLaterQueue()
+    setPinnedMap(Object.fromEntries(queue.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
   }, [])
 
   useEffect(() => {
@@ -209,6 +216,45 @@ export default function HistoryPage() {
     }, 1200)
   }
 
+  const handlePinConversation = (conversation: ChatSession) => {
+    const key = `chat:${conversation.session_id}`
+    const isPinned = !!pinnedMap[key]
+
+    if (isPinned) {
+      const next = unpinContinueLaterItem('chat', conversation.session_id)
+      setPinnedMap(Object.fromEntries(next.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
+      return
+    }
+
+    const next = pinContinueLaterItem({
+      id: conversation.session_id,
+      kind: 'chat',
+      title: conversation.title || 'Untitled chat',
+      excerpt: conversation.last_message || 'Continue this conversation.',
+      href: `/new/${conversation.session_id}`,
+      timestamp: conversation.created_at,
+    })
+    setPinnedMap(Object.fromEntries(next.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
+  }
+
+  const handleReminder = (conversation: ChatSession, days: number) => {
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + days)
+    dueDate.setHours(9, 0, 0, 0)
+
+    setContinueLaterReminder(
+      {
+        id: conversation.session_id,
+        kind: 'chat',
+        title: conversation.title || 'Untitled chat',
+        excerpt: conversation.last_message || 'Continue this conversation.',
+        href: `/new/${conversation.session_id}`,
+        timestamp: conversation.created_at,
+      },
+      dueDate.toISOString(),
+    )
+  }
+
   return (
     <div className="tera-page">
       <div className="tera-page-shell pt-24 md:pt-10">
@@ -273,8 +319,14 @@ export default function HistoryPage() {
                   <Link href={`/new/${conversation.session_id}`} className="tera-button-primary">
                     Open
                   </Link>
+                  <button type="button" onClick={() => handlePinConversation(conversation)} className="tera-button-secondary">
+                    {pinnedMap[`chat:${conversation.session_id}`] ? 'Pinned' : 'Pin for later'}
+                  </button>
                   <button type="button" onClick={() => handleSaveWorkflow(conversation)} className="tera-button-secondary">
                     {savedWorkflowSessionId === conversation.session_id ? 'Saved workflow' : 'Save workflow'}
+                  </button>
+                  <button type="button" onClick={() => handleReminder(conversation, 1)} className="tera-button-secondary">
+                    Remind tomorrow
                   </button>
                 </div>
               </div>

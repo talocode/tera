@@ -9,6 +9,7 @@ import { type UserProfile } from '@/lib/usage-tracking'
 
 type UserSettings = {
   notifications_enabled: boolean
+  reminder_alerts_enabled: boolean
   dark_mode: boolean
   email_notifications: boolean
   marketing_emails: boolean
@@ -55,6 +56,7 @@ export default function SettingsPage() {
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const [settings, setSettings] = useState<UserSettings>({
     notifications_enabled: true,
+    reminder_alerts_enabled: true,
     dark_mode: true,
     email_notifications: true,
     marketing_emails: false,
@@ -88,6 +90,7 @@ export default function SettingsPage() {
       const data = await response.json()
       setSettings({
         notifications_enabled: data.notifications_enabled ?? true,
+        reminder_alerts_enabled: data.reminder_alerts_enabled ?? true,
         dark_mode: data.dark_mode ?? true,
         email_notifications: data.email_notifications ?? true,
         marketing_emails: data.marketing_emails ?? false,
@@ -231,6 +234,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="grid gap-4">
                       <SettingToggle label="Push notifications" description="Receive updates about your activities and account events." checked={settings.notifications_enabled} onChange={() => toggleSetting('notifications_enabled')} />
+                      <SettingToggle label="Reminder alerts" description="Show reminder banners and browser alerts when follow-ups are due." checked={settings.reminder_alerts_enabled} onChange={() => toggleSetting('reminder_alerts_enabled')} />
                       <SettingToggle label="Email notifications" description="Receive important product and account updates by email." checked={settings.email_notifications} onChange={() => toggleSetting('email_notifications')} />
                       <SettingToggle label="Marketing emails" description="Allow occasional feature announcements and product tips." checked={settings.marketing_emails} onChange={() => toggleSetting('marketing_emails')} />
                       <SettingToggle label="Dark mode" description="Use the calmer dark workspace across the entire app." checked={settings.dark_mode} onChange={() => toggleSetting('dark_mode')} />
