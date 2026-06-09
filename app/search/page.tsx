@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { fetchUserMemories, fetchUserSessions, type UserMemory } from '@/app/actions/user'
 import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
 import { loadSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
+import { loadContinueLaterQueue, pinContinueLaterItem, unpinContinueLaterItem, type ContinueLaterSourceItem } from '@/lib/continue-later'
 
 type SearchTab = 'all' | 'chats' | 'notes' | 'memories' | 'workflows'
 
@@ -70,6 +71,7 @@ export default function WorkspaceSearchPage() {
   const [notes, setNotes] = useState<Note[]>([])
   const [memories, setMemories] = useState<UserMemory[]>([])
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([])
+  const [pinnedMap, setPinnedMap] = useState<Record<string, true>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -119,6 +121,11 @@ export default function WorkspaceSearchPage() {
       cancelled = true
     }
   }, [user])
+
+  useEffect(() => {
+    const queue = loadContinueLaterQueue()
+    setPinnedMap(Object.fromEntries(queue.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
+  }, [])
 
   const results = useMemo<WorkspaceResult[]>(() => {
     const needle = normalize(query)
@@ -188,6 +195,18 @@ export default function WorkspaceSearchPage() {
       workflows: workflows.filter((workflow) => !needle || matches(workflow.name, needle) || matches(workflow.prompt, needle)).length,
     }
   }, [chats, memories, notes, query, workflows])
+
+  const togglePin = (item: ContinueLaterSourceItem) => {
+    const key = `${item.kind}:${item.id}`
+    if (pinnedMap[key]) {
+      const next = unpinContinueLaterItem(item.kind, item.id)
+      setPinnedMap(Object.fromEntries(next.map((entry) => [`${entry.kind}:${entry.id}`, true])) as Record<string, true>)
+      return
+    }
+
+    const next = pinContinueLaterItem(item)
+    setPinnedMap(Object.fromEntries(next.map((entry) => [`${entry.kind}:${entry.id}`, true])) as Record<string, true>)
+  }
 
   return (
     <div className="tera-page">
@@ -268,10 +287,24 @@ export default function WorkspaceSearchPage() {
                       {new Date(result.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </p>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <Link href={result.href} className="tera-button-secondary">
                       Open
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => togglePin({
+                        id: result.id,
+                        kind: result.kind,
+                        title: result.title,
+                        excerpt: result.excerpt,
+                        href: result.href,
+                        timestamp: result.timestamp,
+                      })}
+                      className="tera-button-secondary"
+                    >
+                      {pinnedMap[`${result.kind}:${result.id}`] ? 'Pinned' : 'Pin for later'}
+                    </button>
                   </div>
                 </article>
               ))}

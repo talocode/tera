@@ -1,45 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchUserMemories, fetchUserSessions, type UserMemory } from '@/app/actions/user'
 import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
 import { loadSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
+import {
+  loadContinueLaterQueue,
+  pinContinueLaterItem,
+  unpinContinueLaterItem,
+  type ContinueLaterItem,
+  type ContinueLaterSourceItem,
+} from '@/lib/continue-later'
 
-type QueueItem =
-  | {
-      id: string
-      kind: 'chat'
-      title: string
-      excerpt: string
-      href: string
-      timestamp: string
-    }
-  | {
-      id: string
-      kind: 'note'
-      title: string
-      excerpt: string
-      href: string
-      timestamp: string
-    }
-  | {
-      id: string
-      kind: 'memory'
-      title: string
-      excerpt: string
-      href: string
-      timestamp: string
-    }
-  | {
-      id: string
-      kind: 'workflow'
-      title: string
-      excerpt: string
-      href: string
-      timestamp: string
-    }
+type QueueItem = ContinueLaterItem
 
 const labels: Record<QueueItem['kind'], string> = {
   chat: 'Chat',
@@ -48,10 +23,28 @@ const labels: Record<QueueItem['kind'], string> = {
   workflow: 'Workflow',
 }
 
+function toPinnedKey(item: ContinueLaterSourceItem) {
+  return `${item.kind}:${item.id}`
+}
+
 export default function ContinueLaterQueue() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<QueueItem[]>([])
+  const [pinnedKeys, setPinnedKeys] = useState<Record<string, true>>({})
+  const [refreshToken, setRefreshToken] = useState(0)
+
+  const handlePin = useCallback((item: ContinueLaterSourceItem) => {
+    const next = pinContinueLaterItem(item)
+    setPinnedKeys(Object.fromEntries(next.map((entry) => [toPinnedKey(entry), true])) as Record<string, true>)
+    setRefreshToken((current) => current + 1)
+  }, [])
+
+  const handleUnpin = useCallback((kind: ContinueLaterItem['kind'], id: string) => {
+    const next = unpinContinueLaterItem(kind, id)
+    setPinnedKeys(Object.fromEntries(next.map((entry) => [toPinnedKey(entry), true])) as Record<string, true>)
+    setRefreshToken((current) => current + 1)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -60,6 +53,10 @@ export default function ContinueLaterQueue() {
       setLoading(true)
 
       try {
+        const pinned = loadContinueLaterQueue()
+        const pinnedLookup = Object.fromEntries(pinned.map((item) => [toPinnedKey(item), true])) as Record<string, true>
+        setPinnedKeys(pinnedLookup)
+
         const [sessions, notes, memories] = user
           ? await Promise.all([
               fetchUserSessions(user.id, 5),
@@ -70,7 +67,7 @@ export default function ContinueLaterQueue() {
 
         const workflows = loadSavedWorkflows()
 
-        const nextItems: QueueItem[] = [
+        const sourceItems: ContinueLaterSourceItem[] = [
           ...(sessions as Array<{ session_id: string; title?: string | null; prompt?: string | null; tool?: string | null; created_at: string }>).map((session) => ({
             id: session.session_id,
             kind: 'chat' as const,
@@ -105,22 +102,39 @@ export default function ContinueLaterQueue() {
           })),
         ]
 
+        const merged = new Map<string, QueueItem>()
+        for (const item of sourceItems) {
+          const key = toPinnedKey(item)
+          merged.set(key, { ...item, pinnedAt: item.timestamp })
+        }
+        for (const item of pinned) {
+          merged.set(toPinnedKey(item), item)
+        }
+
+        const nextItems = Array.from(merged.values()).sort((left, right) => {
+          const leftPinned = pinnedLookup[toPinnedKey(left)] ? 1 : 0
+          const rightPinned = pinnedLookup[toPinnedKey(right)] ? 1 : 0
+
+          if (leftPinned !== rightPinned) return rightPinned - leftPinned
+          return new Date(right.pinnedAt || right.timestamp).getTime() - new Date(left.pinnedAt || left.timestamp).getTime()
+        })
+
         if (!cancelled) {
-          setItems(
-            nextItems.sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()).slice(0, 8),
-          )
+          setItems(nextItems.slice(0, 8))
         }
       } catch (error) {
         console.error('Failed to load continue-later queue:', error)
         if (!cancelled) {
-          setItems(loadSavedWorkflows().slice(0, 5).map((workflow) => ({
+          const fallback = loadSavedWorkflows().slice(0, 5).map((workflow) => ({
             id: workflow.id,
             kind: 'workflow' as const,
             title: workflow.name,
             excerpt: workflow.prompt,
             href: `/new?prompt=${encodeURIComponent(workflow.prompt)}`,
             timestamp: workflow.createdAt,
-          })))
+            pinnedAt: workflow.createdAt,
+          }))
+          setItems(fallback)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -132,7 +146,7 @@ export default function ContinueLaterQueue() {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [refreshToken, user])
 
   const groupedCount = useMemo(() => {
     const counts: Record<QueueItem['kind'], number> = { chat: 0, note: 0, memory: 0, workflow: 0 }
@@ -147,7 +161,7 @@ export default function ContinueLaterQueue() {
           <p className="tera-eyebrow">Continue later</p>
           <h2 className="mt-3 text-2xl font-semibold text-tera-primary">One queue for unfinished work</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-tera-secondary">
-            Pull recent chats, notes, memories, and workflows into one place so the next action is obvious.
+            Pin the work you want to return to, and Tera keeps it ready across your workspace.
           </p>
         </div>
         <Link href="/search" className="tera-button-secondary self-start">
@@ -170,24 +184,36 @@ export default function ContinueLaterQueue() {
             Nothing queued yet. Start a session, save a note, or pin a workflow to begin.
           </div>
         ) : (
-          items.map((item) => (
-            <Link
-              key={`${item.kind}-${item.id}`}
-              href={item.href}
-              className="block rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">{labels[item.kind]}</p>
-                  <p className="mt-2 truncate text-sm font-medium text-tera-primary">{item.title}</p>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-tera-secondary">{item.excerpt}</p>
+          items.map((item) => {
+            const isPinned = !!pinnedKeys[toPinnedKey(item)]
+
+            return (
+              <div
+                key={`${item.kind}-${item.id}`}
+                className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <Link href={item.href} className="min-w-0 flex-1">
+                    <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">{labels[item.kind]}</p>
+                    <p className="mt-2 truncate text-sm font-medium text-tera-primary">{item.title}</p>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-tera-secondary">{item.excerpt}</p>
+                  </Link>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <p className="text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">
+                      {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => (isPinned ? handleUnpin(item.kind, item.id) : handlePin(item))}
+                      className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                    >
+                      {isPinned ? 'Pinned' : 'Pin'}
+                    </button>
+                  </div>
                 </div>
-                <p className="shrink-0 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">
-                  {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                </p>
               </div>
-            </Link>
-          ))
+            )
+          })
         )}
       </div>
     </section>
