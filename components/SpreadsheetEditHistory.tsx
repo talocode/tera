@@ -129,7 +129,7 @@ export default function SpreadsheetEditHistory({
           {edits.map((edit) => (
             <div
               key={edit.id}
-              className="rounded-lg border border-tera-border bg-white/[0.03] p-3 space-y-1"
+              className="rounded-lg border border-tera-border bg-tera-muted p-3 space-y-1"
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-tera-primary">

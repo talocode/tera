@@ -372,7 +372,7 @@ export default function WorkspaceSearchPage() {
                     key={item}
                     type="button"
                     onClick={() => applySearch(item)}
-                    className="tera-badge border-tera-border bg-white/[0.03] text-[0.62rem] uppercase tracking-[0.2em] transition hover:border-tera-primary hover:text-tera-primary"
+                    className="tera-badge text-[0.62rem] uppercase tracking-[0.2em] transition hover:border-tera-primary hover:text-tera-primary"
                   >
                     {item}
                   </button>
@@ -388,7 +388,7 @@ export default function WorkspaceSearchPage() {
                 key={item}
                 type="button"
                 onClick={() => applySearch(item)}
-                className="tera-badge border-tera-border bg-white/[0.03] text-[0.62rem] uppercase tracking-[0.2em] transition hover:border-tera-primary hover:text-tera-primary"
+                className="tera-badge text-[0.62rem] uppercase tracking-[0.2em] transition hover:border-tera-primary hover:text-tera-primary"
               >
                 {item}
               </button>
@@ -405,7 +405,7 @@ export default function WorkspaceSearchPage() {
                   'rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] transition',
                   activeTab === tab
                     ? 'border-tera-primary bg-tera-primary text-tera-bg'
-                    : 'border-tera-border bg-white/[0.03] text-tera-secondary hover:border-tera-primary hover:text-tera-primary',
+                    : 'border-tera-border bg-tera-muted text-tera-secondary hover:border-tera-primary hover:text-tera-primary',
                 ].join(' ')}
               >
                 {tab}

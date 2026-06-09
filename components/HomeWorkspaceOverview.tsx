@@ -345,7 +345,7 @@ export default function HomeWorkspaceOverview() {
                   href={bookmark.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
+                  className="block rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-tera-highlight"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-medium text-tera-primary">{bookmark.title}</p>
@@ -376,7 +376,7 @@ export default function HomeWorkspaceOverview() {
               <Link
                 key={task.label}
                 href={task.href}
-                className="flex items-start justify-between gap-4 rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
+                className="flex items-start justify-between gap-4 rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-tera-highlight"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tera-primary">{task.label}</p>
@@ -415,7 +415,7 @@ export default function HomeWorkspaceOverview() {
                 <Link
                   key={`${item.kind}-${item.id}`}
                   href={item.href}
-                className="block rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
+                className="block rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-tera-highlight"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">

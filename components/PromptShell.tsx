@@ -963,7 +963,7 @@ export default function PromptShell({
                                                     <div className="mt-4 rounded-[22px] border border-tera-border bg-black/10 px-4 py-3 shadow-soft">
                                                         <div className="flex items-center justify-between gap-3">
                                                             <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
-                                                            <span className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                            <span className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
                                                                 {entry.assistantMessage.citations.length} source{entry.assistantMessage.citations.length === 1 ? '' : 's'}
                                                             </span>
                                                         </div>
@@ -974,7 +974,7 @@ export default function PromptShell({
                                                                     href={citation.url}
                                                                     target="_blank"
                                                                     rel="noreferrer"
-                                                                    className="block rounded-xl border border-tera-border bg-white/[0.03] px-4 py-3 transition hover:-translate-y-px hover:border-tera-neon/25 hover:bg-white/[0.05]"
+                                                                    className="block rounded-xl border border-tera-border bg-tera-muted px-4 py-3 transition hover:-translate-y-px hover:border-tera-neon/25 hover:bg-tera-highlight"
                                                                     >
                                                                         <div className="flex items-start justify-between gap-3">
                                                                             <div>
@@ -999,7 +999,7 @@ export default function PromptShell({
                                                                                 event.stopPropagation()
                                                                                 void handleSaveBookmark(citation)
                                                                             }}
-                                                                            className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-tera-primary hover:text-tera-primary"
+                                                                            className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-tera-primary hover:text-tera-primary"
                                                                         >
                                                                             {bookmarkSaveStatuses[citation.url]?.type === 'saving' ? 'Saving...' : 'Save bookmark'}
                                                                         </button>
@@ -1023,7 +1023,7 @@ export default function PromptShell({
                                                                     type="button"
                                                                     onClick={() => handleSaveNote(entry.assistantMessage!)}
                                                                     disabled={savingNoteIds[entry.assistantMessage.id]}
-                                                                    className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
+                                                                    className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
                                                                 >
                                                                     {savingNoteIds[entry.assistantMessage.id] ? 'Saving...' : 'Save as Note'}
                                                                 </button>

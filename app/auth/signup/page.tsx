@@ -60,7 +60,7 @@ export default function SignUpPage() {
           {loading ? 'Creating account...' : 'Sign up with Google'}
         </button>
 
-        <div className="mt-8 space-y-3 rounded-[24px] border border-tera-border bg-white/[0.03] p-5">
+        <div className="tera-card-subtle mt-8 space-y-3 p-5">
           <div className="flex items-start gap-3 text-sm leading-7 text-tera-secondary">
             <span className="mt-2 h-2.5 w-2.5 rounded-full bg-tera-neon" />
             <span>Unlimited AI conversations with no credit card required.</span>

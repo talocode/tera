@@ -101,7 +101,7 @@ export default function HelpPage() {
               key={section.id}
               type="button"
               onClick={() => toggleSection(section.id)}
-              className="tera-card-subtle text-left transition hover:-translate-y-px hover:bg-white/[0.05]"
+              className="tera-card-subtle text-left transition hover:-translate-y-px hover:bg-tera-highlight"
             >
               <p className="tera-eyebrow">Section</p>
               <h2 className="mt-3 text-xl font-semibold text-tera-primary">{section.title}</h2>

@@ -297,7 +297,7 @@ export default function SearchHistory({
                                 <div
                                     key={bookmark.id}
                                     onClick={() => onSelectBookmark(bookmark.url)}
-                                    className="group relative w-full cursor-pointer rounded-[20px] border border-tera-border bg-tera-muted p-3 transition-all hover:-translate-y-px hover:bg-white/[0.05]"
+                                    className="group relative w-full cursor-pointer rounded-[20px] border border-tera-border bg-tera-muted p-3 transition-all hover:-translate-y-px hover:bg-tera-highlight"
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0 flex-1">

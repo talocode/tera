@@ -56,7 +56,7 @@ const StatCard = ({ label, value, hint }: { label: string; value: string | numbe
 )
 
 const SkillBadge = ({ children }: { children: string }) => (
-  <span className="inline-flex items-center rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.18em] text-tera-secondary">
+  <span className="tera-badge">
     {children}
   </span>
 )
@@ -169,7 +169,7 @@ const DetailPanel = ({ skill }: { skill: MarketplaceSkill | null }) => {
         <SkillBadge>{skill.section}</SkillBadge>
       </div>
 
-          <div className="mt-6 tera-card-subtle p-4">
+      <div className="mt-6 tera-card-subtle p-4">
         <p className="text-[0.65rem] uppercase tracking-[0.3em] text-tera-secondary">Launch context</p>
         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-tera-primary">
           {skill.launchPrompt}
@@ -188,7 +188,7 @@ const DetailPanel = ({ skill }: { skill: MarketplaceSkill | null }) => {
             href={skill.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-full border border-tera-border px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-tera-primary transition hover:border-tera-primary hover:bg-white/[0.03]"
+            className="inline-flex items-center justify-center rounded-full border border-tera-border px-4 py-3 text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-tera-primary transition hover:border-tera-primary hover:bg-tera-highlight"
           >
             Open source
           </Link>
