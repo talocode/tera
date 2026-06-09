@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchUserMemories, fetchUserSessions, type UserMemory } from '@/app/actions/user'
 import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
+import { getSearchHistory, saveSearchQuery, type SearchHistoryEntry } from '@/app/actions/search'
 import { loadSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 import { loadContinueLaterQueue, pinContinueLaterItem, setContinueLaterReminder, unpinContinueLaterItem, type ContinueLaterSourceItem } from '@/lib/continue-later'
 
@@ -97,6 +98,8 @@ export default function WorkspaceSearchPage() {
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([])
   const [pinnedMap, setPinnedMap] = useState<Record<string, true>>({})
   const [recentQueries, setRecentQueries] = useState<string[]>([])
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([])
+  const lastSavedQueryRef = useRef<{ query: string; count: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -125,6 +128,7 @@ export default function WorkspaceSearchPage() {
         setNotes(noteRows)
         setMemories(memoryRows)
         setWorkflows(loadSavedWorkflows())
+        setSearchHistory([])
       } catch (error) {
         console.error('Failed to load workspace search data:', error)
         if (!cancelled) {
@@ -132,6 +136,7 @@ export default function WorkspaceSearchPage() {
           setNotes([])
           setMemories([])
           setWorkflows(loadSavedWorkflows())
+          setSearchHistory([])
         }
       } finally {
         if (!cancelled) {
@@ -148,6 +153,35 @@ export default function WorkspaceSearchPage() {
   }, [user])
 
   useEffect(() => {
+    let cancelled = false
+
+    const loadSearchHistory = async () => {
+      if (!user?.id) {
+        setSearchHistory([])
+        return
+      }
+
+      try {
+        const entries = await getSearchHistory(user.id, MAX_RECENT_WORKSPACE_SEARCHES)
+        if (!cancelled) {
+          setSearchHistory(entries)
+        }
+      } catch (error) {
+        console.error('Failed to load search history:', error)
+        if (!cancelled) {
+          setSearchHistory([])
+        }
+      }
+    }
+
+    void loadSearchHistory()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
+
+  useEffect(() => {
     const queue = loadContinueLaterQueue()
     setPinnedMap(Object.fromEntries(queue.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
   }, [])
@@ -155,21 +189,6 @@ export default function WorkspaceSearchPage() {
   useEffect(() => {
     setRecentQueries(loadRecentWorkspaceSearches())
   }, [])
-
-  useEffect(() => {
-    const trimmed = query.trim()
-    if (!trimmed) return
-
-    const timeout = window.setTimeout(() => {
-      setRecentQueries((current) => {
-        const next = [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, MAX_RECENT_WORKSPACE_SEARCHES)
-        persistRecentWorkspaceSearches(next)
-        return next
-      })
-    }, 500)
-
-    return () => window.clearTimeout(timeout)
-  }, [query])
 
   const results = useMemo<WorkspaceResult[]>(() => {
     const needle = normalize(query)
@@ -240,6 +259,46 @@ export default function WorkspaceSearchPage() {
     }
   }, [chats, memories, notes, query, workflows])
 
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (!trimmed) return
+
+    const timeout = window.setTimeout(() => {
+      setRecentQueries((current) => {
+        const next = [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, MAX_RECENT_WORKSPACE_SEARCHES)
+        persistRecentWorkspaceSearches(next)
+        return next
+      })
+
+      if (user?.id) {
+        const nextCount = results.length
+        const previous = lastSavedQueryRef.current
+        if (previous?.query !== trimmed || previous?.count !== nextCount) {
+          void saveSearchQuery(user.id, trimmed, nextCount, activeTab === 'all' ? undefined : { type: activeTab }).then((saved) => {
+            if (saved) {
+              setSearchHistory((current) => {
+                const next = [
+                  {
+                    id: `${Date.now()}-${trimmed}`,
+                    query: trimmed,
+                    resultCount: nextCount,
+                    filters: activeTab === 'all' ? undefined : { type: activeTab },
+                    createdAt: new Date().toISOString(),
+                  },
+                  ...current.filter((entry) => entry.query !== trimmed),
+                ].slice(0, MAX_RECENT_WORKSPACE_SEARCHES)
+                return next
+              })
+            }
+          })
+          lastSavedQueryRef.current = { query: trimmed, count: nextCount }
+        }
+      }
+    }, 500)
+
+    return () => window.clearTimeout(timeout)
+  }, [activeTab, query, results.length, user?.id])
+
   const togglePin = (item: ContinueLaterSourceItem) => {
     const key = `${item.kind}:${item.id}`
     if (pinnedMap[key]) {
@@ -258,6 +317,10 @@ export default function WorkspaceSearchPage() {
     dueDate.setHours(9, 0, 0, 0)
     setContinueLaterReminder(item, dueDate.toISOString())
   }
+
+  const visibleRecentQueries = user?.id
+    ? searchHistory.map((entry) => entry.query)
+    : recentQueries
 
   const applySearch = (value: string) => {
     setQuery(value)
@@ -301,10 +364,10 @@ export default function WorkspaceSearchPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {recentQueries.length > 0 && (
+            {visibleRecentQueries.length > 0 && (
               <>
                 <span className="self-center text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Recent</span>
-                {recentQueries.map((item) => (
+                {visibleRecentQueries.map((item) => (
                   <button
                     key={item}
                     type="button"
