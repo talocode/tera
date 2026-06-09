@@ -5,6 +5,7 @@ import {
     getSearchHistory,
     clearSearchHistory,
     getBookmarks,
+    saveBookmark,
     deleteBookmark,
     type SearchHistoryEntry,
     type SearchBookmark
@@ -20,6 +21,9 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
     const [activeTab, setActiveTab] = useState<'history' | 'bookmarks'>('history')
     const [history, setHistory] = useState<SearchHistoryEntry[]>([])
     const [bookmarks, setBookmarks] = useState<SearchBookmark[]>([])
+    const [bookmarkNotes, setBookmarkNotes] = useState<Record<string, string>>({})
+    const [bookmarkTags, setBookmarkTags] = useState<Record<string, string>>({})
+    const [savingBookmarkIds, setSavingBookmarkIds] = useState<Record<string, boolean>>({})
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
@@ -35,6 +39,8 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
             } else {
                 const data = await getBookmarks(userId)
                 setBookmarks(data)
+                setBookmarkNotes(Object.fromEntries(data.map((bookmark) => [bookmark.id, bookmark.notes || ''])))
+                setBookmarkTags(Object.fromEntries(data.map((bookmark) => [bookmark.id, (bookmark.tags || []).join(', ')])))
             }
         } catch (error) {
             console.error('Failed to load search data', error)
@@ -54,6 +60,58 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
         e.stopPropagation()
         await deleteBookmark(userId, id)
         setBookmarks(prev => prev.filter(b => b.id !== id))
+        setBookmarkNotes((current) => {
+            const next = { ...current }
+            delete next[id]
+            return next
+        })
+        setBookmarkTags((current) => {
+            const next = { ...current }
+            delete next[id]
+            return next
+        })
+    }
+
+    const handleSaveBookmarkDetails = async (bookmark: SearchBookmark) => {
+        setSavingBookmarkIds((current) => ({ ...current, [bookmark.id]: true }))
+
+        try {
+            const notes = bookmarkNotes[bookmark.id] || undefined
+            const tags = bookmarkTags[bookmark.id]
+                ?.split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean)
+
+            const saved = await saveBookmark(
+                userId,
+                {
+                    title: bookmark.title,
+                    url: bookmark.url,
+                    snippet: bookmark.snippet,
+                    source: bookmark.source,
+                },
+                notes,
+                tags && tags.length > 0 ? tags : undefined
+            )
+
+            if (saved) {
+                setBookmarks((current) =>
+                    current.map((item) =>
+                        item.id === bookmark.id
+                            ? {
+                                ...item,
+                                notes,
+                                tags,
+                            }
+                            : item
+                    )
+                )
+            }
+        } catch (error) {
+            console.error('Failed to save bookmark details', error)
+        } finally {
+            setSavingBookmarkIds((current) => ({ ...current, [bookmark.id]: false }))
+        }
     }
 
     return (
@@ -150,6 +208,41 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                                                 <span className="text-[10px] text-tera-secondary/60">
                                                     {new Date(bookmark.createdAt).toLocaleDateString()}
                                                 </span>
+                                            </div>
+                                            <textarea
+                                                value={bookmarkNotes[bookmark.id] || ''}
+                                                onChange={(event) => setBookmarkNotes((current) => ({ ...current, [bookmark.id]: event.target.value }))}
+                                                onClick={(event) => event.stopPropagation()}
+                                                placeholder="Add notes about why this source matters..."
+                                                className="mt-3 min-h-[72px] w-full rounded-lg border border-tera-border bg-tera-bg/60 px-3 py-2 text-xs text-tera-primary placeholder:text-tera-secondary/60"
+                                            />
+                                            <input
+                                                value={bookmarkTags[bookmark.id] || ''}
+                                                onChange={(event) => setBookmarkTags((current) => ({ ...current, [bookmark.id]: event.target.value }))}
+                                                onClick={(event) => event.stopPropagation()}
+                                                placeholder="Tags, comma separated"
+                                                className="mt-2 w-full rounded-lg border border-tera-border bg-tera-bg/60 px-3 py-2 text-xs text-tera-primary placeholder:text-tera-secondary/60"
+                                            />
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation()
+                                                        void handleSaveBookmarkDetails(bookmark)
+                                                    }}
+                                                    className="rounded-full bg-tera-primary px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-tera-bg transition hover:opacity-90"
+                                                >
+                                                    {savingBookmarkIds[bookmark.id] ? 'Saving...' : 'Save details'}
+                                                </button>
+                                                {bookmark.tags && bookmark.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {bookmark.tags.map((tag) => (
+                                                            <span key={tag} className="rounded-full border border-tera-border px-2 py-0.5 text-[10px] text-tera-secondary">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <button
