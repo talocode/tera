@@ -3,6 +3,7 @@ import Link from 'next/link'
 import SeoFooter from '@/components/seo/SeoFooter'
 import PromptStarterTemplates from '@/components/PromptStarterTemplates'
 import ContinueLaterQueue from '@/components/ContinueLaterQueue'
+import ContinueLaterReminders from '@/components/ContinueLaterReminders'
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -69,6 +70,8 @@ export default function HomePage() {
         <PromptStarterTemplates launchPathPrefix="/new" />
 
         <ContinueLaterQueue />
+
+        <ContinueLaterReminders />
 
         <section className="mt-8 tera-card">
           <p className="tera-eyebrow">Built for real learning workflows</p>

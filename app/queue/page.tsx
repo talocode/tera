@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import ContinueLaterQueue from '@/components/ContinueLaterQueue'
+import ContinueLaterReminders from '@/components/ContinueLaterReminders'
 import { buildPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = buildPageMetadata({
@@ -23,6 +24,8 @@ export default function QueuePage() {
         </div>
 
         <ContinueLaterQueue />
+
+        <ContinueLaterReminders />
       </div>
     </div>
   )

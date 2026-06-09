@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { fetchUserMemories, fetchUserSessions, type UserMemory } from '@/app/actions/user'
 import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
 import { loadSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
-import { loadContinueLaterQueue, pinContinueLaterItem, unpinContinueLaterItem, type ContinueLaterSourceItem } from '@/lib/continue-later'
+import { loadContinueLaterQueue, pinContinueLaterItem, setContinueLaterReminder, unpinContinueLaterItem, type ContinueLaterSourceItem } from '@/lib/continue-later'
 
 type SearchTab = 'all' | 'chats' | 'notes' | 'memories' | 'workflows'
 
@@ -208,6 +208,13 @@ export default function WorkspaceSearchPage() {
     setPinnedMap(Object.fromEntries(next.map((entry) => [`${entry.kind}:${entry.id}`, true])) as Record<string, true>)
   }
 
+  const addReminder = (item: ContinueLaterSourceItem, days: number) => {
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + days)
+    dueDate.setHours(9, 0, 0, 0)
+    setContinueLaterReminder(item, dueDate.toISOString())
+  }
+
   return (
     <div className="tera-page">
       <div className="tera-page-shell pt-24 md:pt-10">
@@ -304,6 +311,20 @@ export default function WorkspaceSearchPage() {
                       className="tera-button-secondary"
                     >
                       {pinnedMap[`${result.kind}:${result.id}`] ? 'Pinned' : 'Pin for later'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addReminder({
+                        id: result.id,
+                        kind: result.kind,
+                        title: result.title,
+                        excerpt: result.excerpt,
+                        href: result.href,
+                        timestamp: result.timestamp,
+                      }, 1)}
+                      className="tera-button-secondary"
+                    >
+                      Remind tomorrow
                     </button>
                   </div>
                 </article>

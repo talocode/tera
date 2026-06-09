@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchHistoryPageData } from '@/app/actions/user'
 import { createSavedWorkflow, loadSavedWorkflows, persistSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
-import { loadContinueLaterQueue, pinContinueLaterItem, unpinContinueLaterItem } from '@/lib/continue-later'
+import { loadContinueLaterQueue, pinContinueLaterItem, setContinueLaterReminder, unpinContinueLaterItem } from '@/lib/continue-later'
 
 interface ChatSession {
   id?: string
@@ -237,6 +237,24 @@ export default function HistoryPage() {
     setPinnedMap(Object.fromEntries(next.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
   }
 
+  const handleReminder = (conversation: ChatSession, days: number) => {
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + days)
+    dueDate.setHours(9, 0, 0, 0)
+
+    setContinueLaterReminder(
+      {
+        id: conversation.session_id,
+        kind: 'chat',
+        title: conversation.title || 'Untitled chat',
+        excerpt: conversation.last_message || 'Continue this conversation.',
+        href: `/new/${conversation.session_id}`,
+        timestamp: conversation.created_at,
+      },
+      dueDate.toISOString(),
+    )
+  }
+
   return (
     <div className="tera-page">
       <div className="tera-page-shell pt-24 md:pt-10">
@@ -306,6 +324,9 @@ export default function HistoryPage() {
                   </button>
                   <button type="button" onClick={() => handleSaveWorkflow(conversation)} className="tera-button-secondary">
                     {savedWorkflowSessionId === conversation.session_id ? 'Saved workflow' : 'Save workflow'}
+                  </button>
+                  <button type="button" onClick={() => handleReminder(conversation, 1)} className="tera-button-secondary">
+                    Remind tomorrow
                   </button>
                 </div>
               </div>

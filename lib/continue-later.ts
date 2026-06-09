@@ -12,7 +12,12 @@ export type ContinueLaterItem = {
 
 export type ContinueLaterSourceItem = Omit<ContinueLaterItem, 'pinnedAt'>
 
+export type ContinueLaterReminder = ContinueLaterSourceItem & {
+  remindAt: string
+}
+
 export const CONTINUE_LATER_STORAGE_KEY = 'tera_continue_later_queue'
+export const CONTINUE_LATER_REMINDERS_STORAGE_KEY = 'tera_continue_later_reminders'
 
 export function loadContinueLaterQueue(): ContinueLaterItem[] {
   if (typeof window === 'undefined') return []
@@ -47,5 +52,41 @@ export function unpinContinueLaterItem(kind: ContinueLaterKind, id: string) {
   const current = loadContinueLaterQueue()
   const next = current.filter((item) => !(item.kind === kind && item.id === id))
   persistContinueLaterQueue(next)
+  return next
+}
+
+export function loadContinueLaterReminders(): ContinueLaterReminder[] {
+  if (typeof window === 'undefined') return []
+
+  const stored = window.localStorage.getItem(CONTINUE_LATER_REMINDERS_STORAGE_KEY)
+  if (!stored) return []
+
+  try {
+    const parsed = JSON.parse(stored) as ContinueLaterReminder[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.error('Error loading continue-later reminders:', error)
+    return []
+  }
+}
+
+export function persistContinueLaterReminders(items: ContinueLaterReminder[]) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(CONTINUE_LATER_REMINDERS_STORAGE_KEY, JSON.stringify(items))
+}
+
+export function setContinueLaterReminder(item: ContinueLaterSourceItem, remindAt: string) {
+  const current = loadContinueLaterReminders()
+  const nextItem: ContinueLaterReminder = { ...item, remindAt }
+  const filtered = current.filter((existing) => !(existing.kind === item.kind && existing.id === item.id))
+  const next = [nextItem, ...filtered]
+  persistContinueLaterReminders(next)
+  return next
+}
+
+export function removeContinueLaterReminder(kind: ContinueLaterKind, id: string) {
+  const current = loadContinueLaterReminders()
+  const next = current.filter((item) => !(item.kind === kind && item.id === id))
+  persistContinueLaterReminders(next)
   return next
 }
