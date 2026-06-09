@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchCreditUsage, fetchUserSessions, fetchUserUsageSummary } from '@/app/actions/user'
+import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
 import type { ProfileUsageSummary } from '@/lib/profile-usage'
 import { CONTINUE_LATER_CHANGE_EVENT, getContinueLaterOverview } from '@/lib/continue-later'
+import { loadSavedWorkflows } from '@/lib/saved-workflows'
 
 type SessionPreview = {
   session_id: string
@@ -22,6 +24,24 @@ type CreditState = {
   resetDate: string | null
   plan: 'free' | 'pro' | 'plus'
 }
+
+type RecentItem =
+  | {
+      kind: 'note'
+      id: string
+      title: string
+      excerpt: string
+      href: string
+      timestamp: string
+    }
+  | {
+      kind: 'workflow'
+      id: string
+      title: string
+      excerpt: string
+      href: string
+      timestamp: string
+    }
 
 function formatRemaining(value: number | 'unlimited') {
   return value === 'unlimited' ? 'Unlimited' : value.toLocaleString()
@@ -60,6 +80,7 @@ function summarizeUsage(summary: ProfileUsageSummary | null, credits: CreditStat
 export default function HomeWorkspaceOverview() {
   const { user } = useAuth()
   const [session, setSession] = useState<SessionPreview | null>(null)
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([])
   const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
   const [creditState, setCreditState] = useState<CreditState | null>(null)
   const [overview, setOverview] = useState(() => getContinueLaterOverview())
@@ -84,6 +105,7 @@ export default function HomeWorkspaceOverview() {
       if (!user?.id) {
         if (!cancelled) {
           setSession(null)
+          setRecentItems([])
           setUsageSummary(null)
           setCreditState(null)
           setLoading(false)
@@ -94,8 +116,9 @@ export default function HomeWorkspaceOverview() {
       setLoading(true)
 
       try {
-        const [sessions, summary, credits] = await Promise.all([
+        const [sessions, notes, summary, credits] = await Promise.all([
           fetchUserSessions(user.id, 1),
+          fetchWorkspaceNotes(user.id),
           fetchUserUsageSummary(user.id),
           fetchCreditUsage(user.id),
         ])
@@ -103,6 +126,24 @@ export default function HomeWorkspaceOverview() {
         if (cancelled) return
 
         setSession((sessions[0] as SessionPreview | undefined) ?? null)
+        const workflows = loadSavedWorkflows()
+        const recentNoteItems = (notes as Note[]).slice(0, 2).map((note) => ({
+          kind: 'note' as const,
+          id: note.id,
+          title: 'Note',
+          excerpt: note.content,
+          href: '/notes',
+          timestamp: note.updated_at,
+        }))
+        const recentWorkflowItems = workflows.slice(0, 2).map((workflow) => ({
+          kind: 'workflow' as const,
+          id: workflow.id,
+          title: workflow.name,
+          excerpt: workflow.prompt,
+          href: `/new?prompt=${encodeURIComponent(workflow.prompt)}`,
+          timestamp: workflow.createdAt,
+        }))
+        setRecentItems([...recentNoteItems, ...recentWorkflowItems].slice(0, 4))
         setUsageSummary(summary)
         setCreditState(credits)
       } catch (error) {
@@ -209,6 +250,44 @@ export default function HomeWorkspaceOverview() {
             <Link href="/profile#saved-workflows" className="tera-button-secondary">
               Open workflows
             </Link>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Recent work</p>
+              <p className="mt-2 text-lg font-medium text-tera-primary">Notes and workflows you can reopen</p>
+            </div>
+            <Link href="/search" className="tera-button-secondary">
+              Search all
+            </Link>
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentItems.length === 0 ? (
+              <p className="text-sm leading-7 text-tera-secondary">
+                No recent notes or workflows yet. Save one from your history, profile, or note editor.
+              </p>
+            ) : (
+              recentItems.map((item) => (
+                <Link
+                  key={`${item.kind}-${item.id}`}
+                  href={item.href}
+                  className="block rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">
+                      {item.kind === 'note' ? 'Note' : 'Workflow'}
+                    </p>
+                    <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">
+                      {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-tera-primary">{item.title}</p>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-tera-secondary">{item.excerpt}</p>
+                </Link>
+              ))
+            )}
           </div>
         </div>
 
