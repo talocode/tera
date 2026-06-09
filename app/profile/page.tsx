@@ -571,7 +571,7 @@ export default function ProfilePage() {
               <p className="text-sm text-tera-secondary">{memories.length === 0 ? 'No saved memories yet.' : 'No memories match that search.'}</p>
             ) : (
               filteredMemories.map((memory) => (
-                <div key={memory.id} className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4">
+                <div key={memory.id} className="tera-card-subtle px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm leading-7 text-tera-primary">{memory.memory_text}</p>
                     <button type="button" onClick={() => void handleDeleteMemory(memory.id)} className="text-xs uppercase tracking-[0.22em] text-tera-secondary transition hover:text-tera-primary">
@@ -637,7 +637,7 @@ export default function ProfilePage() {
               <p className="text-sm text-tera-secondary">{savedWorkflows.length === 0 ? 'No saved workflows yet.' : 'No workflows match that search.'}</p>
             ) : (
               filteredWorkflows.map((workflow) => (
-                <div key={workflow.id} className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4">
+                <div key={workflow.id} className="tera-card-subtle px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-tera-primary">{workflow.name}</p>
@@ -686,7 +686,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4 text-left md:min-w-[220px]">
+              <div className="tera-card-subtle px-5 py-4 text-left md:min-w-[220px]">
                 <p className="tera-eyebrow">Member since</p>
                 <p className="mt-3 text-xl font-semibold text-tera-primary">{formatMemberSince(profile.createdAt)}</p>
                 <p className="mt-2 text-sm text-tera-secondary">Usage cards refresh from the same tracked counters Tera updates while you work.</p>
@@ -822,7 +822,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                <div className="tera-card-subtle px-5 py-4">
                   <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Chats</p>
                   <p className="mt-3 text-xl font-semibold text-tera-primary">
                     {usageSummary.chats.isUnlimited ? 'Unlimited' : `${usageSummary.chats.remaining} left`}
@@ -831,7 +831,7 @@ export default function ProfilePage() {
                     Resets {formatResetLabel(usageSummary.chats.resetAt)}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                <div className="tera-card-subtle px-5 py-4">
                   <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Uploads</p>
                   <p className="mt-3 text-xl font-semibold text-tera-primary">
                     {usageSummary.uploads.isUnlimited ? 'Unlimited' : `${usageSummary.uploads.remaining} left`}
@@ -843,7 +843,7 @@ export default function ProfilePage() {
                     {usageSummary.uploads.isUnlimited ? 'No reset needed.' : 'Usage resets daily.'}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                <div className="tera-card-subtle px-5 py-4">
                   <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Web searches</p>
                   <p className="mt-3 text-xl font-semibold text-tera-primary">
                     {usageSummary.webSearches.isUnlimited ? 'Unlimited' : `${usageSummary.webSearches.remaining} left`}
@@ -852,7 +852,7 @@ export default function ProfilePage() {
                     Resets {formatResetLabel(usageSummary.webSearches.resetAt)}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                <div className="tera-card-subtle px-5 py-4">
                   <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Credits</p>
                   <p className="mt-3 text-xl font-semibold text-tera-primary">
                     {creditUsage.remaining.toLocaleString()} remaining
@@ -907,7 +907,7 @@ export default function ProfilePage() {
                 <p className="text-sm text-tera-secondary">Loading recent sessions...</p>
               ) : recentSessions.length > 0 ? (
                 recentSessions.map((session) => (
-                  <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4 transition hover:border-white/16 hover:bg-white/[0.05]">
+                  <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]">
                     <p className="truncate text-sm font-medium text-tera-primary">{session.title || 'Untitled session'}</p>
                     <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} Â· {new Date(session.created_at).toLocaleDateString()}</p>
                   </Link>
