@@ -85,7 +85,7 @@ export default function NotesPage() {
           </div>
 
           {isAdding && (
-            <div className="mt-6 rounded-[24px] border border-white/8 bg-tera-highlight p-5 shadow-soft-lg transition-transform duration-200 hover:-translate-y-px">
+            <div className="mt-6 tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px">
               <textarea
                 value={newNote}
                 onChange={(event) => setNewNote(event.target.value)}

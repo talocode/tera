@@ -93,21 +93,21 @@ export default function SpreadsheetEditHistory({
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-white">Edit History</h3>
-        <div className="text-white/50 text-sm">Loading...</div>
+      <div className="tera-card space-y-4">
+        <h3 className="text-lg font-semibold text-tera-primary">Edit History</h3>
+        <div className="text-sm text-tera-secondary">Loading...</div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-white">Edit History</h3>
-        <div className="text-red-400 text-sm">Error: {error}</div>
+      <div className="tera-card space-y-4">
+        <h3 className="text-lg font-semibold text-tera-primary">Edit History</h3>
+        <div className="text-sm text-red-300">Error: {error}</div>
         <button
           onClick={fetchEditHistory}
-          className="text-blue-400 hover:text-blue-300 text-sm"
+          className="text-sm text-tera-neon hover:text-tera-primary"
         >
           Try again
         </button>
@@ -116,30 +116,30 @@ export default function SpreadsheetEditHistory({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="tera-card space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-white">Edit History</h3>
-        <span className="text-xs text-white/50">{totalCount} edits total</span>
+        <h3 className="text-lg font-semibold text-tera-primary">Edit History</h3>
+        <span className="text-xs text-tera-secondary">{totalCount} edits total</span>
       </div>
 
       {edits.length === 0 ? (
-        <div className="text-white/50 text-sm">No edits yet</div>
+        <div className="text-sm text-tera-secondary">No edits yet</div>
       ) : (
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {edits.map((edit) => (
             <div
               key={edit.id}
-              className="rounded-lg bg-white/5 border border-white/10 p-3 space-y-1"
+              className="rounded-lg border border-tera-border bg-white/[0.03] p-3 space-y-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-medium text-tera-primary">
                   {getOperationLabel(edit.operation_type)}
                 </span>
-                <span className="text-xs text-white/40">
+                <span className="text-xs text-tera-secondary">
                   {formatDate(edit.created_at)}
                 </span>
               </div>
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-tera-secondary">
                 {getOperationDetails(edit)}
               </p>
             </div>
@@ -149,7 +149,7 @@ export default function SpreadsheetEditHistory({
 
       <button
         onClick={fetchEditHistory}
-        className="text-xs text-blue-400 hover:text-blue-300"
+        className="text-xs text-tera-neon hover:text-tera-primary"
       >
         Refresh
       </button>
