@@ -1,25 +1,37 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
-    getSearchHistory,
-    clearSearchHistory,
-    getBookmarks,
     clearBookmarks,
-    saveBookmark,
+    clearSearchHistory,
     deleteBookmark,
+    getBookmarks,
+    getSearchHistory,
+    saveBookmark,
+    type SearchBookmark,
     type SearchHistoryEntry,
-    type SearchBookmark
 } from '@/app/actions/search'
 
 interface SearchHistoryProps {
     userId: string
     onSelectQuery: (query: string) => void
     onSelectBookmark: (url: string) => void
+    initialTab?: 'history' | 'bookmarks'
+    showHistoryTab?: boolean
+    className?: string
+    contentClassName?: string
 }
 
-export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark }: SearchHistoryProps) {
-    const [activeTab, setActiveTab] = useState<'history' | 'bookmarks'>('history')
+export default function SearchHistory({
+    userId,
+    onSelectQuery,
+    onSelectBookmark,
+    initialTab = 'history',
+    showHistoryTab = true,
+    className,
+    contentClassName,
+}: SearchHistoryProps) {
+    const [activeTab, setActiveTab] = useState<'history' | 'bookmarks'>(initialTab)
     const [bookmarkFilter, setBookmarkFilter] = useState('')
     const [history, setHistory] = useState<SearchHistoryEntry[]>([])
     const [bookmarks, setBookmarks] = useState<SearchBookmark[]>([])
@@ -27,6 +39,12 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
     const [bookmarkTags, setBookmarkTags] = useState<Record<string, string>>({})
     const [savingBookmarkIds, setSavingBookmarkIds] = useState<Record<string, boolean>>({})
     const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        if (!showHistoryTab && activeTab === 'history') {
+            setActiveTab('bookmarks')
+        }
+    }, [activeTab, showHistoryTab])
 
     useEffect(() => {
         loadData()
@@ -93,7 +111,7 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
     const handleDeleteBookmark = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
         await deleteBookmark(userId, id)
-        setBookmarks(prev => prev.filter(b => b.id !== id))
+        setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id))
         setBookmarkNotes((current) => {
             const next = { ...current }
             delete next[id]
@@ -168,19 +186,24 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
         })
     }, [bookmarkFilter, bookmarks])
 
+    const contentClasses = ['overflow-y-auto p-2', !contentClassName ? 'max-h-[400px]' : null, contentClassName]
+        .filter(Boolean)
+        .join(' ')
+
     return (
-        <div className="w-full max-w-md bg-tera-panel border border-tera-border rounded-xl overflow-hidden shadow-xl">
-            {/* Tabs */}
+        <div className={['w-full bg-tera-panel border border-tera-border rounded-xl overflow-hidden shadow-xl', className].filter(Boolean).join(' ')}>
             <div className="flex border-b border-tera-border">
-                <button
-                    onClick={() => setActiveTab('history')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'history'
-                        ? 'bg-tera-muted text-tera-primary border-b-2 border-tera-neon'
-                        : 'text-tera-secondary hover:text-tera-primary hover:bg-tera-muted/50'
-                        }`}
-                >
-                    🕒 History
-                </button>
+                {showHistoryTab && (
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'history'
+                            ? 'bg-tera-muted text-tera-primary border-b-2 border-tera-neon'
+                            : 'text-tera-secondary hover:text-tera-primary hover:bg-tera-muted/50'
+                            }`}
+                    >
+                        🕒 History
+                    </button>
+                )}
                 <button
                     onClick={() => setActiveTab('bookmarks')}
                     className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'bookmarks'
@@ -192,8 +215,7 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                 </button>
             </div>
 
-            {/* Content */}
-            <div className="max-h-[400px] overflow-y-auto p-2">
+            <div className={contentClasses}>
                 {isLoading ? (
                     <div className="flex justify-center p-8">
                         <div className="w-6 h-6 border-2 border-tera-neon border-t-transparent rounded-full animate-spin" />
@@ -275,18 +297,18 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                                 <div
                                     key={bookmark.id}
                                     onClick={() => onSelectBookmark(bookmark.url)}
-                                    className="w-full p-3 rounded-lg border border-tera-border bg-tera-muted/20 hover:bg-tera-muted/50 transition-colors cursor-pointer group relative"
+                                    className="group relative w-full cursor-pointer rounded-lg border border-tera-border bg-tera-muted/20 p-3 transition-colors hover:bg-tera-muted/50"
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-sm font-medium text-tera-primary line-clamp-1">
+                                        <div className="min-w-0 flex-1">
+                                            <h4 className="line-clamp-1 text-sm font-medium text-tera-primary">
                                                 {bookmark.title}
                                             </h4>
-                                            <p className="text-xs text-tera-secondary mt-1 line-clamp-2">
+                                            <p className="mt-1 line-clamp-2 text-xs text-tera-secondary">
                                                 {bookmark.snippet}
                                             </p>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="text-[10px] text-tera-secondary/80 bg-tera-muted px-1.5 py-0.5 rounded">
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className="rounded bg-tera-muted px-1.5 py-0.5 text-[10px] text-tera-secondary/80">
                                                     {bookmark.source}
                                                 </span>
                                                 <span className="text-[10px] text-tera-secondary/60">
@@ -340,11 +362,11 @@ export default function SearchHistory({ userId, onSelectQuery, onSelectBookmark 
                                             </div>
                                         </div>
                                         <button
-                                            onClick={(e) => handleDeleteBookmark(bookmark.id, e)}
-                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-tera-secondary hover:text-red-400 transition-all"
+                                            onClick={(event) => handleDeleteBookmark(bookmark.id, event)}
+                                            className="p-1.5 text-tera-secondary transition-all opacity-0 hover:text-red-400 group-hover:opacity-100"
                                             title="Remove bookmark"
                                         >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                         </button>
