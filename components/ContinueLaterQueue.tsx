@@ -7,8 +7,12 @@ import { fetchUserMemories, fetchUserSessions, type UserMemory } from '@/app/act
 import { fetchNotes as fetchWorkspaceNotes, type Note } from '@/app/actions/notes'
 import { loadSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 import {
+  archiveContinueLaterItem,
+  loadContinueLaterArchive,
   loadContinueLaterQueue,
   pinContinueLaterItem,
+  setContinueLaterReminder,
+  unarchiveContinueLaterItem,
   unpinContinueLaterItem,
   type ContinueLaterItem,
   type ContinueLaterSourceItem,
@@ -27,10 +31,18 @@ function toPinnedKey(item: ContinueLaterSourceItem) {
   return `${item.kind}:${item.id}`
 }
 
+function scheduleTomorrow(item: ContinueLaterSourceItem) {
+  const remindAt = new Date()
+  remindAt.setDate(remindAt.getDate() + 1)
+  remindAt.setHours(9, 0, 0, 0)
+  setContinueLaterReminder(item, remindAt.toISOString())
+}
+
 export default function ContinueLaterQueue() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<QueueItem[]>([])
+  const [archivedItems, setArchivedItems] = useState<QueueItem[]>([])
   const [pinnedKeys, setPinnedKeys] = useState<Record<string, true>>({})
   const [refreshToken, setRefreshToken] = useState(0)
 
@@ -46,6 +58,17 @@ export default function ContinueLaterQueue() {
     setRefreshToken((current) => current + 1)
   }, [])
 
+  const handleDone = useCallback((item: ContinueLaterSourceItem) => {
+    archiveContinueLaterItem(item)
+    setRefreshToken((current) => current + 1)
+  }, [])
+
+  const handleUndoDone = useCallback((item: QueueItem) => {
+    unarchiveContinueLaterItem(item.kind, item.id)
+    pinContinueLaterItem(item)
+    setRefreshToken((current) => current + 1)
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
@@ -56,6 +79,7 @@ export default function ContinueLaterQueue() {
         const pinned = loadContinueLaterQueue()
         const pinnedLookup = Object.fromEntries(pinned.map((item) => [toPinnedKey(item), true])) as Record<string, true>
         setPinnedKeys(pinnedLookup)
+        setArchivedItems(loadContinueLaterArchive().slice(0, 5))
 
         const [sessions, notes, memories] = user
           ? await Promise.all([
@@ -121,6 +145,7 @@ export default function ContinueLaterQueue() {
 
         if (!cancelled) {
           setItems(nextItems.slice(0, 8))
+          setArchivedItems(loadContinueLaterArchive().slice(0, 5))
         }
       } catch (error) {
         console.error('Failed to load continue-later queue:', error)
@@ -135,6 +160,7 @@ export default function ContinueLaterQueue() {
             pinnedAt: workflow.createdAt,
           }))
           setItems(fallback)
+          setArchivedItems(loadContinueLaterArchive().slice(0, 5))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -202,13 +228,29 @@ export default function ContinueLaterQueue() {
                     <p className="text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">
                       {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => (isPinned ? handleUnpin(item.kind, item.id) : handlePin(item))}
-                      className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
-                    >
-                      {isPinned ? 'Pinned' : 'Pin'}
-                    </button>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scheduleTomorrow(item)}
+                        className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                      >
+                        Remind tomorrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => (isPinned ? handleUnpin(item.kind, item.id) : handlePin(item))}
+                        className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                      >
+                        {isPinned ? 'Pinned' : 'Pin'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDone(item)}
+                        className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                      >
+                        Done
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -216,6 +258,34 @@ export default function ContinueLaterQueue() {
           })
         )}
       </div>
+
+      {archivedItems.length > 0 && (
+        <div className="mt-8 rounded-[22px] border border-white/8 bg-black/10 px-5 py-4">
+          <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Completed</p>
+          <div className="mt-4 space-y-3">
+            {archivedItems.map((item) => (
+              <div
+                key={`archived-${item.kind}-${item.id}`}
+                className="flex flex-col gap-3 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-tera-primary">{item.title}</p>
+                  <p className="mt-1 text-sm text-tera-secondary">
+                    Completed {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleUndoDone(item)}
+                  className="tera-button-secondary self-start px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                >
+                  Undo
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   )
 }

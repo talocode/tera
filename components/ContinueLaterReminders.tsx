@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import {
+  CONTINUE_LATER_CHANGE_EVENT,
+  archiveContinueLaterItem,
   loadContinueLaterReminders,
   removeContinueLaterReminder,
   type ContinueLaterReminder,
@@ -18,6 +20,17 @@ export default function ContinueLaterReminders() {
 
   useEffect(() => {
     setReminders(loadContinueLaterReminders())
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => setReminders(loadContinueLaterReminders())
+    window.addEventListener(CONTINUE_LATER_CHANGE_EVENT, refresh)
+    window.addEventListener('storage', refresh)
+
+    return () => {
+      window.removeEventListener(CONTINUE_LATER_CHANGE_EVENT, refresh)
+      window.removeEventListener('storage', refresh)
+    }
   }, [])
 
   useEffect(() => {
@@ -62,10 +75,29 @@ export default function ContinueLaterReminders() {
     setReminders(next)
   }
 
+  const handleMarkDone = (reminder: ContinueLaterReminder) => {
+    archiveContinueLaterItem(reminder)
+    const next = removeContinueLaterReminder(reminder.kind, reminder.id)
+    setReminders(next)
+  }
+
   const handleEnableBrowserAlerts = async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) return
     const permission = await Notification.requestPermission()
     setNotificationPermission(permission)
+  }
+
+  const handleSnoozeReminder = (reminder: ContinueLaterReminder, days: number) => {
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + days)
+    nextDate.setHours(9, 0, 0, 0)
+    const next = [
+      ...reminders.filter((item) => !(item.kind === reminder.kind && item.id === reminder.id)),
+      { ...reminder, remindAt: nextDate.toISOString() },
+    ]
+    window.localStorage.setItem('tera_continue_later_reminders', JSON.stringify(next))
+    window.dispatchEvent(new Event(CONTINUE_LATER_CHANGE_EVENT))
+    setReminders(next)
   }
 
   const upcoming = useMemo(
@@ -160,6 +192,27 @@ export default function ContinueLaterReminders() {
                     </Link>
                     <button
                       type="button"
+                      onClick={() => handleSnoozeReminder(reminder, 1)}
+                      className="tera-button-secondary"
+                    >
+                      Snooze 1d
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSnoozeReminder(reminder, 3)}
+                      className="tera-button-secondary"
+                    >
+                      Snooze 3d
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMarkDone(reminder)}
+                      className="tera-button-secondary"
+                    >
+                      Done
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleRemoveReminder(reminder.kind, reminder.id)}
                       className="tera-button-secondary"
                     >
@@ -195,6 +248,20 @@ export default function ContinueLaterReminders() {
                   <Link href={reminder.href} className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]">
                     Open
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleSnoozeReminder(reminder, 1)}
+                    className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                  >
+                    Snooze 1d
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMarkDone(reminder)}
+                    className="tera-button-secondary px-3 py-1 text-[0.58rem] uppercase tracking-[0.22em]"
+                  >
+                    Done
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleRemoveReminder(reminder.kind, reminder.id)}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import SeoFooter from '@/components/seo/SeoFooter'
+import HomeWorkspaceOverview from '@/components/HomeWorkspaceOverview'
 import PromptStarterTemplates from '@/components/PromptStarterTemplates'
 import ContinueLaterQueue from '@/components/ContinueLaterQueue'
 import ContinueLaterReminders from '@/components/ContinueLaterReminders'
@@ -56,6 +57,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <HomeWorkspaceOverview />
 
         <section className="mt-8 grid gap-6 lg:grid-cols-3">
           {highlights.map((item) => (
