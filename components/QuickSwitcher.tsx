@@ -76,7 +76,7 @@ export default function QuickSwitcher() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-3 right-3 z-40 flex rounded-full border border-tera-border bg-tera-panel/90 px-4 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary md:bottom-4 md:right-4"
+        className="fixed bottom-3 right-3 z-40 flex rounded-full border border-tera-border bg-tera-panel/90 px-4 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:-translate-y-px hover:border-tera-primary hover:text-tera-primary md:bottom-4 md:right-4"
       >
         Quick switch
         <span className="ml-3 rounded-full border border-tera-border bg-white/[0.03] px-2 py-1 text-[0.55rem] tracking-[0.12em] text-tera-secondary">
@@ -105,7 +105,7 @@ export default function QuickSwitcher() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="rounded-full border border-tera-border px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
+            className="rounded-full border border-tera-border px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:border-tera-primary hover:text-tera-primary"
           >
             Esc
           </button>

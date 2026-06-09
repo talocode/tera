@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import UserMenu from './UserMenu'
-import { getContinueLaterOverview } from '@/lib/continue-later'
 
 type User = {
   id: string
@@ -28,7 +27,6 @@ type NavItem = {
 
 export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
-  { label: 'Continue later', icon: 'queue', href: '/queue' },
   { label: 'Workspace search', icon: 'search', href: '/search' },
   { label: 'Bookmarks', icon: 'bookmark', href: '/bookmarks' },
   { label: 'Images', icon: 'images', href: '/images' },
@@ -143,31 +141,6 @@ const getIcon = (iconName: string): React.ReactNode => {
 export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
   const pathname = usePathname()
   const expanded = pinned || mobileOpen
-  const [overview, setOverview] = useState(() => getContinueLaterOverview())
-
-  useEffect(() => {
-    const refresh = () => setOverview(getContinueLaterOverview())
-    refresh()
-
-    window.addEventListener('storage', refresh)
-    window.addEventListener('focus', refresh)
-    window.addEventListener('tera-continue-later-change', refresh)
-
-    return () => {
-      window.removeEventListener('storage', refresh)
-      window.removeEventListener('focus', refresh)
-      window.removeEventListener('tera-continue-later-change', refresh)
-    }
-  }, [])
-
-  const queueBadge = useMemo(() => {
-    if (overview.queueCount === 0 && overview.dueSoonCount === 0) return null
-
-    return {
-      count: overview.queueCount + overview.dueSoonCount,
-      urgent: overview.dueSoonCount > 0,
-    }
-  }, [overview.dueSoonCount, overview.queueCount])
 
   return (
     <>
@@ -250,16 +223,6 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
                     >
                       {item.label}
                     </span>
-                    {item.href === '/queue' && queueBadge && (
-                      <span className={[
-                        'ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] transition-all duration-200',
-                        queueBadge.urgent ? 'bg-amber-400/20 text-amber-100' : 'bg-white/10 text-tera-secondary',
-                        expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
-                      ].join(' ')}
-                      >
-                        {queueBadge.count}
-                      </span>
-                    )}
                   </span>
                 </Link>
               )

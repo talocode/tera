@@ -125,7 +125,7 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
         <div className="w-full my-4 space-y-3">
             {/* Code Section */}
             <div className="rounded-lg border border-tera-border bg-[#0a0a0a]/60 overflow-hidden">
-                <div className="flex items-center justify-between border-b border-tera-border bg-white/5 px-4 py-2">
+                <div className="flex items-center justify-between border-b border-tera-border bg-tera-surface-muted px-4 py-2">
                     <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
                         📝 Mermaid Diagram Code
                     </h3>

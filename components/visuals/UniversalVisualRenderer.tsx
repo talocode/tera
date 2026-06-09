@@ -99,7 +99,7 @@ export default function UniversalVisualRenderer({
   return (
     <div className="w-full my-4 space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between rounded-t-lg border border-tera-border bg-white/5 px-4 py-2">
+      <div className="flex items-center justify-between rounded-t-lg border border-tera-border bg-tera-surface-muted px-4 py-2">
         <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
           📝 {title}
         </h3>

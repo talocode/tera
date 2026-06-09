@@ -999,7 +999,7 @@ export default function PromptShell({
                                                                                 event.stopPropagation()
                                                                                 void handleSaveBookmark(citation)
                                                                             }}
-                                                                            className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary"
+                                                                            className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-tera-primary hover:text-tera-primary"
                                                                         >
                                                                             {bookmarkSaveStatuses[citation.url]?.type === 'saving' ? 'Saving...' : 'Save bookmark'}
                                                                         </button>
