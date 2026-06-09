@@ -372,7 +372,7 @@ export default function WorkspaceSearchPage() {
                     key={item}
                     type="button"
                     onClick={() => applySearch(item)}
-                    className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[0.62rem] uppercase tracking-[0.2em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
+                    className="tera-badge border-white/10 bg-white/[0.03] text-[0.62rem] uppercase tracking-[0.2em] transition hover:border-white/16 hover:text-tera-primary"
                   >
                     {item}
                   </button>
@@ -388,7 +388,7 @@ export default function WorkspaceSearchPage() {
                 key={item}
                 type="button"
                 onClick={() => applySearch(item)}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[0.62rem] uppercase tracking-[0.2em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
+                className="tera-badge border-white/10 bg-white/[0.03] text-[0.62rem] uppercase tracking-[0.2em] transition hover:border-white/16 hover:text-tera-primary"
               >
                 {item}
               </button>
@@ -421,7 +421,7 @@ export default function WorkspaceSearchPage() {
           {loading ? (
             <div className="mt-8 text-sm text-tera-secondary">Loading workspace content...</div>
           ) : results.length === 0 ? (
-            <div className="mt-8 rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-6 text-sm text-tera-secondary">
+            <div className="tera-surface-muted mt-8 px-5 py-6 text-sm text-tera-secondary">
               <p>No matching content yet.</p>
               <p className="mt-2 leading-7">
                 Try a broader search, switch tabs, or jump back to a recent query above.
@@ -438,7 +438,7 @@ export default function WorkspaceSearchPage() {
           ) : (
             <div className="mt-8 grid gap-4 lg:grid-cols-2">
               {results.map((result) => (
-                <article key={`${result.kind}-${result.id}`} className="tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px hover:bg-white/[0.06]">
+                <article key={`${result.kind}-${result.id}`} className="tera-card-subtle group p-5 transition-all duration-200 hover:-translate-y-px hover:bg-white/[0.06]">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">{kindLabels[result.kind]}</p>
@@ -449,7 +449,7 @@ export default function WorkspaceSearchPage() {
                       {new Date(result.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </p>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-3">
+                  <div className="mt-4 flex flex-wrap gap-3 transition-all duration-200 group-hover:translate-y-[-1px]">
                     <Link href={result.href} className="tera-button-secondary">
                       Open
                     </Link>
