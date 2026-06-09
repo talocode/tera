@@ -877,7 +877,7 @@ export default function ProfilePage() {
               ) : usageHistory.length > 0 ? (
                 <div className="space-y-6">
                   <UsageHistoryChart data={usageHistory} />
-                  <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-6">
+                  <div className="grid grid-cols-2 gap-4 border-t border-tera-border pt-6">
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Avg. intensity</p>
                       <p className="mt-1 text-xl font-semibold text-tera-primary">
@@ -909,7 +909,7 @@ export default function ProfilePage() {
                 recentSessions.map((session) => (
                   <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]">
                     <p className="truncate text-sm font-medium text-tera-primary">{session.title || 'Untitled session'}</p>
-                    <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} Â· {new Date(session.created_at).toLocaleDateString()}</p>
+                    <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} � {new Date(session.created_at).toLocaleDateString()}</p>
                   </Link>
                 ))
               ) : (

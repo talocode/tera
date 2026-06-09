@@ -51,7 +51,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
             </thead>
           ),
           tbody: ({ children }) => <tbody className="divide-y divide-tera-border/70">{children}</tbody>,
-          tr: ({ children }) => <tr className="hover:bg-white/[0.03]">{children}</tr>,
+          tr: ({ children }) => <tr className="hover:bg-tera-surface-muted">{children}</tr>,
           th: ({ children }) => <th className="px-4 py-3 font-medium">{children}</th>,
           td: ({ children }) => <td className="px-4 py-3 align-top text-tera-primary/95">{children}</td>,
           hr: () => <hr className="my-6 border-tera-border opacity-70" />,
