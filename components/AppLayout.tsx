@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import Sidebar from './Sidebar'
 import { useAuth } from './AuthProvider'
+import QuickSwitcher from './QuickSwitcher'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -67,6 +68,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         <div className="min-h-[100dvh]">{children}</div>
       </main>
+      <QuickSwitcher />
     </div>
   )
 }
