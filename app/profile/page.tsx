@@ -461,9 +461,14 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Link href="/history" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <Link href="/search" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
             <p className="tera-eyebrow">Search</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Workspace search</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Find chats, notes, memories, and workflows from one page.</p>
+          </Link>
+          <Link href="/history" className="tera-surface block p-5 transition hover:border-white/16 hover:bg-white/[0.05]">
+            <p className="tera-eyebrow">History</p>
             <h2 className="mt-3 text-lg font-semibold text-tera-primary">Chat history</h2>
             <p className="mt-2 text-sm leading-7 text-tera-secondary">Search past sessions and reopen them instantly.</p>
           </Link>
@@ -488,7 +493,7 @@ export default function ProfilePage() {
           </button>
         </section>
 
-        <section id="saved-workflows" className="tera-surface mt-8 p-6 md:p-8">
+        <section id="project-memory" className="tera-surface mt-8 p-6 md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="tera-eyebrow">Project memory</p>
@@ -553,7 +558,7 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="tera-surface mt-8 p-6 md:p-8">
+        <section id="saved-workflows" className="tera-surface mt-8 p-6 md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="tera-eyebrow">Saved workflows</p>

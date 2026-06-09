@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchNotes, addNote, updateNote, deleteNote, type Note } from '@/app/actions/notes'
 
@@ -64,9 +65,14 @@ export default function NotesPage() {
             <h1 className="tera-title mt-3">Notes</h1>
             <p className="tera-subtitle mt-4">Capture quick ideas, snippets, and working thoughts without leaving the main Tera workspace.</p>
           </div>
-          <button type="button" onClick={() => setIsAdding((current) => !current)} className={isAdding ? 'tera-button-secondary' : 'tera-button-primary'}>
-            {isAdding ? 'Cancel' : 'Add note'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/search" className="tera-button-secondary">
+              Search workspace
+            </Link>
+            <button type="button" onClick={() => setIsAdding((current) => !current)} className={isAdding ? 'tera-button-secondary' : 'tera-button-primary'}>
+              {isAdding ? 'Cancel' : 'Add note'}
+            </button>
+          </div>
         </div>
 
         <div className="tera-surface mt-8 p-6 md:p-8">
