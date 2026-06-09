@@ -72,7 +72,7 @@ export default function UpgradePrompt({ type, onClose, inline = false }: Upgrade
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="relative mx-4 w-full max-w-md rounded-2xl border border-tera-border bg-tera-panel p-6 shadow-2xl">
+            <div className="relative mx-4 w-full max-w-md rounded-2xl border border-tera-border bg-tera-panel p-6 shadow-panel">
                 {onClose && (
                     <button type="button" onClick={onClose} className="absolute right-4 top-4 text-tera-secondary transition hover:text-tera-primary" aria-label="Close">
                         ×

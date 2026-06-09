@@ -22,7 +22,7 @@ function ErrorContent() {
   if (error === 'SessionRequired') errorMessage = 'Please sign in to access this page.'
 
   return (
-    <div className="w-full max-w-lg rounded-[30px] border border-tera-border bg-tera-panel/82 px-8 py-8 text-center shadow-panel backdrop-blur-2xl">
+    <div className="w-full max-w-lg rounded-[30px] border border-tera-border bg-tera-panel/82 px-8 py-8 text-center shadow-soft-lg backdrop-blur-2xl">
       <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-[24px] border border-tera-border bg-white/[0.04]">
         <div className="relative h-12 w-12">
           <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="hidden object-contain dark:block" />
