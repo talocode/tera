@@ -21,6 +21,7 @@ import { compressImage } from '@/lib/image-compression'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
+import PromptStarterTemplates from './PromptStarterTemplates'
 type SurfaceMode = 'chat' | 'research' | 'image'
 
 type Message = {
@@ -688,6 +689,16 @@ export default function PromptShell({
                                     </div>
                                 </div>
                                 <h2 className="text-4xl font-semibold tracking-[-0.03em] text-tera-primary md:text-5xl">How can Tera help you today?</h2>
+                                <PromptStarterTemplates
+                                    onSelectPrompt={(value) => {
+                                        setPrompt(value)
+                                        window.setTimeout(() => {
+                                            const textarea = document.querySelector('textarea[placeholder]') as HTMLTextAreaElement | null
+                                            textarea?.focus()
+                                        }, 0)
+                                    }}
+                                    compact
+                                />
                             </div>
                         </div>
                     ) : (
@@ -743,7 +754,12 @@ export default function PromptShell({
                                                 </div>
                                                 {entry.assistantMessage.citations && entry.assistantMessage.citations.length > 0 && (
                                                     <div className="mt-4 rounded-[22px] border border-white/8 bg-black/10 px-4 py-3 shadow-soft">
-                                                        <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
+                                                            <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                                {entry.assistantMessage.citations.length} source{entry.assistantMessage.citations.length === 1 ? '' : 's'}
+                                                            </span>
+                                                        </div>
                                                         <div className="mt-3 space-y-3">
                                                             {entry.assistantMessage.citations.map((citation, index) => (
                                                                 <a
@@ -752,14 +768,19 @@ export default function PromptShell({
                                                                     target="_blank"
                                                                     rel="noreferrer"
                                                                     className="block rounded-xl border border-white/6 bg-white/[0.03] px-4 py-3 transition hover:-translate-y-px hover:border-tera-neon/25 hover:bg-white/[0.05]"
-                                                                >
-                                                                    <div className="flex items-start justify-between gap-3">
-                                                                        <div>
-                                                                            <p className="text-sm font-medium text-tera-primary">{citation.title}</p>
-                                                                            <p className="mt-1 break-all text-xs text-tera-secondary">{citation.url}</p>
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-3">
+                                                                            <div>
+                                                                                <p className="text-sm font-medium text-tera-primary">{citation.title}</p>
+                                                                                <p className="mt-1 break-all text-xs text-tera-secondary">{citation.url}</p>
+                                                                                {citation.publishedDate && (
+                                                                                    <p className="mt-1 text-[0.65rem] uppercase tracking-[0.2em] text-tera-secondary">
+                                                                                        Published {new Date(citation.publishedDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="text-[0.65rem] uppercase tracking-[0.22em] text-tera-secondary">#{index + 1}</span>
                                                                         </div>
-                                                                        <span className="text-[0.65rem] uppercase tracking-[0.22em] text-tera-secondary">#{index + 1}</span>
-                                                                    </div>
                                                                     {citation.snippet && (
                                                                         <p className="mt-2 text-sm leading-6 text-tera-secondary">{citation.snippet}</p>
                                                                     )}

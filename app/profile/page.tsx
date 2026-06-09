@@ -488,7 +488,7 @@ export default function ProfilePage() {
           </button>
         </section>
 
-        <section className="tera-surface mt-8 p-6 md:p-8">
+        <section id="saved-workflows" className="tera-surface mt-8 p-6 md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="tera-eyebrow">Project memory</p>
