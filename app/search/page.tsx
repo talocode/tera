@@ -62,6 +62,30 @@ const tabToKind: Record<Exclude<SearchTab, 'all'>, WorkspaceResult['kind']> = {
   workflows: 'workflow',
 }
 
+const RECENT_WORKSPACE_SEARCHES_KEY = 'tera_workspace_search_history'
+const MAX_RECENT_WORKSPACE_SEARCHES = 8
+const suggestedSearches = ['research', 'notes', 'workflow', 'memory', 'chat', 'study', 'continue later']
+
+function loadRecentWorkspaceSearches(): string[] {
+  if (typeof window === 'undefined') return []
+
+  const stored = window.localStorage.getItem(RECENT_WORKSPACE_SEARCHES_KEY)
+  if (!stored) return []
+
+  try {
+    const parsed = JSON.parse(stored) as string[]
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : []
+  } catch (error) {
+    console.error('Failed to load recent workspace searches:', error)
+    return []
+  }
+}
+
+function persistRecentWorkspaceSearches(queries: string[]) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(RECENT_WORKSPACE_SEARCHES_KEY, JSON.stringify(queries))
+}
+
 export default function WorkspaceSearchPage() {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
@@ -72,6 +96,7 @@ export default function WorkspaceSearchPage() {
   const [memories, setMemories] = useState<UserMemory[]>([])
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([])
   const [pinnedMap, setPinnedMap] = useState<Record<string, true>>({})
+  const [recentQueries, setRecentQueries] = useState<string[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -126,6 +151,25 @@ export default function WorkspaceSearchPage() {
     const queue = loadContinueLaterQueue()
     setPinnedMap(Object.fromEntries(queue.map((item) => [`${item.kind}:${item.id}`, true])) as Record<string, true>)
   }, [])
+
+  useEffect(() => {
+    setRecentQueries(loadRecentWorkspaceSearches())
+  }, [])
+
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (!trimmed) return
+
+    const timeout = window.setTimeout(() => {
+      setRecentQueries((current) => {
+        const next = [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, MAX_RECENT_WORKSPACE_SEARCHES)
+        persistRecentWorkspaceSearches(next)
+        return next
+      })
+    }, 500)
+
+    return () => window.clearTimeout(timeout)
+  }, [query])
 
   const results = useMemo<WorkspaceResult[]>(() => {
     const needle = normalize(query)
@@ -215,6 +259,11 @@ export default function WorkspaceSearchPage() {
     setContinueLaterReminder(item, dueDate.toISOString())
   }
 
+  const applySearch = (value: string) => {
+    setQuery(value)
+    setActiveTab('all')
+  }
+
   return (
     <div className="tera-page">
       <div className="tera-page-shell pt-24 md:pt-10">
@@ -251,6 +300,38 @@ export default function WorkspaceSearchPage() {
             </p>
           </div>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            {recentQueries.length > 0 && (
+              <>
+                <span className="self-center text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Recent</span>
+                {recentQueries.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => applySearch(item)}
+                    className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[0.62rem] uppercase tracking-[0.2em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="self-center text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Try</span>
+            {suggestedSearches.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => applySearch(item)}
+                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[0.62rem] uppercase tracking-[0.2em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+
           <div className="mt-5 flex flex-wrap gap-2">
             {(['all', 'chats', 'notes', 'memories', 'workflows'] as SearchTab[]).map((tab) => (
               <button
@@ -278,7 +359,18 @@ export default function WorkspaceSearchPage() {
             <div className="mt-8 text-sm text-tera-secondary">Loading workspace content...</div>
           ) : results.length === 0 ? (
             <div className="mt-8 rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-6 text-sm text-tera-secondary">
-              No matching content yet.
+              <p>No matching content yet.</p>
+              <p className="mt-2 leading-7">
+                Try a broader search, switch tabs, or jump back to a recent query above.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/new" className="tera-button-secondary">
+                  Start a new chat
+                </Link>
+                <Link href="/queue" className="tera-button-secondary">
+                  Continue later
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="mt-8 grid gap-4 lg:grid-cols-2">

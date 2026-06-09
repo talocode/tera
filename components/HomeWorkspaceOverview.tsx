@@ -43,6 +43,13 @@ type RecentItem =
       timestamp: string
     }
 
+type OnboardingTask = {
+  label: string
+  description: string
+  href: string
+  done: boolean
+}
+
 function formatRemaining(value: number | 'unlimited') {
   return value === 'unlimited' ? 'Unlimited' : value.toLocaleString()
 }
@@ -80,6 +87,9 @@ function summarizeUsage(summary: ProfileUsageSummary | null, credits: CreditStat
 export default function HomeWorkspaceOverview() {
   const { user } = useAuth()
   const [session, setSession] = useState<SessionPreview | null>(null)
+  const [sessionCount, setSessionCount] = useState(0)
+  const [noteCount, setNoteCount] = useState(0)
+  const [workflowCount, setWorkflowCount] = useState(0)
   const [recentItems, setRecentItems] = useState<RecentItem[]>([])
   const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
   const [creditState, setCreditState] = useState<CreditState | null>(null)
@@ -105,6 +115,9 @@ export default function HomeWorkspaceOverview() {
       if (!user?.id) {
         if (!cancelled) {
           setSession(null)
+          setSessionCount(0)
+          setNoteCount(0)
+          setWorkflowCount(0)
           setRecentItems([])
           setUsageSummary(null)
           setCreditState(null)
@@ -127,6 +140,9 @@ export default function HomeWorkspaceOverview() {
 
         setSession((sessions[0] as SessionPreview | undefined) ?? null)
         const workflows = loadSavedWorkflows()
+        setSessionCount(sessions.length)
+        setNoteCount((notes as Note[]).length)
+        setWorkflowCount(workflows.length)
         const recentNoteItems = (notes as Note[]).slice(0, 2).map((note) => ({
           kind: 'note' as const,
           id: note.id,
@@ -161,6 +177,39 @@ export default function HomeWorkspaceOverview() {
   }, [user?.id])
 
   const usageCards = useMemo(() => summarizeUsage(usageSummary, creditState), [usageSummary, creditState])
+  const onboardingTasks = useMemo<OnboardingTask[]>(() => {
+    const hasSessions = sessionCount > 0
+    const hasNotes = noteCount > 0
+    const hasWorkflows = workflowCount > 0
+    const hasQueue = overview.queueCount > 0 || overview.reminderCount > 0
+
+    return [
+      {
+        label: 'Start a session',
+        description: 'Open a fresh chat or reuse a starter template.',
+        href: '/new',
+        done: hasSessions,
+      },
+      {
+        label: 'Save a note',
+        description: 'Capture a useful idea before it disappears.',
+        href: '/notes',
+        done: hasNotes,
+      },
+      {
+        label: 'Save a workflow',
+        description: 'Turn a repeated prompt into a one-click action.',
+        href: '/profile#saved-workflows',
+        done: hasWorkflows,
+      },
+      {
+        label: 'Use continue later',
+        description: 'Pin unfinished work or add a reminder to come back.',
+        href: '/queue',
+        done: hasQueue,
+      },
+    ]
+  }, [noteCount, overview.queueCount, overview.reminderCount, sessionCount, workflowCount])
 
   return (
     <section className="mt-8 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
@@ -250,6 +299,40 @@ export default function HomeWorkspaceOverview() {
             <Link href="/profile#saved-workflows" className="tera-button-secondary">
               Open workflows
             </Link>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Getting started</p>
+              <p className="mt-2 text-lg font-medium text-tera-primary">Complete the core loops once</p>
+            </div>
+            <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">
+              {onboardingTasks.filter((task) => task.done).length}/{onboardingTasks.length} done
+            </p>
+          </div>
+          <div className="mt-4 space-y-3">
+            {onboardingTasks.map((task) => (
+              <Link
+                key={task.label}
+                href={task.href}
+                className="flex items-start justify-between gap-4 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-tera-primary">{task.label}</p>
+                  <p className="mt-1 text-sm leading-6 text-tera-secondary">{task.description}</p>
+                </div>
+                <span
+                  className={[
+                    'shrink-0 rounded-full border px-2 py-1 text-[0.55rem] uppercase tracking-[0.18em]',
+                    task.done ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/[0.03] text-tera-secondary',
+                  ].join(' ')}
+                >
+                  {task.done ? 'Done' : 'Open'}
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
 
