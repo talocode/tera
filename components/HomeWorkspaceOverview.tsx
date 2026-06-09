@@ -295,19 +295,19 @@ export default function HomeWorkspaceOverview() {
         <div className="tera-surface p-6">
           <p className="tera-eyebrow">Continue later</p>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-[18px] border border-tera-border bg-white/[0.03] px-4 py-4">
+            <div className="tera-card-subtle px-4 py-4">
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Queued</p>
               <p className="mt-2 text-2xl font-semibold text-tera-primary">{overview.queueCount}</p>
             </div>
-            <div className="rounded-[18px] border border-tera-border bg-white/[0.03] px-4 py-4">
+            <div className="tera-card-subtle px-4 py-4">
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Reminders</p>
               <p className="mt-2 text-2xl font-semibold text-tera-primary">{overview.reminderCount}</p>
             </div>
-            <div className="rounded-[18px] border border-tera-border bg-white/[0.03] px-4 py-4">
+            <div className="tera-card-subtle px-4 py-4">
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Due soon</p>
               <p className="mt-2 text-2xl font-semibold text-tera-primary">{overview.dueSoonCount}</p>
             </div>
-            <div className="rounded-[18px] border border-tera-border bg-white/[0.03] px-4 py-4">
+            <div className="tera-card-subtle px-4 py-4">
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Done</p>
               <p className="mt-2 text-2xl font-semibold text-tera-primary">{overview.archiveCount}</p>
             </div>
@@ -345,7 +345,7 @@ export default function HomeWorkspaceOverview() {
                   href={bookmark.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
+                  className="block rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-medium text-tera-primary">{bookmark.title}</p>
@@ -376,7 +376,7 @@ export default function HomeWorkspaceOverview() {
               <Link
                 key={task.label}
                 href={task.href}
-                className="flex items-start justify-between gap-4 rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
+                className="flex items-start justify-between gap-4 rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tera-primary">{task.label}</p>
@@ -385,7 +385,7 @@ export default function HomeWorkspaceOverview() {
                 <span
                   className={[
                     'shrink-0 rounded-full border px-2 py-1 text-[0.55rem] uppercase tracking-[0.18em]',
-                    task.done ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-tera-border bg-white/[0.03] text-tera-secondary',
+                    task.done ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-tera-border bg-tera-muted text-tera-secondary',
                 ].join(' ')}
               >
                   {task.done ? 'Done' : 'Open'}
@@ -415,7 +415,7 @@ export default function HomeWorkspaceOverview() {
                 <Link
                   key={`${item.kind}-${item.id}`}
                   href={item.href}
-                className="block rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
+                className="block rounded-[18px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">
