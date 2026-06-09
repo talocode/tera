@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 
 type QuickAction = {
   label: string
@@ -27,7 +27,6 @@ const quickActions: QuickAction[] = [
 ]
 
 export default function QuickSwitcher() {
-  const router = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -36,14 +35,13 @@ export default function QuickSwitcher() {
     const onKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase()
       const isShortcut = (event.metaKey || event.ctrlKey) && key === 'k'
-      const shouldClose = key === 'escape'
 
       if (isShortcut) {
         event.preventDefault()
         setOpen((current) => !current)
       }
 
-      if (shouldClose) {
+      if (key === 'escape') {
         setOpen(false)
       }
     }
@@ -56,6 +54,13 @@ export default function QuickSwitcher() {
     if (!open) setQuery('')
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+    const onRouteChange = () => setOpen(false)
+    window.addEventListener('popstate', onRouteChange)
+    return () => window.removeEventListener('popstate', onRouteChange)
+  }, [open])
+
   const visibleActions = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     if (!normalized) return quickActions
@@ -66,23 +71,15 @@ export default function QuickSwitcher() {
     })
   }, [query])
 
-  useEffect(() => {
-    if (!open) return
-
-    const onRouteChange = () => setOpen(false)
-    window.addEventListener('popstate', onRouteChange)
-    return () => window.removeEventListener('popstate', onRouteChange)
-  }, [open])
-
   if (!open) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-3 right-3 z-40 flex rounded-full border border-white/10 bg-tera-panel/90 px-4 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary md:bottom-4 md:right-4"
+        className="fixed bottom-3 right-3 z-40 flex rounded-full border border-tera-border bg-tera-panel/90 px-4 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary md:bottom-4 md:right-4"
       >
         Quick switch
-        <span className="ml-3 rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[0.55rem] tracking-[0.12em] text-tera-secondary">
+        <span className="ml-3 rounded-full border border-tera-border bg-white/[0.03] px-2 py-1 text-[0.55rem] tracking-[0.12em] text-tera-secondary">
           ⌘K
         </span>
       </button>
@@ -92,8 +89,8 @@ export default function QuickSwitcher() {
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/65 px-4 py-24 backdrop-blur-sm">
       <button type="button" className="absolute inset-0" aria-label="Close quick switcher" onClick={() => setOpen(false)} />
-      <div className="relative z-10 w-full max-w-2xl rounded-[28px] border border-white/10 bg-tera-panel/95 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
-        <div className="flex items-center gap-3 rounded-[20px] border border-white/10 bg-black/20 px-4 py-3">
+      <div className="tera-surface relative z-10 w-full max-w-2xl p-4">
+        <div className="flex items-center gap-3 rounded-[20px] border border-tera-border bg-black/20 px-4 py-3">
           <svg className="h-5 w-5 shrink-0 text-tera-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" />
@@ -108,7 +105,7 @@ export default function QuickSwitcher() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="rounded-full border border-white/10 px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
+            className="rounded-full border border-tera-border px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:border-white/16 hover:text-tera-primary"
           >
             Esc
           </button>
@@ -125,7 +122,7 @@ export default function QuickSwitcher() {
 
         <div className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto pr-1">
           {visibleActions.length === 0 ? (
-            <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-5 text-sm text-tera-secondary">
+            <div className="tera-card-subtle px-4 py-5 text-sm text-tera-secondary">
               No matching actions. Try “research”, “notes”, or “queue”.
             </div>
           ) : (
@@ -134,14 +131,14 @@ export default function QuickSwitcher() {
                 key={action.href}
                 href={action.href}
                 onClick={() => setOpen(false)}
-                className="block rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+                className="block rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.06]"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-tera-primary">{action.label}</p>
                     <p className="mt-1 text-sm text-tera-secondary">{action.description}</p>
                   </div>
-                  <span className="rounded-full border border-white/10 px-2 py-1 text-[0.55rem] uppercase tracking-[0.18em] text-tera-secondary">
+                  <span className="rounded-full border border-tera-border px-2 py-1 text-[0.55rem] uppercase tracking-[0.18em] text-tera-secondary">
                     Open
                   </span>
                 </div>

@@ -918,7 +918,7 @@ export default function PromptShell({
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                                             </button>
                                             <div className="flex flex-col items-end gap-1 w-full">
-                                                <div className="w-full rounded-[26px] border border-white/10 bg-tera-elevated/90 px-5 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl">
+                                                <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-5 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl">
                                                     <p className="whitespace-pre-wrap leading-relaxed">{entry.userMessage.content}</p>
                                                     {entry.userMessage.attachments && entry.userMessage.attachments.length > 0 && (
                                                         <div className="mt-3 flex flex-wrap gap-2">
@@ -938,7 +938,7 @@ export default function PromptShell({
                                 {entry.assistantMessage && (
                                     <div className="flex justify-start w-full">
                                         <div className="w-full">
-                                            <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-white/8 bg-tera-panel/82 px-4 py-4 text-tera-primary shadow-panel backdrop-blur-2xl md:px-6 md:py-5">
+                                            <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/82 px-4 py-4 text-tera-primary shadow-panel backdrop-blur-2xl md:px-6 md:py-5">
                                                 <div className="space-y-4 w-full break-words overflow-hidden">
                                                     {parseContent(entry.assistantMessage.content).map((block, idx) => {
                                                         if (block.type === 'tera-ui') return <div key={idx} className="w-full my-4 animate-in fade-in slide-in-from-bottom-2 duration-300"><Renderer spec={block.spec} registry={teraRegistry} /></div>
@@ -948,8 +948,8 @@ export default function PromptShell({
                                                         if (block.type === 'mermaid') return <MermaidRenderer key={idx} chart={block.chart} />
                                                         if (block.type === 'quiz') return <QuizRenderer key={idx} quiz={block.config} />
                                                         if (block.type === 'code') return (
-                                                            <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-white/8 bg-[#08101a]/90 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
-                                                                <div className="flex items-center justify-between gap-2 border-b border-white/8 bg-black/10 px-3 py-2 md:px-4">
+                                                            <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
+                                                                <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
                                                                     <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">{block.language || 'code'}</span>
                                                                     <button onClick={() => navigator.clipboard.writeText(block.code)} className="p-1.5 text-white/40 hover:text-tera-neon transition-colors flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75H19.5A2.25 2.25 0 0121.75 6v10.5A2.25 2.25 0 0119.5 18.75h-2.25m-16.5 0h2.25m0 0v2.25m0-2.25v-8.25m0 0H3.75A2.25 2.25 0 015.25 5.25H7.5" /></svg></button>
                                                                 </div>
@@ -960,10 +960,10 @@ export default function PromptShell({
                                                     })}
                                                 </div>
                                                 {entry.assistantMessage.citations && entry.assistantMessage.citations.length > 0 && (
-                                                    <div className="mt-4 rounded-[22px] border border-white/8 bg-black/10 px-4 py-3 shadow-soft">
+                                                    <div className="mt-4 rounded-[22px] border border-tera-border bg-black/10 px-4 py-3 shadow-soft">
                                                         <div className="flex items-center justify-between gap-3">
                                                             <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
-                                                            <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                            <span className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
                                                                 {entry.assistantMessage.citations.length} source{entry.assistantMessage.citations.length === 1 ? '' : 's'}
                                                             </span>
                                                         </div>
@@ -974,7 +974,7 @@ export default function PromptShell({
                                                                     href={citation.url}
                                                                     target="_blank"
                                                                     rel="noreferrer"
-                                                                    className="block rounded-xl border border-white/6 bg-white/[0.03] px-4 py-3 transition hover:-translate-y-px hover:border-tera-neon/25 hover:bg-white/[0.05]"
+                                                                    className="block rounded-xl border border-tera-border bg-white/[0.03] px-4 py-3 transition hover:-translate-y-px hover:border-tera-neon/25 hover:bg-white/[0.05]"
                                                                     >
                                                                         <div className="flex items-start justify-between gap-3">
                                                                             <div>
@@ -999,7 +999,7 @@ export default function PromptShell({
                                                                                 event.stopPropagation()
                                                                                 void handleSaveBookmark(citation)
                                                                             }}
-                                                                            className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary"
+                                                                            className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-white/16 hover:text-tera-primary"
                                                                         >
                                                                             {bookmarkSaveStatuses[citation.url]?.type === 'saving' ? 'Saving...' : 'Save bookmark'}
                                                                         </button>
@@ -1014,7 +1014,7 @@ export default function PromptShell({
                                                         </div>
                                                     </div>
                                                 )}
-                                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-2">
+                                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-tera-border pt-2">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <span className="text-xs text-tera-secondary/60">Tera</span>
                                                         {isNoteSaveMode(entry.assistantMessage.chatMode) && (
@@ -1023,7 +1023,7 @@ export default function PromptShell({
                                                                     type="button"
                                                                     onClick={() => handleSaveNote(entry.assistantMessage!)}
                                                                     disabled={savingNoteIds[entry.assistantMessage.id]}
-                                                                    className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
+                                                                    className="rounded-full border border-tera-border bg-white/[0.03] px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
                                                                 >
                                                                     {savingNoteIds[entry.assistantMessage.id] ? 'Saving...' : 'Save as Note'}
                                                                 </button>
@@ -1045,7 +1045,7 @@ export default function PromptShell({
                         ))
                     )}
                     {status === 'loading' && (
-                        <div className="flex justify-start"><div className="max-w-[85%]"><div className="flex items-center gap-3 rounded-[24px] border border-white/8 bg-tera-panel/80 px-6 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl"><div className="flex gap-1"><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span></div><div className="flex items-center gap-2.5"><div className="relative"><div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent"></div></div><span className="font-medium animate-pulse">{thinkingMessage}</span></div></div></div></div>
+                        <div className="flex justify-start"><div className="max-w-[85%]"><div className="flex items-center gap-3 rounded-[24px] border border-tera-border bg-tera-panel/80 px-6 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl"><div className="flex gap-1"><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span></div><div className="flex items-center gap-2.5"><div className="relative"><div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent"></div></div><span className="font-medium animate-pulse">{thinkingMessage}</span></div></div></div></div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
@@ -1053,7 +1053,7 @@ export default function PromptShell({
 
             <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/84 px-2 py-2.5 shadow-[0_-24px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
-                    <div className={`relative flex flex-col gap-2 rounded-[26px] border border-white/8 bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
+                    <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                             <div className="flex items-center">
                                 <button
@@ -1077,8 +1077,8 @@ export default function PromptShell({
                             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={textareaPlaceholder} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.98rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
 
                             <div className="flex items-end gap-1">
-                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white text-[#08101a] transition hover:-translate-y-px hover:bg-white/95"><StopIcon /></button>}
-                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-white bg-white text-[#08101a] transition hover:bg-white/95"><SendIcon /></button>}
+                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:-translate-y-px hover:bg-white/95"><StopIcon /></button>}
+                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:bg-white/95"><SendIcon /></button>}
                                 {showMic && <button onClick={toggleListening} className={`composer-action-button ${isListening ? 'border-red-400/40 bg-red-500/18 text-red-300 animate-pulse' : ''}`}><MicIcon /></button>}
                             </div>
                         </div>
@@ -1093,7 +1093,7 @@ export default function PromptShell({
                                 />
 
                                 <div className="absolute left-0 right-0 bottom-full z-[59] mb-3 mx-auto w-full max-w-[380px] px-2 sm:px-0 sm:left-0 sm:right-auto sm:w-[min(380px,calc(100vw-1rem))]">
-                                    <div className="overflow-hidden rounded-[20px] sm:rounded-[24px] border border-white/8 bg-tera-panel/98 text-tera-primary shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+                                    <div className="overflow-hidden rounded-[20px] sm:rounded-[24px] border border-tera-border bg-tera-panel/98 text-tera-primary shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
 
                                         <div className="px-2 sm:px-3 pt-3 pb-1">
                                             <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Response mode</p>
@@ -1123,7 +1123,7 @@ export default function PromptShell({
                                                                     'flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border transition-colors',
                                                                     isActive
                                                                         ? 'border-tera-primary/20 bg-tera-primary text-tera-bg'
-                                                                        : 'border-white/8 bg-tera-bg text-tera-secondary',
+                                                                        : 'border-tera-border bg-tera-bg text-tera-secondary',
                                                                 ].join(' ')}
                                                             >
                                                                 {item.icon}
@@ -1158,7 +1158,7 @@ export default function PromptShell({
                                                     onClick={() => handleFileSelect('file')}
                                                     className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/8 bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
                                                         <AttachmentIcon />
                                                     </span>
                                                     Upload photos & files
@@ -1168,7 +1168,7 @@ export default function PromptShell({
                                                     onClick={() => handleFileSelect('image')}
                                                     className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/8 bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
                                                         <ScanIcon />
                                                     </span>
                                                     Take screenshot
@@ -1178,7 +1178,7 @@ export default function PromptShell({
                                                     onClick={() => handleFileSelect('camera')}
                                                     className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/8 bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
                                                         <CameraIcon />
                                                     </span>
                                                     Take photo

@@ -101,7 +101,7 @@ export default function HelpPage() {
               key={section.id}
               type="button"
               onClick={() => toggleSection(section.id)}
-              className="tera-card text-left transition hover:border-white/16 hover:bg-tera-elevated/80"
+              className="tera-card-subtle text-left transition hover:-translate-y-px hover:bg-white/[0.05]"
             >
               <p className="tera-eyebrow">Section</p>
               <h2 className="mt-3 text-xl font-semibold text-tera-primary">{section.title}</h2>
@@ -130,7 +130,7 @@ export default function HelpPage() {
                     const isExpanded = expandedArticles.includes(articleId)
 
                     return (
-                      <div key={articleId} className="rounded-[22px] border border-tera-border bg-white/[0.04] px-5 py-4">
+                      <div key={articleId} className="tera-card-subtle px-5 py-4">
                         <button type="button" onClick={() => toggleArticle(articleId)} className="flex w-full items-center justify-between gap-4 text-left">
                           <h3 className="text-base font-medium text-tera-primary">{article.title}</h3>
                           <svg className={`h-4 w-4 shrink-0 text-tera-secondary transition ${isExpanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

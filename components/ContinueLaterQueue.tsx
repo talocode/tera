@@ -206,7 +206,7 @@ export default function ContinueLaterQueue() {
         {loading ? (
           <p className="text-sm text-tera-secondary">Loading queue...</p>
         ) : items.length === 0 ? (
-          <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-6 text-sm text-tera-secondary">
+          <div className="tera-card-subtle px-5 py-6 text-sm text-tera-secondary">
             Nothing queued yet. Start a session, save a note, or pin a workflow to begin.
           </div>
         ) : (
@@ -214,10 +214,7 @@ export default function ContinueLaterQueue() {
             const isPinned = !!pinnedKeys[toPinnedKey(item)]
 
             return (
-              <div
-                key={`${item.kind}-${item.id}`}
-                className="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
-              >
+              <div key={`${item.kind}-${item.id}`} className="tera-card-subtle px-5 py-4 transition hover:-translate-y-px hover:bg-white/[0.06]">
                 <div className="flex items-start justify-between gap-4">
                   <Link href={item.href} className="min-w-0 flex-1">
                     <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">{labels[item.kind]}</p>
@@ -260,13 +257,13 @@ export default function ContinueLaterQueue() {
       </div>
 
       {archivedItems.length > 0 && (
-        <div className="mt-8 rounded-[22px] border border-white/8 bg-black/10 px-5 py-4">
+        <div className="mt-8 tera-surface-muted px-5 py-4">
           <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Completed</p>
           <div className="mt-4 space-y-3">
             {archivedItems.map((item) => (
               <div
                 key={`archived-${item.kind}-${item.id}`}
-                className="flex flex-col gap-3 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 md:flex-row md:items-center md:justify-between"
+                className="flex flex-col gap-3 rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-3 md:flex-row md:items-center md:justify-between"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-tera-primary">{item.title}</p>

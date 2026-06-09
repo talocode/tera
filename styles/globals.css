@@ -203,6 +203,8 @@
 
   .tera-surface {
     @apply rounded-[28px] border border-tera-border bg-tera-panel backdrop-blur-xl transition-all duration-200;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-panel);
   }
 
@@ -212,11 +214,15 @@
 
   .tera-surface-muted {
     @apply rounded-[24px] border border-tera-border bg-tera-muted backdrop-blur-xl transition-all duration-200;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-soft);
   }
 
   .tera-card {
     @apply rounded-[24px] border border-tera-border bg-tera-panel p-5 backdrop-blur-xl transition-all duration-200 sm:p-6;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-soft);
   }
 
@@ -226,6 +232,8 @@
 
   .tera-card-subtle {
     @apply rounded-[22px] border border-tera-border bg-tera-muted backdrop-blur-xl transition-all duration-200;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-soft);
   }
 

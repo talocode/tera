@@ -73,13 +73,13 @@ function StarterTile({
   launchPathPrefix?: string
 }) {
   const content = (
-    <div className="group flex h-full flex-col rounded-[22px] border border-white/8 bg-white/[0.03] p-4 text-left transition hover:-translate-y-px hover:border-white/12 hover:bg-white/[0.05]">
+    <div className="group flex h-full flex-col rounded-[22px] border border-tera-border bg-white/[0.03] p-4 text-left transition hover:-translate-y-px hover:bg-white/[0.05]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">{badge}</p>
           <h3 className="mt-2 text-sm font-semibold text-tera-primary">{title}</h3>
         </div>
-        <span className="rounded-full border border-white/8 bg-black/10 px-2 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary">
+        <span className="rounded-full border border-tera-border bg-black/10 px-2 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary">
           Use
         </span>
       </div>
@@ -156,7 +156,7 @@ export default function PromptStarterTemplates({
       </div>
 
       {recentWorkflows.length > 0 && (
-        <div className="mt-6 border-t border-white/8 pt-5">
+        <div className="mt-6 border-t border-tera-border pt-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Saved workflows</p>

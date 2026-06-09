@@ -169,7 +169,7 @@ const DetailPanel = ({ skill }: { skill: MarketplaceSkill | null }) => {
         <SkillBadge>{skill.section}</SkillBadge>
       </div>
 
-      <div className="mt-6 tera-card-subtle p-4">
+          <div className="mt-6 tera-card-subtle p-4">
         <p className="text-[0.65rem] uppercase tracking-[0.3em] text-tera-secondary">Launch context</p>
         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-tera-primary">
           {skill.launchPrompt}

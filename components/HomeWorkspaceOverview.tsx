@@ -255,7 +255,7 @@ export default function HomeWorkspaceOverview() {
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {usageCards.map((item) => (
-            <div key={item.label} className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <div key={item.label} className="tera-card-subtle px-4 py-4">
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">{item.label}</p>
               <p className="mt-3 text-2xl font-semibold text-tera-primary">{item.value}</p>
               <p className="mt-2 text-sm leading-6 text-tera-secondary">{item.detail}</p>
@@ -263,7 +263,7 @@ export default function HomeWorkspaceOverview() {
           ))}
         </div>
 
-        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+        <div className="mt-6 tera-surface-muted px-5 py-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Continue where you left off</p>
@@ -323,7 +323,7 @@ export default function HomeWorkspaceOverview() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+        <div className="mt-6 tera-surface-muted px-5 py-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Recent bookmarks</p>
@@ -345,7 +345,7 @@ export default function HomeWorkspaceOverview() {
                   href={bookmark.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+                  className="block rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-medium text-tera-primary">{bookmark.title}</p>
@@ -361,7 +361,7 @@ export default function HomeWorkspaceOverview() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+        <div className="mt-6 tera-surface-muted px-5 py-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Getting started</p>
@@ -376,7 +376,7 @@ export default function HomeWorkspaceOverview() {
               <Link
                 key={task.label}
                 href={task.href}
-                className="flex items-start justify-between gap-4 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+                className="flex items-start justify-between gap-4 rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tera-primary">{task.label}</p>
@@ -395,7 +395,7 @@ export default function HomeWorkspaceOverview() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-[22px] border border-white/8 bg-black/10 px-5 py-5">
+        <div className="mt-6 tera-surface-muted px-5 py-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">Recent work</p>
@@ -415,7 +415,7 @@ export default function HomeWorkspaceOverview() {
                 <Link
                   key={`${item.kind}-${item.id}`}
                   href={item.href}
-                  className="block rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.06]"
+                  className="block rounded-[18px] border border-tera-border bg-white/[0.025] px-4 py-4 transition hover:-translate-y-px hover:bg-white/[0.05]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[0.62rem] uppercase tracking-[0.28em] text-tera-secondary">

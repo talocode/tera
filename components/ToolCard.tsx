@@ -19,7 +19,7 @@ export default function ToolCard({ tool, selected, onSelect }: ToolCardProps) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-[16px] border ${selected ? 'border-tera-border bg-tera-highlight text-tera-accent' : 'border-tera-border bg-white/[0.03] text-tera-primary'}`}>
+          <div className={`flex h-12 w-12 items-center justify-center rounded-[16px] border border-tera-border ${selected ? 'bg-tera-highlight text-tera-accent' : 'bg-white/[0.03] text-tera-primary'}`}>
             <span className="text-xl leading-none">{tool.icon}</span>
           </div>
           <div>
