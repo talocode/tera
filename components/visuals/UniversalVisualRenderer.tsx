@@ -99,7 +99,7 @@ export default function UniversalVisualRenderer({
   return (
     <div className="w-full my-4 space-y-3">
       {/* Header */}
-      <div className="rounded-t-lg border border-white/10 bg-white/5 flex items-center justify-between px-4 py-2">
+      <div className="flex items-center justify-between rounded-t-lg border border-tera-border bg-white/5 px-4 py-2">
         <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
           📝 {title}
         </h3>
@@ -124,13 +124,13 @@ export default function UniversalVisualRenderer({
 
       {/* Code Preview (collapsible) */}
       {showCode && (
-        <pre className="p-4 text-xs text-white/70 bg-black/50 rounded-lg overflow-x-auto max-h-[200px] border border-white/10">
+        <pre className="max-h-[200px] overflow-x-auto rounded-lg border border-tera-border bg-black/50 p-4 text-xs text-white/70">
           <code>{code}</code>
         </pre>
       )}
 
       {/* Main Container */}
-      <div className="rounded-b-xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-lg h-[500px] relative">
+      <div className="relative h-[500px] overflow-hidden rounded-b-xl border border-tera-border bg-[#0A0A0A] shadow-lg">
         <iframe
           key={iframeKey}
           srcDoc={srcDoc}
