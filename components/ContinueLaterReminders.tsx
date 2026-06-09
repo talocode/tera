@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/components/AuthProvider'
 import {
   loadContinueLaterReminders,
   removeContinueLaterReminder,
@@ -9,10 +10,51 @@ import {
 } from '@/lib/continue-later'
 
 export default function ContinueLaterReminders() {
+  const { user } = useAuth()
   const [reminders, setReminders] = useState<ContinueLaterReminder[]>([])
+  const [alertsEnabled, setAlertsEnabled] = useState<boolean>(false)
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported' | 'default'>('default')
+  const [clockTick, setClockTick] = useState(() => Date.now())
 
   useEffect(() => {
     setReminders(loadContinueLaterReminders())
+  }, [])
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user) {
+        setAlertsEnabled(false)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/user/settings', { method: 'GET' })
+        if (!response.ok) return
+        const data = await response.json()
+        setAlertsEnabled(Boolean(data.reminder_alerts_enabled ?? true))
+      } catch (error) {
+        console.error('Failed to load reminder alert settings:', error)
+      }
+    }
+
+    void loadSettings()
+  }, [user])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setNotificationPermission('unsupported')
+      return
+    }
+
+    setNotificationPermission(Notification.permission)
+  }, [])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setClockTick(Date.now())
+    }, 60_000)
+
+    return () => window.clearInterval(interval)
   }, [])
 
   const handleRemoveReminder = (kind: ContinueLaterReminder['kind'], id: string) => {
@@ -20,13 +62,18 @@ export default function ContinueLaterReminders() {
     setReminders(next)
   }
 
+  const handleEnableBrowserAlerts = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+    const permission = await Notification.requestPermission()
+    setNotificationPermission(permission)
+  }
+
   const upcoming = useMemo(
     () => [...reminders].sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime()).slice(0, 5),
     [reminders],
   )
   const dueSoon = useMemo(() => {
-    const now = Date.now()
-    const soon = now + 24 * 60 * 60 * 1000
+    const soon = clockTick + 24 * 60 * 60 * 1000
     return reminders
       .filter((reminder) => {
         const remindAt = new Date(reminder.remindAt).getTime()
@@ -34,7 +81,36 @@ export default function ContinueLaterReminders() {
       })
       .sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime())
       .slice(0, 3)
-  }, [reminders])
+  }, [clockTick, reminders])
+
+  useEffect(() => {
+    if (!alertsEnabled || notificationPermission !== 'granted' || typeof window === 'undefined') return
+
+    const notifiedKey = 'tera_reminder_notifications_seen'
+    let seen = new Set<string>()
+    try {
+      seen = new Set<string>(JSON.parse(window.localStorage.getItem(notifiedKey) || '[]') as string[])
+    } catch (error) {
+      console.error('Failed to parse reminder notification cache:', error)
+    }
+
+    const dueNow = [...dueSoon].filter((reminder) => new Date(reminder.remindAt).getTime() <= clockTick + 60 * 60 * 1000)
+
+    if (dueNow.length === 0) return
+
+    const nextSeen = new Set(seen)
+    for (const reminder of dueNow) {
+      const key = `${reminder.kind}:${reminder.id}:${reminder.remindAt}`
+      if (nextSeen.has(key)) continue
+
+      nextSeen.add(key)
+      new Notification('Tera reminder', {
+        body: `${reminder.title} is due now.`,
+      })
+    }
+
+    window.localStorage.setItem(notifiedKey, JSON.stringify([...nextSeen]))
+  }, [alertsEnabled, clockTick, dueSoon, notificationPermission])
 
   return (
     <section className="tera-surface mt-8 p-6 md:p-8">
@@ -46,7 +122,24 @@ export default function ContinueLaterReminders() {
             Schedule a follow-up so unfinished work shows up when you need it again.
           </p>
         </div>
+        {alertsEnabled && notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
+          <button type="button" onClick={handleEnableBrowserAlerts} className="tera-button-secondary self-start">
+            Enable browser alerts
+          </button>
+        )}
       </div>
+
+      {alertsEnabled && notificationPermission === 'denied' && (
+        <div className="mt-6 rounded-[22px] border border-amber-400/20 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-50">
+          Browser alerts are blocked. Allow notifications in your browser settings if you want reminder popups.
+        </div>
+      )}
+
+      {notificationPermission === 'unsupported' && (
+        <div className="mt-6 rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm leading-7 text-tera-secondary">
+          Your browser does not support notifications. The reminder queue still works inside Tera.
+        </div>
+      )}
 
       <div className="mt-6 space-y-3">
         {dueSoon.length > 0 && (

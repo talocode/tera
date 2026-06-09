@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth'
 const DEFAULT_SETTINGS = (userId: string) => ({
     user_id: userId,
     notifications_enabled: true,
+    reminder_alerts_enabled: true,
     dark_mode: true,
     email_notifications: true,
     marketing_emails: false,
