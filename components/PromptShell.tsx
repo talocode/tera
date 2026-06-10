@@ -1,7 +1,6 @@
 "use client"
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
@@ -21,7 +20,7 @@ type User = {
 import type { AttachmentReference, AttachmentType } from '@/lib/attachment'
 import { fetchChatHistory } from '@/app/actions/user'
 import { addNote } from '@/app/actions/notes'
-import { dispatchUsageRefresh } from '@/lib/usage-events'
+import { dispatchUsageRefresh, TERA_USAGE_REFRESH_EVENT } from '@/lib/usage-events'
 import { compressImage } from '@/lib/image-compression'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
@@ -437,8 +436,33 @@ export default function PromptShell({
     const [usageLoading, setUsageLoading] = useState(false)
     const requestIdRef = useRef(0)
     const selectedChatModeConfig = getChatModeConfig(chatMode)
-    const textareaPlaceholder = isListening ? 'Listening...' : selectedChatModeConfig.placeholder
+    const textareaPlaceholder = isListening
+        ? 'Listening...'
+        : showInitialPrompt
+            ? `${selectedChatModeConfig.placeholder} Start with study, research, plan, or summarize.`
+            : selectedChatModeConfig.placeholder
     const closeComposerMenu = useCallback(() => setAttachmentOpen(false), [])
+    const refreshUsageSignals = useCallback(async () => {
+        if (!user?.id || !userReady) return
+
+        setUsageLoading(true)
+
+        try {
+            const [summary, credits] = await Promise.all([
+                fetchUserUsageSummary(user.id),
+                fetchCreditUsage(user.id),
+            ])
+
+            setUsageSummary(summary)
+            setCreditUsage(credits)
+        } catch (error) {
+            console.error('Error loading prompt usage signals:', error)
+            setUsageSummary(null)
+            setCreditUsage(null)
+        } finally {
+            setUsageLoading(false)
+        }
+    }, [user?.id, userReady])
 
     const handleResponseModeSelect = useCallback((mode: ChatMode) => {
         if (mode === 'image') {
@@ -452,10 +476,11 @@ export default function PromptShell({
         setAttachmentOpen(false)
     }, [])
 
-    const getThinkingMessage = (p: string) => {
+    const getThinkingMessage = (p: string, isResearchFlow: boolean) => {
         const lp = p.toLowerCase()
         if (lp.includes('draw') || lp.includes('visual') || lp.includes('chart') || lp.includes('diagram') || lp.includes('image')) return 'Tera is Creating Visuals...'
-        if (lp.includes('code') || lp.includes('function') || lp.includes('script') || lp.includes('debug') || lp.includes('api')) return 'Tera is Coding...'
+        if (isResearchFlow || lp.includes('research') || lp.includes('source') || lp.includes('citation') || lp.includes('web')) return 'Tera is Searching the web...'
+        if (lp.includes('code') || lp.includes('function') || lp.includes('script') || lp.includes('debug') || lp.includes('api')) return 'Tera is Calling the API...'
         if (lp.includes('analyze') || lp.includes('data') || lp.includes('trend')) return 'Tera is Analyzing Data...'
         if (lp.includes('solve') || lp.includes('calculate') || lp.includes('math') || lp.includes('equation')) return 'Tera is Solving...'
         if (lp.includes('write') || lp.includes('essay') || lp.includes('story') || lp.includes('poem') || lp.includes('draft')) return 'Tera is Writing...'
@@ -483,39 +508,18 @@ export default function PromptShell({
         }
     }, [initialPrompt, sessionId])
     useEffect(() => {
-        if (!user?.id || !userReady) return
+        void refreshUsageSignals()
+    }, [refreshUsageSignals])
+    useEffect(() => {
+        if (!user?.id || !userReady || typeof window === 'undefined') return
 
-        let cancelled = false
-        setUsageLoading(true)
-
-        const loadUsage = async () => {
-            try {
-                const [summary, credits] = await Promise.all([
-                    fetchUserUsageSummary(user.id),
-                    fetchCreditUsage(user.id),
-                ])
-
-                if (cancelled) return
-
-                setUsageSummary(summary)
-                setCreditUsage(credits)
-            } catch (error) {
-                console.error('Error loading prompt usage signals:', error)
-                if (!cancelled) {
-                    setUsageSummary(null)
-                    setCreditUsage(null)
-                }
-            } finally {
-                if (!cancelled) setUsageLoading(false)
-            }
+        const handleUsageRefresh = () => {
+            void refreshUsageSignals()
         }
 
-        void loadUsage()
-
-        return () => {
-            cancelled = true
-        }
-    }, [user?.id, userReady])
+        window.addEventListener(TERA_USAGE_REFRESH_EVENT, handleUsageRefresh)
+        return () => window.removeEventListener(TERA_USAGE_REFRESH_EVENT, handleUsageRefresh)
+    }, [refreshUsageSignals, user?.id, userReady])
     useEffect(() => {
         if (!attachmentOpen) return
 
@@ -622,7 +626,7 @@ export default function PromptShell({
 
         startTransition(async () => {
             try {
-                setThinkingMessage(getThinkingMessage(messageToSend))
+                setThinkingMessage(getThinkingMessage(messageToSend, researchMode))
                 const result = await generateAnswer({
                     prompt: messageToSend,
                     tool: tool.name,
@@ -845,12 +849,14 @@ export default function PromptShell({
     const showSend = (prompt.trim().length > 0 || pendingAttachments.length > 0) && status !== 'loading'
     const showStop = status === 'loading'
     const showMic = !showSend && !showStop
-    const hideInitialHero = attachmentOpen && showInitialPrompt
     const backgroundDimClass = attachmentOpen ? 'opacity-20 saturate-0 blur-[0.75px]' : 'opacity-100'
     const composerDimClass = attachmentOpen ? 'opacity-25' : 'opacity-100'
     const lowCreditThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
     const lowCredits = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= lowCreditThreshold
     const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
+    const loadingSteps = researchMode
+        ? ['Reading your request', 'Searching web sources', 'Checking citations', 'Writing the response']
+        : ['Reading your request', 'Calling the model', 'Saving credits and history']
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
@@ -878,21 +884,21 @@ export default function PromptShell({
                             </p>
                         </div>
                     )}
-                    {showInitialPrompt ? (
-                        <div
-                            className={`absolute inset-x-0 top-0 bottom-0 flex items-center justify-center px-4 text-center pointer-events-none -mt-16 transition-all duration-200 ease-out ${
-                                hideInitialHero ? 'opacity-0 scale-[0.99]' : 'opacity-100'
-                            }`}
-                            aria-hidden={hideInitialHero}
-                        >
-                            <div className="pointer-events-auto flex max-w-3xl flex-col items-center">
-                                <div className="mx-auto mb-8 w-fit p-7">
-                                    <div className="relative w-32 h-32">
-                                        <Image src="/images/TERA_LOGO_ONLY1.png" alt="Tera" fill className="object-contain block dark:hidden opacity-80" />
-                                        <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain hidden dark:block opacity-80" />
-                                    </div>
+                    {showInitialPrompt && (
+                        <div className="rounded-[28px] border border-tera-border bg-tera-panel/72 px-4 py-4 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
+                            <div className="flex flex-col gap-3 border-b border-tera-border pb-4 md:flex-row md:items-start md:justify-between">
+                                <div className="max-w-2xl">
+                                    <p className="tera-eyebrow">Start a new chat</p>
+                                    <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-tera-primary md:text-2xl">How can Tera help you today?</h2>
+                                    <p className="mt-2 text-sm leading-6 text-tera-secondary md:text-[0.95rem]">
+                                        Pick a starter below or type directly into the composer. Study, research, plan, and summarize are suggestions, not blockers.
+                                    </p>
                                 </div>
-                                <h2 className="text-3xl font-semibold tracking-[-0.03em] text-tera-primary md:text-4xl lg:text-5xl">How can Tera help you today?</h2>
+                                <Link href="/search" className="tera-button-secondary self-start">
+                                    Search workspace
+                                </Link>
+                            </div>
+                            <div className="pt-4">
                                 <PromptStarterTemplates
                                     onSelectPrompt={(value) => {
                                         setPrompt(value)
@@ -902,15 +908,13 @@ export default function PromptShell({
                                         }, 0)
                                     }}
                                     compact
+                                    layout="inline"
                                 />
-                                <Link href="/search" className="mt-4 tera-button-secondary">
-                                    Search workspace
-                                </Link>
                             </div>
                         </div>
-                    ) : (
-                        conversations.map((entry) => (
-                            <div key={entry.id} className="space-y-5 md:space-y-6">
+                    )}
+                    {conversations.map((entry) => (
+                        <div key={entry.id} className="space-y-5 md:space-y-6">
                                 {entry.userMessage && (
                                     <div className="flex justify-end group">
                                         <div className="flex items-end gap-2 max-w-[80%]">
@@ -919,7 +923,7 @@ export default function PromptShell({
                                             </button>
                                             <div className="flex flex-col items-end gap-1 w-full">
                                                 <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-4 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl md:px-5">
-                                                    <p className="whitespace-pre-wrap leading-relaxed">{entry.userMessage.content}</p>
+                                                    <p className="whitespace-pre-wrap text-[0.94rem] leading-relaxed md:text-[0.98rem]">{entry.userMessage.content}</p>
                                                     {entry.userMessage.attachments && entry.userMessage.attachments.length > 0 && (
                                                         <div className="mt-3 flex flex-wrap gap-2">
                                                             {entry.userMessage.attachments.map((att, idx) => (
@@ -939,7 +943,7 @@ export default function PromptShell({
                                     <div className="flex justify-start w-full">
                                         <div className="w-full">
                                             <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/82 px-4 py-4 text-tera-primary shadow-panel backdrop-blur-2xl md:px-6 md:py-5">
-                                                <div className="space-y-4 w-full break-words overflow-hidden">
+                                                <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
                                                     {parseContent(entry.assistantMessage.content).map((block, idx) => {
                                                         if (block.type === 'tera-ui') return <div key={idx} className="w-full my-4 animate-in fade-in slide-in-from-bottom-2 duration-300"><Renderer spec={block.spec} registry={teraRegistry} /></div>
                                                         if (block.type === 'universal-visual') return <UniversalVisualRenderer key={idx} code={block.code} language={block.language} title={block.title} />
@@ -1041,11 +1045,41 @@ export default function PromptShell({
                                         </div>
                                     </div>
                                 )}
-                            </div>
-                        ))
-                    )}
+                        </div>
+                    ))}
                     {status === 'loading' && (
-                        <div className="flex justify-start"><div className="max-w-[85%]"><div className="flex items-center gap-3 rounded-[24px] border border-tera-border bg-tera-panel/80 px-6 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl"><div className="flex gap-1"><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span><span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span></div><div className="flex items-center gap-2.5"><div className="relative"><div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent"></div></div><span className="font-medium animate-pulse">{thinkingMessage}</span></div></div></div></div>
+                        <div className="flex justify-start">
+                            <div className="max-w-[92%] md:max-w-[85%]">
+                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-4 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex gap-1.5">
+                                            <span className="h-2 w-2 rounded-full bg-tera-neon/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                            <span className="h-2 w-2 rounded-full bg-tera-neon/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                            <span className="h-2 w-2 rounded-full bg-tera-neon/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        </div>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="relative">
+                                                <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent" />
+                                            </div>
+                                            <span className="text-sm font-medium leading-6 animate-pulse md:text-[0.98rem]">{thinkingMessage}</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                                        {loadingSteps.map((step, index) => (
+                                            <div
+                                                key={step}
+                                                className="flex items-center gap-2 rounded-[14px] border border-tera-border bg-tera-muted px-3 py-2 text-xs text-tera-secondary"
+                                            >
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-tera-border bg-tera-bg text-[0.62rem] font-semibold text-tera-primary">
+                                                    {String(index + 1).padStart(2, '0')}
+                                                </span>
+                                                <span>{step}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
@@ -1054,6 +1088,23 @@ export default function PromptShell({
             <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/84 px-2 py-2 shadow-[0_-24px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
+                        {showInitialPrompt && (
+                            <div className="rounded-[20px] border border-tera-border bg-tera-muted/70 px-3 py-3 md:px-4">
+                                <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Starter ideas</p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    {['study', 'research', 'plan', 'summarize'].map((mode) => (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            onClick={() => setChatMode(mode as ChatMode)}
+                                            className="rounded-full border border-tera-border bg-tera-bg px-3 py-1 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:text-tera-primary"
+                                        >
+                                            {mode}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                             <div className="flex items-center">
                                 <button
@@ -1074,7 +1125,7 @@ export default function PromptShell({
                                 </button>
                             </div>
 
-                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={textareaPlaceholder} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.98rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
+                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={textareaPlaceholder} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.92rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0 md:text-[0.98rem]" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
 
                             <div className="flex items-end gap-1">
                                 {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:-translate-y-px hover:bg-white/95"><StopIcon /></button>}

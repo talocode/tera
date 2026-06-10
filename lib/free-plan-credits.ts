@@ -197,21 +197,24 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const now = new Date()
     const record = await getUserCreditRecord(userId)
     const plan = record?.plan ?? await getUserPlan(userId)
-    const total = getPlanCreditCap(plan) + Math.max(0, record?.purchasedCredits || 0)
 
     const activeResetDate = record?.resetDate && now <= record.resetDate
       ? record.resetDate
       : getNextResetDate(now)
     const windowStart = new Date(activeResetDate.getTime() - RESET_INTERVAL_MS)
+
+    if (record?.hasCreditLedger) {
+      const total = getPlanCreditCap(plan) + Math.max(0, record.purchasedCredits || 0)
+      const used = Math.max(0, record.resetDate && now <= record.resetDate ? record.used : 0)
+      const remaining = Math.max(0, total - used)
+      return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
+    }
+
     const ledgerSummary = await getUsageLedgerWindowSummary(userId, windowStart)
     const ledgerUsage = ledgerSummary?.creditsCharged ?? 0
-    const sessionUsage = record?.hasCreditLedger
-      ? 0
-      : await getSessionCreditUsage(userId, windowStart)
-    const storedUsage = record?.resetDate && now <= record.resetDate ? record.used : 0
-    const used = ledgerSummary
-      ? ledgerUsage
-      : (record?.hasCreditLedger ? storedUsage : Math.max(storedUsage, sessionUsage))
+    const sessionUsage = await getSessionCreditUsage(userId, windowStart)
+    const used = ledgerSummary ? ledgerUsage : sessionUsage
+    const total = getPlanCreditCap(plan)
     const remaining = Math.max(0, total - used)
     return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
   } catch (error) {

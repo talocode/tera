@@ -8,6 +8,7 @@ type PromptStarterTemplatesProps = {
   onSelectPrompt?: (prompt: string) => void
   launchPathPrefix?: string
   compact?: boolean
+  layout?: 'grid' | 'inline'
 }
 
 type StarterTemplate = {
@@ -69,6 +70,7 @@ function StarterTile({
   onSelectPrompt,
   launchPathPrefix,
 }: StarterTemplate & {
+  key?: string
   onSelectPrompt?: (prompt: string) => void
   launchPathPrefix?: string
 }) {
@@ -107,13 +109,58 @@ function StarterTile({
   return content
 }
 
+function StarterChip({
+  title,
+  description,
+  prompt,
+  badge,
+  onSelectPrompt,
+  launchPathPrefix,
+}: StarterTemplate & {
+  key?: string
+  onSelectPrompt?: (prompt: string) => void
+  launchPathPrefix?: string
+}) {
+  const content = (
+    <div className="flex items-center gap-3 rounded-[18px] border border-tera-border bg-tera-muted px-4 py-3 text-left transition hover:-translate-y-px hover:bg-tera-highlight">
+      <div className="min-w-0 flex-1">
+        <p className="text-[0.58rem] uppercase tracking-[0.24em] text-tera-secondary">{badge}</p>
+        <p className="mt-1 text-sm font-semibold text-tera-primary">{title}</p>
+        <p className="mt-1 line-clamp-1 text-xs leading-5 text-tera-secondary">{description}</p>
+      </div>
+      <span className="shrink-0 rounded-full border border-tera-border bg-black/10 px-2.5 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.22em] text-tera-secondary">
+        Use
+      </span>
+    </div>
+  )
+
+  if (onSelectPrompt) {
+    return (
+      <button type="button" onClick={() => onSelectPrompt(prompt)} className="text-left">
+        {content}
+      </button>
+    )
+  }
+
+  if (launchPathPrefix) {
+    return (
+      <Link href={buildPromptHref(launchPathPrefix, prompt)} className="block">
+        {content}
+      </Link>
+    )
+  }
+
+  return content
+}
+
 export default function PromptStarterTemplates({
   onSelectPrompt,
   launchPathPrefix,
   compact = false,
+  layout = 'grid',
 }: PromptStarterTemplatesProps) {
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
-  const visibleStarterTemplates = useMemo(
+  const visibleStarterTemplates = useMemo<StarterTemplate[]>(
     () => starterTemplates.slice(0, compact ? 4 : starterTemplates.length),
     [compact],
   )
@@ -122,10 +169,63 @@ export default function PromptStarterTemplates({
     setSavedWorkflows(loadSavedWorkflows())
   }, [])
 
-  const recentWorkflows = useMemo(
+  const recentWorkflows = useMemo<SavedWorkflow[]>(
     () => savedWorkflows.slice(0, compact ? 3 : 4),
     [compact, savedWorkflows],
   )
+
+  if (layout === 'inline') {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2 rounded-[22px] border border-tera-border bg-tera-muted/80 p-4 shadow-soft">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="tera-eyebrow">Quick starts</p>
+              <h2 className="mt-2 text-sm font-semibold text-tera-primary sm:text-base">Pick a mode or prompt starter</h2>
+              <p className="mt-2 text-xs leading-6 text-tera-secondary sm:text-sm">
+                Study, research, plan, and summarize all live here without blocking the composer.
+              </p>
+            </div>
+            {savedWorkflows.length > 0 && (
+              <Link href="/profile#saved-workflows" className="text-xs uppercase tracking-[0.2em] text-tera-secondary transition hover:text-tera-primary sm:text-sm sm:normal-case sm:tracking-normal">
+                Manage workflows
+              </Link>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {visibleStarterTemplates.map((template: StarterTemplate) => (
+              <StarterChip
+                key={template.title}
+                {...template}
+                onSelectPrompt={onSelectPrompt}
+                launchPathPrefix={launchPathPrefix}
+              />
+            ))}
+          </div>
+
+          {recentWorkflows.length > 0 && (
+            <div className="pt-2">
+              <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Saved workflows</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {recentWorkflows.map((workflow: SavedWorkflow) => (
+                  <StarterChip
+                    key={workflow.id}
+                    title={workflow.name}
+                    description="Saved workflow"
+                    prompt={workflow.prompt}
+                    badge="Workflow"
+                    onSelectPrompt={onSelectPrompt}
+                    launchPathPrefix={launchPathPrefix}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <section className="tera-surface mt-8 p-5 md:p-6">
@@ -145,7 +245,7 @@ export default function PromptStarterTemplates({
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {visibleStarterTemplates.map((template) => (
+        {visibleStarterTemplates.map((template: StarterTemplate) => (
           <StarterTile
             key={template.title}
             {...template}
@@ -169,7 +269,7 @@ export default function PromptStarterTemplates({
             )}
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {recentWorkflows.map((workflow) => (
+            {recentWorkflows.map((workflow: SavedWorkflow) => (
               <StarterTile
                 key={workflow.id}
                 title={workflow.name}
