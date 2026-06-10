@@ -854,10 +854,10 @@ export default function PromptShell({
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
-            <div className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-24 md:px-10 md:pb-10 md:pt-10 transition-all duration-200 ${backgroundDimClass}`} ref={conversationRef}>
-                <div className="mx-auto min-h-full max-w-4xl space-y-8">
+            <div className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-20 md:px-10 md:pb-10 md:pt-10 transition-all duration-200 ${backgroundDimClass}`} ref={conversationRef}>
+                <div className="mx-auto min-h-full max-w-4xl space-y-6 md:space-y-8">
                     {(usageLoading ? false : (lowCredits || lowUploads)) && (
-                        <div className="rounded-[24px] border border-amber-400/20 bg-amber-500/10 px-5 py-4 shadow-soft">
+                        <div className="rounded-[24px] border border-amber-400/20 bg-amber-500/10 px-4 py-3 shadow-soft md:px-5 md:py-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <p className="text-[0.62rem] uppercase tracking-[0.3em] text-amber-100/90">Usage alert</p>
@@ -910,7 +910,7 @@ export default function PromptShell({
                         </div>
                     ) : (
                         conversations.map((entry) => (
-                            <div key={entry.id} className="space-y-6">
+                            <div key={entry.id} className="space-y-5 md:space-y-6">
                                 {entry.userMessage && (
                                     <div className="flex justify-end group">
                                         <div className="flex items-end gap-2 max-w-[80%]">
@@ -918,7 +918,7 @@ export default function PromptShell({
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                                             </button>
                                             <div className="flex flex-col items-end gap-1 w-full">
-                                                <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-5 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl">
+                                                <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-4 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl md:px-5">
                                                     <p className="whitespace-pre-wrap leading-relaxed">{entry.userMessage.content}</p>
                                                     {entry.userMessage.attachments && entry.userMessage.attachments.length > 0 && (
                                                         <div className="mt-3 flex flex-wrap gap-2">
@@ -1051,7 +1051,7 @@ export default function PromptShell({
                 </div>
             </div>
 
-            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/84 px-2 py-2.5 shadow-[0_-24px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
+            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/84 px-2 py-2 shadow-[0_-24px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
