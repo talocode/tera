@@ -13,6 +13,9 @@ const nextConfig = {
 
     return config;
   },
+  experimental: {
+    browserslistForSwc: false,
+  },
 }
 
 export default nextConfig
