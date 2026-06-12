@@ -67,5 +67,5 @@ jobs:
       - name: Build OpenNext worker
         run: pnpm exec opennextjs-cloudflare build
 
-      - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy .open-next/assets --project-name=tera-web --branch=main --commit-dirty=true
+      - name: Deploy to Cloudflare Pages (full output)
+        run: npx wrangler pages deploy .open-next --project-name=tera-web --branch=main --commit-dirty=true
