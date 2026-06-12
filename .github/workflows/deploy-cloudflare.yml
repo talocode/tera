@@ -64,8 +64,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      - name: Build OpenNext worker
+        run: pnpm exec opennextjs-cloudflare build
 
       - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy .next --project-name=tera-web --branch=main --commit-dirty=true
+        run: npx wrangler pages deploy .open-next/assets --project-name=tera-web --branch=main --commit-dirty=true
