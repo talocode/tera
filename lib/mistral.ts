@@ -6,7 +6,7 @@ import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
 
 if (!process.env.MISTRAL_API_KEY) {
-  throw new Error('Mistral API key missing in environment variables')
+  console.warn('MISTRAL_API_KEY not configured — will be available at runtime')
 }
 
 export const TERA_MODEL_NAME = 'pixtral-12b-2409'
