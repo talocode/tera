@@ -1,12 +1,28 @@
-﻿import { google } from 'googleapis'
 import { supabaseServer } from './supabase-server'
 import { resolveAppOrigin } from './url'
 
-const sheets = google.sheets('v4')
-const drive = google.drive('v3')
+let _google: typeof import('googleapis')['google'] | null = null
+async function getGoogle() {
+  if (!_google) {
+    const mod = await import('googleapis')
+    _google = mod.google
+  }
+  return _google
+}
+
+async function getSheets() {
+  const google = await getGoogle()
+  return google.sheets('v4')
+}
+
+async function getDrive() {
+  const google = await getGoogle()
+  return google.drive('v3')
+}
 
 // Get OAuth2 client
-function getOAuth2Client(userId?: string) {
+async function getOAuth2Client(userId?: string) {
+  const google = await getGoogle()
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -73,7 +89,7 @@ async function getAuthenticatedSheetsClient(userId: string) {
   }
 
   // Pass userId so we can listen for refreshes
-  const oauth2Client = getOAuth2Client(userId)
+  const oauth2Client = await getOAuth2Client(userId)
 
   oauth2Client.setCredentials({
     access_token: tokens.google_access_token,
@@ -97,6 +113,7 @@ async function getAuthenticatedSheetsClient(userId: string) {
     // For other errors, let them propagate
   }
 
+  const google = await getGoogle()
   return google.sheets({ version: 'v4', auth: oauth2Client })
 }
 

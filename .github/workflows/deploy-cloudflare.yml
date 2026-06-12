@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Workers
+name: Deploy to Cloudflare Pages
 
 on:
   workflow_dispatch:
@@ -45,6 +45,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       WEB_URL: ${{ secrets.WEB_URL }}
+      NODE_ENV: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,42 +64,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build OpenNext worker
-        run: pnpm exec opennextjs-cloudflare build
+      - name: Build
+        run: pnpm build
 
-      - name: Write Cloudflare runtime secrets file
-        shell: bash
-        run: |
-          cat > .cloudflare.secrets.env <<EOF
-          AUTH_SECRET=${AUTH_SECRET}
-          AUTH_URL=${AUTH_URL}
-          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-          LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
-          LEMON_SQUEEZY_PLUS_VARIANT_ID=${LEMON_SQUEEZY_PLUS_VARIANT_ID}
-          LEMON_SQUEEZY_PRO_VARIANT_ID=${LEMON_SQUEEZY_PRO_VARIANT_ID}
-          LEMON_SQUEEZY_WEBHOOK_SECRET=${LEMON_SQUEEZY_WEBHOOK_SECRET}
-          MISTRAL_API_KEY=${MISTRAL_API_KEY}
-          NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-          NEXT_PUBLIC_LEMON_STORE_ID=${NEXT_PUBLIC_LEMON_STORE_ID}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-          NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-          NEXTAUTH_URL=${NEXTAUTH_URL}
-          TAVILY_API_KEY=${TAVILY_API_KEY}
-          RESEND_API_KEY=${RESEND_API_KEY}
-          RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
-          RESEND_REPLY_TO_EMAIL=${RESEND_REPLY_TO_EMAIL}
-          BREVO_API_KEY=${BREVO_API_KEY}
-          SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-          SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
-          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-          SUPABASE_URL=${SUPABASE_URL}
-          WEB_URL=${WEB_URL}
-          NODE_ENV=production
-          EOF
-
-      - name: Deploy Frontend (tera-web) to Cloudflare Workers
-        run: pnpm exec wrangler deploy --config wrangler.jsonc --secrets-file .cloudflare.secrets.env
-
-      - name: Deploy Backend API (tera-api) to Cloudflare Workers
-        run: pnpm exec wrangler deploy --config backend-server/wrangler.toml --secrets-file .cloudflare.secrets.env
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler pages deploy .next --project-name=tera-web --branch=main --commit-dirty=true
