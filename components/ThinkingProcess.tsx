@@ -68,7 +68,6 @@ export default function ThinkingProcess({ message, hasImages, isResearch, isStre
   }, [message, hasImages, isResearch])
 
   useEffect(() => {
-    let stageTimer: NodeJS.Timeout
     let cumulative = 0
 
     stages.forEach((stage, index) => {
