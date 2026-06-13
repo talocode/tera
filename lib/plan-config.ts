@@ -8,6 +8,7 @@ export interface PlanLimits {
     fileUploadsPerMonth: number | 'unlimited'
     webSearchesPerMonth: number | 'unlimited'
     maxFileSize: number // in MB
+    storageBytes: number // in bytes
     features: string[]
 }
 
@@ -34,12 +35,14 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
             fileUploadsPerMonth: 90,
             webSearchesPerMonth: 5,
             maxFileSize: 10,
+            storageBytes: 500 * 1024 * 1024, // 500MB
             features: ['basic-chat', 'basic-tools', 'file-uploads']
         },
         features: [
             'Unlimited AI conversations',
             '150 AI Computational Credits',
             '90 file uploads per month (10MB each)',
+            '500MB storage',
             'Basic AI tools & features',
             'Mobile & desktop access',
             'Community support'
@@ -56,12 +59,14 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
             fileUploadsPerMonth: 750,
             webSearchesPerMonth: 100,
             maxFileSize: 500,
+            storageBytes: 5 * 1024 * 1024 * 1024, // 5GB
             features: ['advanced-chat', 'all-tools', 'file-uploads', 'export', 'deep-research', 'priority-support']
         },
         features: [
             'Everything in Free, plus:',
             '1,500 AI Computational Credits',
             '750 file uploads per month (500MB each)',
+            '5GB storage',
             'Deep Research Mode',
             'Export to PDF & Word',
             'Priority email support',
@@ -80,12 +85,14 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
             fileUploadsPerMonth: 'unlimited',
             webSearchesPerMonth: 300,
             maxFileSize: 2000,
+            storageBytes: 20 * 1024 * 1024 * 1024, // 20GB
             features: ['advanced-chat', 'all-tools', 'file-uploads', 'export', 'admin', 'analytics', 'deep-research', 'priority-support']
         },
         features: [
             'Everything in Pro, plus:',
             '5,000 AI Computational Credits',
             'Unlimited file uploads (2GB each)',
+            '20GB storage',
             'Advanced analytics dashboard',
             '24/7 priority support',
             'Highest usage limits across Tera'

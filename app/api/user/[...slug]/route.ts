@@ -132,7 +132,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 throw new Error(uploadError.message)
             }
 
-            if (userId) await incrementFileUploadsServer(userId)
+            if (userId) {
+                await incrementFileUploadsServer(userId)
+                // Track storage usage
+                const { data: userData } = await supabaseServer
+                    .from('users')
+                    .select('storage_used_bytes')
+                    .eq('id', userId)
+                    .single()
+                const currentBytes = Number(userData?.storage_used_bytes || 0)
+                await supabaseServer
+                    .from('users')
+                    .update({ storage_used_bytes: currentBytes + file.size })
+                    .eq('id', userId)
+            }
 
             const { data: { publicUrl } } = supabaseServer.storage.from('attachments').getPublicUrl(filePath)
             return NextResponse.json({ name: file.name, url: publicUrl, type })
