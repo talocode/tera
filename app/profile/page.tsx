@@ -428,7 +428,7 @@ export default function ProfilePage() {
   const creditWarningThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
   const uploadWarningThreshold = usageSummary ? Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25)) : 0
   const hasCreditWarning = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= creditWarningThreshold
-  const hasUploadWarning = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= uploadWarningThreshold
+  const hasUploadWarning = !!usageSummary && !usageSummary.uploads.isUnlimited && (usageSummary.uploads.remaining as number) > 0 && (usageSummary.uploads.remaining as number) <= uploadWarningThreshold
 
   const activeLimitNotice = (() => {
     if (!usageSummary || !creditUsage) return null
@@ -443,11 +443,11 @@ export default function ProfilePage() {
       }
     }
 
-    if (!usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining <= uploadWarningThreshold) {
+    if (!usageSummary.uploads.isUnlimited && (usageSummary.uploads.remaining as number) <= uploadWarningThreshold) {
       return {
-        title: usageSummary.uploads.remaining <= 0 ? 'File upload limit reached' : 'File uploads running low',
+        title: (usageSummary.uploads.remaining as number) <= 0 ? 'File upload limit reached' : 'File uploads running low',
         message:
-          usageSummary.uploads.remaining <= 0
+          (usageSummary.uploads.remaining as number) <= 0
             ? 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.'
             : `${usageSummary.uploads.remaining.toLocaleString()} file uploads remain before your monthly limit resets.`,
       }

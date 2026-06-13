@@ -36,7 +36,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
       error: '/auth/error',
     },
     callbacks: {
-      async signIn({ user, profile }) {
+      async signIn({ user, profile }: { user: any; profile: any }) {
         if (!user.email) {
           return false
         }
@@ -88,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         }
       },
 
-      async jwt({ token, user }) {
+      async jwt({ token, user }: { token: any; user: any }) {
         if (user && user.email) {
           try {
             const { data } = await supabaseServer.from('users').select('id').eq('email', user.email).single()
@@ -120,7 +120,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         return token
       },
 
-      async session({ session, token }) {
+      async session({ session, token }: { session: any; token: any }) {
         if (session.user && token) {
           if (!token.userId && token.email) {
             try {
@@ -159,7 +159,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         return session
       },
 
-      async redirect({ url, baseUrl }) {
+      async redirect({ url, baseUrl }: { url: any; baseUrl: any }) {
         const appOrigin = resolveAppOrigin(baseUrl)
 
         if (url.startsWith('/')) {

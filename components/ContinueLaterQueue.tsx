@@ -79,7 +79,7 @@ export default function ContinueLaterQueue() {
         const pinned = loadContinueLaterQueue()
         const pinnedLookup = Object.fromEntries(pinned.map((item) => [toPinnedKey(item), true])) as Record<string, true>
         setPinnedKeys(pinnedLookup)
-        setArchivedItems(loadContinueLaterArchive().slice(0, 5))
+        setArchivedItems(loadContinueLaterArchive().slice(0, 5) as any)
 
         const [sessions, notes, memories] = user
           ? await Promise.all([
@@ -145,7 +145,7 @@ export default function ContinueLaterQueue() {
 
         if (!cancelled) {
           setItems(nextItems.slice(0, 8))
-          setArchivedItems(loadContinueLaterArchive().slice(0, 5))
+          setArchivedItems(loadContinueLaterArchive().slice(0, 5) as any)
         }
       } catch (error) {
         console.error('Failed to load continue-later queue:', error)
@@ -160,7 +160,7 @@ export default function ContinueLaterQueue() {
             pinnedAt: workflow.createdAt,
           }))
           setItems(fallback)
-          setArchivedItems(loadContinueLaterArchive().slice(0, 5))
+          setArchivedItems(loadContinueLaterArchive().slice(0, 5) as any)
         }
       } finally {
         if (!cancelled) setLoading(false)

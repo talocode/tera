@@ -35,6 +35,14 @@ type RecentItem =
       href: string
       timestamp: string
     }
+  | {
+      kind: 'workflow'
+      id: string
+      title: string
+      excerpt: string
+      href: string
+      timestamp: string
+    }
 
 type BookmarkItem = {
   id: string
@@ -44,14 +52,15 @@ type BookmarkItem = {
   source: string
   createdAt: string
 }
-  | {
-      kind: 'workflow'
-      id: string
-      title: string
-      excerpt: string
-      href: string
-      timestamp: string
-    }
+
+type WorkflowItem = {
+  kind: 'workflow'
+  id: string
+  title: string
+  excerpt: string
+  href: string
+  timestamp: string
+}
 
 type OnboardingTask = {
   label: string
