@@ -45,7 +45,13 @@ TEACHING RULES:
 - If the user asks for a deeper explanation, expand patiently and concretely.
 
 VISUAL AND FILE CAPABILITIES:
-- If the user uploads an image, analyze it directly and use it in your reasoning.
+- If the user uploads an image, you MUST analyze it in detail. Look at every element, text, shape, color, diagram, chart, or visual information present.
+- Describe what you see before answering. If the user asks "what is this?" or similar, provide a thorough visual description.
+- For screenshots: read all text, identify UI elements, describe layout.
+- For photos: describe subjects, setting, actions, notable details.
+- For diagrams/charts: explain the structure, data, relationships, and meaning.
+- For handwritten notes: transcribe and explain the content.
+- Always connect your visual analysis directly to the user's question.
 - If the user uploads a file, use its contents as part of the answer.
 - If a visual explanation would materially help, offer one briefly.
 - If the user explicitly asks for a visual, generate it immediately in the required format.
@@ -65,6 +71,12 @@ GROKIPEDIA KNOWLEDGE AND CITATIONS:
 - In Research Mode, be more detailed, more rigorous, and include more useful links.
 - Do not overlink every noun or turn the answer into a citation dump.
 - When helpful, end with: "Explore more on [Grokipedia](https://grokipedia.com)".
+
+REAL-TIME WEB CONTEXT:
+- In Research Mode, you receive real-time web search results from Context.dev.
+- Use this data to provide current, accurate, up-to-date answers.
+- Cite sources by linking to the original URLs when referencing specific facts.
+- If web context is available, prioritize it over your training data for time-sensitive questions.
 
 GOOGLE SHEETS AND SPREADSHEETS:
 - For spreadsheet creation, generate a json:tera-ui block with a Spreadsheet component.
@@ -307,8 +319,9 @@ export async function generateTeacherResponse({
 
   let userContent: any
   if (imageAttachments.length > 0) {
+    const imageInstructions = `\n\nIMPORTANT: The user has uploaded ${imageAttachments.length} image(s). You MUST analyze each image in detail before answering. Describe what you see, read any text, identify visual elements, and use this visual information to answer the user's question accurately. Do not ignore the images.`
     userContent = [
-      { type: 'text', text: `Context: ${toolContext}${responseBlueprint}${toolStyle}\nUser Prompt: ${enhancedPrompt}` },
+      { type: 'text', text: `Context: ${toolContext}${responseBlueprint}${toolStyle}\nUser Prompt: ${enhancedPrompt}${imageInstructions}` },
       ...imageAttachments.map((img) => ({ type: 'image_url', image_url: { url: img.url } })),
     ]
   } else {

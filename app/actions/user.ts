@@ -229,7 +229,7 @@ export async function fetchChatHistory(userId: string, sessionId: string) {
 
         const { data, error } = await supabaseServer
             .from('chat_sessions')
-            .select('id, prompt, response, attachments, created_at, tool, metadata')
+            .select('id, session_id, prompt, response, attachments, created_at, tool, metadata')
             .eq('user_id', userId)
             .eq('session_id', sessionId)
             .order('created_at', { ascending: true })

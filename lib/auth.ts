@@ -141,6 +141,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
           session.user.email = token.email as string
           session.user.name = token.name as string
           session.user.image = token.picture as string
+
+          if (!session.user.image && token.userId) {
+            try {
+              const { data: profileData } = await supabaseServer
+                .from('users')
+                .select('profile_image_url')
+                .eq('id', token.userId)
+                .single()
+              if (profileData?.profile_image_url) {
+                session.user.image = profileData.profile_image_url
+              }
+            } catch {
+            }
+          }
         }
         return session
       },

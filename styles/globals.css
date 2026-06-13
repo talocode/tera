@@ -122,10 +122,17 @@
     color: var(--text-tera-primary);
     font-family: 'Manrope', Inter, system-ui, -apple-system, 'Segoe UI Variable Display', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
+    font-size: 14px;
     letter-spacing: -0.01em;
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+  }
+
+  @media (max-width: 768px) {
+    body {
+      font-size: 15px;
+    }
   }
 
   :where(a, button, input, textarea, select, summary):focus-visible {
@@ -257,11 +264,11 @@
   }
 
   .tera-title {
-    @apply text-3xl font-semibold tracking-[-0.04em] text-tera-primary sm:text-4xl;
+    @apply text-2xl font-semibold tracking-[-0.04em] text-tera-primary sm:text-3xl;
   }
 
   .tera-subtitle {
-    @apply max-w-3xl text-sm leading-7 text-tera-secondary sm:text-base;
+    @apply max-w-3xl text-xs leading-6 text-tera-secondary sm:text-sm;
   }
 
   /* Surface — elevated container */

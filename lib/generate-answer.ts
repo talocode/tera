@@ -9,6 +9,7 @@ import { sendCreditLimitReachedEmail } from '@/lib/transactional-emails'
 import { recordUsageLedgerEvent } from '@/lib/usage-ledger'
 import { normalizeChatMode } from '@/lib/ai/chat-modes'
 import { buildResearchCitations, formatTavilyResearchContext, searchTavily } from '@/lib/tavily'
+import { searchContextDev, formatContextDevSearchContext, buildContextDevCitations } from '@/lib/context-dev'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {
@@ -67,11 +68,14 @@ export async function generateAnswerForPrompt({
       school: null,
       gradeLevels: null,
       createdAt: new Date(),
+      lemonSqueezyCustomerId: null,
     }
   }
 
-  if (attachments.length > 0 && !canUploadFile(userProfile.subscriptionPlan, userProfile.monthlyFileUploads)) {
-    const planConfig = getPlanConfig(userProfile.subscriptionPlan)
+  const profile = userProfile!
+
+  if (attachments.length > 0 && !canUploadFile(profile.subscriptionPlan, profile.monthlyFileUploads)) {
+    const planConfig = getPlanConfig(profile.subscriptionPlan)
     const limit = planConfig.limits.fileUploadsPerMonth
     const errorMessage = `You've reached your monthly limit of ${limit} file uploads. Upgrade to Pro or Plus for higher limits.`
     console.error('File upload limit reached:', errorMessage)
@@ -101,17 +105,17 @@ export async function generateAnswerForPrompt({
   }
 
   if (creditsRemaining <= 0) {
-    const cap = getPlanCreditCap(userProfile.subscriptionPlan)
+    const cap = getPlanCreditCap(profile.subscriptionPlan)
     const resetLabel = resetDate
       ? new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'in 30 days'
     const errorMessage = `You've reached your monthly credit cap (${cap}). Upgrade your plan now, or wait until your credits reset on ${resetLabel}.`
-    const email = userProfile.email || authorEmail
+    const email = profile.email || authorEmail
     if (email) {
       sendCreditLimitReachedEmail({
         userId: authorId,
         email,
-        plan: userProfile.subscriptionPlan,
+        plan: profile.subscriptionPlan,
         resetDate,
       }).catch((sendError) => console.error('[credit_limit_email_failed]', { userId: authorId, error: sendError }))
     }
@@ -119,7 +123,7 @@ export async function generateAnswerForPrompt({
       userId: authorId,
       eventType: 'credit_blocked',
       status: 'blocked',
-      plan: userProfile.subscriptionPlan,
+      plan: profile.subscriptionPlan,
       tool,
       model: TERA_MODEL_NAME,
       tokenUsage: 0,
@@ -140,7 +144,7 @@ export async function generateAnswerForPrompt({
     }
   }
 
-  if (researchMode && !(userProfile.subscriptionPlan === 'pro' || userProfile.subscriptionPlan === 'plus')) {
+  if (researchMode && !(profile.subscriptionPlan === 'pro' || profile.subscriptionPlan === 'plus')) {
     const errorMessage = 'Deep Research mode is available on Pro and Plus plans.'
     return {
       answer: errorMessage,
@@ -184,13 +188,13 @@ export async function generateAnswerForPrompt({
   let researchContext = ''
   let researchCitations: NonNullable<GenerateAnswerResult['citations']> = []
   if (researchMode) {
-    const planConfig = getPlanConfig(userProfile.subscriptionPlan)
+    const planConfig = getPlanConfig(profile.subscriptionPlan)
     const monthlyWebSearchLimit = planConfig.limits.webSearchesPerMonth
-    const monthlyWebSearches = userProfile.monthlyWebSearches || 0
+    const monthlyWebSearches = profile.monthlyWebSearches || 0
 
     if (monthlyWebSearchLimit !== 'unlimited' && monthlyWebSearches >= monthlyWebSearchLimit) {
-      const resetLabel = userProfile.webSearchResetDate
-        ? new Date(userProfile.webSearchResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const resetLabel = profile.webSearchResetDate
+        ? new Date(profile.webSearchResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : 'next month'
       const errorMessage = `You've reached your monthly web search limit (${monthlyWebSearchLimit}). It resets on ${resetLabel}.`
 
@@ -198,7 +202,7 @@ export async function generateAnswerForPrompt({
         userId: authorId,
         eventType: 'web_search_blocked',
         status: 'blocked',
-        plan: userProfile.subscriptionPlan,
+        plan: profile.subscriptionPlan,
         tool,
         model: TERA_MODEL_NAME,
         tokenUsage: 0,
@@ -207,7 +211,7 @@ export async function generateAnswerForPrompt({
         metadata: {
           promptLength: prompt.length,
           chatMode: normalizedChatMode,
-          resetDate: userProfile.webSearchResetDate ? userProfile.webSearchResetDate.toISOString() : null,
+          resetDate: profile.webSearchResetDate ? profile.webSearchResetDate.toISOString() : null,
         },
       })
 
@@ -220,37 +224,83 @@ export async function generateAnswerForPrompt({
     }
 
     try {
-      const tavilyResponse = await searchTavily({
-        query: prompt,
-        searchDepth: 'advanced',
-        maxResults: 5,
-        includeAnswer: true,
-        includeRawContent: false,
-      })
+      let searchSucceeded = false
 
-      researchContext = formatTavilyResearchContext(tavilyResponse)
-      researchCitations = buildResearchCitations(tavilyResponse)
-      await incrementWebSearchesServer(authorId)
+      // Try Context.dev first (primary search engine)
+      if (process.env.CONTEXT_DEV_API_KEY) {
+        try {
+          const ctxResponse = await searchContextDev({
+            query: prompt,
+            maxResults: 5,
+            scrapeToMarkdown: true,
+          })
 
-      await recordUsageLedgerEvent({
-        userId: authorId,
-        eventType: 'web_search',
-        status: 'succeeded',
-        plan: userProfile.subscriptionPlan,
-        tool,
-        model: TERA_MODEL_NAME,
-        tokenUsage: 0,
-        creditsCharged: 0,
-        sessionId: sessionId ?? null,
-        metadata: {
-          chatMode: normalizedChatMode,
-          resultCount: tavilyResponse.results?.length || 0,
-          responseTime: tavilyResponse.response_time || null,
+          if (ctxResponse.results?.length) {
+            researchContext = formatContextDevSearchContext(ctxResponse)
+            researchCitations = buildContextDevCitations(ctxResponse)
+            searchSucceeded = true
+
+            await recordUsageLedgerEvent({
+              userId: authorId,
+              eventType: 'web_search',
+              status: 'succeeded',
+              plan: profile.subscriptionPlan,
+              tool,
+              model: TERA_MODEL_NAME,
+              tokenUsage: 0,
+              creditsCharged: 0,
+              sessionId: sessionId ?? null,
+              metadata: {
+                chatMode: normalizedChatMode,
+                resultCount: ctxResponse.results.length,
+                provider: 'context.dev',
+                creditsConsumed: ctxResponse.key_metadata?.credits_consumed || 0,
+                creditsRemaining: ctxResponse.key_metadata?.credits_remaining || null,
+                query: prompt,
+              },
+            })
+          }
+        } catch (ctxError) {
+          console.warn('[context_dev_search_fallback]', { userId: authorId, error: ctxError })
+        }
+      }
+
+      // Fallback to Tavily if Context.dev failed or is not configured
+      if (!searchSucceeded) {
+        const tavilyResponse = await searchTavily({
           query: prompt,
-        },
-      })
+          searchDepth: 'advanced',
+          maxResults: 5,
+          includeAnswer: true,
+          includeRawContent: false,
+        })
+
+        researchContext = formatTavilyResearchContext(tavilyResponse)
+        researchCitations = buildResearchCitations(tavilyResponse)
+
+        await recordUsageLedgerEvent({
+          userId: authorId,
+          eventType: 'web_search',
+          status: 'succeeded',
+          plan: profile.subscriptionPlan,
+          tool,
+          model: TERA_MODEL_NAME,
+          tokenUsage: 0,
+          creditsCharged: 0,
+          sessionId: sessionId ?? null,
+          metadata: {
+            chatMode: normalizedChatMode,
+            resultCount: tavilyResponse.results?.length || 0,
+            provider: 'tavily',
+            responseTime: tavilyResponse.response_time || null,
+            query: prompt,
+          },
+        })
+      }
+
+      await incrementWebSearchesServer(authorId)
     } catch (error) {
-      console.error('[tavily_search_failed]', { userId: authorId, error })
+      console.error('[web_search_failed]', { userId: authorId, error })
     }
   }
 
@@ -409,7 +459,7 @@ export async function generateAnswerForPrompt({
     userId: authorId,
     eventType: 'chat_generation',
     status: 'succeeded',
-    plan: userProfile.subscriptionPlan,
+    plan: profile.subscriptionPlan,
     tool,
     model: TERA_MODEL_NAME,
     tokenUsage: tokenCost,
