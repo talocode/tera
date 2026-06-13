@@ -28,6 +28,7 @@ import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
 import PromptStarterTemplates from './PromptStarterTemplates'
+import { useTheme } from './ThemeProvider'
 type SurfaceMode = 'chat' | 'research' | 'image'
 
 type Message = {
@@ -409,6 +410,7 @@ export default function PromptShell({
     initialPrompt?: string
 }) {
     const router = useRouter()
+    const { theme } = useTheme()
     const [prompt, setPrompt] = useState(initialPrompt || '')
     const [status, setStatus] = useState<'idle' | 'loading'>('idle')
     const [conversations, setConversations] = useState<ConversationEntry[]>([])
@@ -438,6 +440,7 @@ export default function PromptShell({
     const researchMode = selectedMode === 'research'
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
     const [thinkingPhase, setThinkingPhase] = useState(0)
+    const [loadingHasImages, setLoadingHasImages] = useState(false)
     const [streamingText, setStreamingText] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
     const streamTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -489,7 +492,8 @@ export default function PromptShell({
         setAttachmentOpen(false)
     }, [])
 
-    const getThinkingMessage = (p: string, isResearchFlow: boolean) => {
+    const getThinkingMessage = (p: string, isResearchFlow: boolean, hasImages: boolean) => {
+        if (hasImages) return 'Tera is Analyzing your image...'
         const lp = p.toLowerCase()
         if (lp.includes('draw') || lp.includes('visual') || lp.includes('chart') || lp.includes('diagram') || lp.includes('image')) return 'Tera is Creating Visuals...'
         if (isResearchFlow || lp.includes('research') || lp.includes('source') || lp.includes('citation') || lp.includes('web')) return 'Tera is Searching the web...'
@@ -508,9 +512,16 @@ export default function PromptShell({
 
     const thinkingPhases = [
         'Reading your message...',
-        'Gathering context...',
-        'Structuring the response...',
-        'Refining the answer...',
+        'Processing context...',
+        'Generating response...',
+        'Composing answer...',
+    ]
+
+    const imageThinkingPhases = [
+        'Receiving your image...',
+        'Analyzing visual content...',
+        'Extracting details...',
+        'Formulating response...',
     ]
 
     useEffect(() => {
@@ -689,7 +700,8 @@ export default function PromptShell({
 
         startTransition(async () => {
             try {
-                setThinkingMessage(getThinkingMessage(messageToSend, researchMode))
+                setThinkingMessage(getThinkingMessage(messageToSend, researchMode, attachmentsToSend.some(a => a.type === 'image')))
+                setLoadingHasImages(attachmentsToSend.some(a => a.type === 'image'))
                 const result = await generateAnswer({
                     prompt: messageToSend,
                     tool: tool.name,
@@ -868,12 +880,14 @@ export default function PromptShell({
 
     useEffect(() => {
         if (!user?.id || !sessionId) return
+        let cancelled = false
         setHistoryLoading(true)
         fetchChatHistory(user.id, sessionId).then(data => {
+            if (cancelled) return
             if (data && data.length > 0) {
-                const loaded: ConversationEntry[] = data.map(s => {
+                const loaded: ConversationEntry[] = data.map((s: any) => {
                     const mode = getChatModeForTool(s.tool ?? tool.name)
-                    const citations = Array.isArray((s as any).metadata?.citations) ? (s as any).metadata.citations : undefined
+                    const citations = Array.isArray(s.metadata?.citations) ? s.metadata.citations : undefined
 
                     return {
                         id: s.id, sessionId: s.session_id || s.id,
@@ -889,9 +903,11 @@ export default function PromptShell({
             }
             setHistoryLoading(false)
         }).catch(err => {
+            if (cancelled) return
             console.error('Failed to load chat history:', err)
             setHistoryLoading(false)
         })
+        return () => { cancelled = true }
     }, [user?.id, sessionId])
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -926,10 +942,12 @@ export default function PromptShell({
     const composerDimClass = attachmentOpen ? 'opacity-25' : 'opacity-100'
     const lowCreditThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
     const lowCredits = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= lowCreditThreshold
-    const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
+    const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && (usageSummary.uploads.remaining as number) > 0 && (usageSummary.uploads.remaining as number) <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
     const loadingSteps = researchMode
         ? ['Reading your request', 'Searching web sources', 'Checking citations', 'Writing the response']
         : ['Reading your request', 'Calling the model', 'Saving credits and history']
+
+    const imageLoadingSteps = ['Receiving your image', 'Analyzing visual content', 'Extracting details', 'Writing response']
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
@@ -1138,12 +1156,13 @@ export default function PromptShell({
                                         </div>
                                         <div className="flex flex-col gap-0.5">
                                             <span className="text-sm font-semibold text-tera-primary md:text-[0.98rem]">{thinkingMessage}</span>
-                                            <span className="text-xs text-tera-secondary animate-pulse">{thinkingPhases[thinkingPhase]}</span>
+                                            <span className="text-xs text-tera-secondary animate-pulse">{(loadingHasImages ? imageThinkingPhases : thinkingPhases)[thinkingPhase]}</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 grid gap-2 md:grid-cols-2">
-                                        {loadingSteps.map((step, index) => {
-                                            const isActive = index === Math.min(thinkingPhase, loadingSteps.length - 1)
+                                        {(loadingHasImages ? imageLoadingSteps : loadingSteps).map((step, index) => {
+                                            const phases = loadingHasImages ? imageLoadingSteps : loadingSteps
+                                            const isActive = index === Math.min(thinkingPhase, phases.length - 1)
                                             const isDone = index < thinkingPhase
                                             return (
                                                 <div
@@ -1204,7 +1223,7 @@ export default function PromptShell({
                                 </button>
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
                                     <div className="relative h-5 w-5">
-                                        <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain" />
+                                        <Image src={theme === 'light' ? '/images/TERA_LOGO_ONLY1.png' : '/images/TERA_LOGO_ONLY.png'} alt="Tera" fill className="object-contain" />
                                     </div>
                                 </button>
                             </div>
@@ -1372,7 +1391,7 @@ export default function PromptShell({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="relative w-full max-w-md">
                         <button onClick={() => setSearchHistoryOpen(false)} className="absolute -top-10 right-0 text-white/80 hover:text-white">Close ×</button>
-                        <SearchHistoryRenderer userId={user.id} onSelectQuery={(q) => { setPrompt(q); setSearchHistoryOpen(false) }} onSelectBookmark={(u) => window.open(u, '_blank')} />
+                        <SearchHistoryRenderer userId={user.id} onSelectQuery={(q: string) => { setPrompt(q); setSearchHistoryOpen(false) }} onSelectBookmark={(u: string) => window.open(u, '_blank')} />
                     </div>
                 </div>
             )}

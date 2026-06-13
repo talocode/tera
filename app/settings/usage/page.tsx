@@ -281,7 +281,7 @@ export default function UsagePage() {
         <div className="tera-page-header gap-5">
           <div>
             <p className="tera-eyebrow">Workspace</p>
-            <h1 className="tera-title mt-3">Usage & Credits</h1>
+            <h1 className="tera-title mt-3 text-2xl sm:text-3xl">Usage & Credits</h1>
             <p className="tera-subtitle mt-4">Track your AI credit consumption, file uploads, web searches, and manage credit top-ups and auto-replenishment.</p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -316,7 +316,7 @@ export default function UsagePage() {
                 <div className="flex h-full flex-col justify-between gap-6">
                   <div>
                     <p className="text-sm font-medium text-tera-secondary">AI computational credits</p>
-                    <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">
+                    <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-tera-primary">
                       {creditUsage ? creditUsage.remaining.toLocaleString() : '—'}
                     </p>
                     <p className="mt-3 text-sm text-tera-secondary">
@@ -347,16 +347,16 @@ export default function UsagePage() {
               />
 
               <UsageMetricCard
-                title="Web searches (monthly)"
+                title="Web search calls (monthly)"
                 metric={usageSummary!.webSearches}
-                description="Deep Research uses Tavily and is capped monthly."
+                description="Each call uses Tavily API for real-time web research."
               />
 
               <div className="tera-card h-full">
                 <div className="flex h-full flex-col justify-between gap-6">
                   <div>
                     <p className="text-sm font-medium text-tera-secondary">Storage</p>
-                    <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">
+                    <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-tera-primary">
                       {storageUsage ? storageUsage.usedDisplay : '—'}
                     </p>
                     <p className="mt-3 text-sm text-tera-secondary">
@@ -386,7 +386,7 @@ export default function UsagePage() {
                 <div className="flex h-full flex-col justify-between gap-6">
                   <div>
                     <p className="text-sm font-medium text-tera-secondary">AI conversations</p>
-                    <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-emerald-400">Unlimited</p>
+                    <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-emerald-400">Unlimited</p>
                     <p className="mt-3 text-sm text-tera-secondary">Tera does not block you based on message count. Computational credits are the active meter.</p>
                   </div>
                   <div>
@@ -407,14 +407,14 @@ export default function UsagePage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="tera-surface p-6 md:p-8">
             <p className="tera-eyebrow">Top up credits</p>
-            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Add computational credits</h2>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Add computational credits</h2>
             <p className="mt-3 text-sm leading-7 text-tera-secondary">
               Credits fuel AI processing. Each credit covers roughly 5,000 tokens of model usage.
             </p>
 
             {profile.subscriptionPlan === 'free' && creditDaysLeft !== null && creditDaysLeft > 0 && (
-              <div className="mt-4 rounded-[16px] border border-amber-400/20 bg-amber-500/10 px-4 py-3">
-                <p className="text-xs font-medium text-amber-100">
+              <div className="mt-4 rounded-[16px] border border-amber-300/40 bg-amber-50 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-500/10">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-100">
                   Free plan 30-day cycle: Your current credit window resets in {creditDaysLeft} days.
                   You can add credits now, or wait for the automatic reset.
                 </p>
@@ -451,7 +451,7 @@ export default function UsagePage() {
 
           <div className="tera-surface p-6 md:p-8">
             <p className="tera-eyebrow">Auto top-up</p>
-            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Automatic replenishment</h2>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Automatic replenishment</h2>
             <p className="mt-3 text-sm leading-7 text-tera-secondary">
               When your credits run low, Tera can automatically add more so you never hit a wall mid-conversation.
             </p>
@@ -519,7 +519,7 @@ export default function UsagePage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="tera-card">
             <p className="tera-eyebrow">Weekly trend</p>
-            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Credit consumption</h2>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Credit consumption</h2>
             <p className="mt-3 text-sm leading-7 text-tera-secondary">Track credits used over the last 7 days.</p>
             <div className="mt-8">
               {historyLoading ? (
@@ -534,11 +534,11 @@ export default function UsagePage() {
               <div className="mt-4 grid grid-cols-2 gap-4 border-t border-tera-border pt-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-tera-secondary">7D total</p>
-                  <p className="mt-1 text-lg font-semibold text-tera-primary">{weeklyTotal.toLocaleString()}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
+                  <p className="mt-1 text-base font-semibold text-tera-primary">{weeklyTotal.toLocaleString()}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Daily avg</p>
-                  <p className="mt-1 text-lg font-semibold text-tera-primary">{Math.round(weeklyTotal / 7)}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
+                  <p className="mt-1 text-base font-semibold text-tera-primary">{Math.round(weeklyTotal / 7)}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
                 </div>
               </div>
             )}
@@ -546,7 +546,7 @@ export default function UsagePage() {
 
           <div className="tera-card">
             <p className="tera-eyebrow">Billing cycle</p>
-            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Reset schedule</h2>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Reset schedule</h2>
             <p className="mt-3 text-sm leading-7 text-tera-secondary">When each allowance resets and current headroom.</p>
             <div className="mt-6 space-y-4">
               <div className="flex items-center justify-between rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
@@ -569,7 +569,7 @@ export default function UsagePage() {
               </div>
               <div className="flex items-center justify-between rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-tera-primary">Web searches</p>
+                  <p className="text-sm font-medium text-tera-primary">Web search calls</p>
                   <p className="mt-1 text-xs text-tera-secondary">
                     {usageSummary?.webSearches.isUnlimited ? 'Unlimited' : usageSummary ? `${usageSummary.webSearches.remaining} of ${usageSummary.webSearches.limit} remaining` : 'Loading...'}
                   </p>

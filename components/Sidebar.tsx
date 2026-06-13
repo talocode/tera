@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import UserMenu from './UserMenu'
 import { fetchUserSessions } from '@/app/actions/user'
+import { useTheme } from './ThemeProvider'
 
 type User = {
   id: string
@@ -172,6 +173,7 @@ function formatRelativeTime(dateStr: string): string {
 export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
   const pathname = usePathname()
   const expanded = pinned || mobileOpen
+  const { theme } = useTheme()
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
@@ -236,7 +238,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
               <div className="relative h-6 w-6">
-                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain" priority />
+                <Image src={theme === 'light' ? '/images/TERA_LOGO_ONLY1.png' : '/images/TERA_LOGO_ONLY.png'} alt="Tera" fill className="object-contain" priority />
               </div>
             </button>
           </div>
@@ -253,7 +255,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
                 <Link
                   key={item.label}
                   href={item.href}
-                  onClick={(event) => {
+                  onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
                     if (item.label === 'New chat' && pathname?.startsWith('/new') && onNewChat) {
                       event.preventDefault()
                       onNewChat()
