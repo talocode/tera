@@ -28,6 +28,7 @@ import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
 import LimitModal from './LimitModal'
 import PromptStarterTemplates from './PromptStarterTemplates'
+import ThinkingProcess from './ThinkingProcess'
 import { useTheme } from './ThemeProvider'
 type SurfaceMode = 'chat' | 'research' | 'image'
 
@@ -1146,58 +1147,12 @@ export default function PromptShell({
                         </div>
                     )}
                     {!isStreaming && status === 'loading' && (
-                        <div className="flex justify-start animate-in fade-in slide-in-from-bottom-3 duration-400">
-                            <div className="max-w-[92%] md:max-w-[85%]">
-                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-5 py-5 text-tera-primary shadow-soft-lg backdrop-blur-xl md:px-6 md:py-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative flex h-8 w-8 items-center justify-center">
-                                            <div className="absolute inset-0 rounded-full border-2 border-tera-neon/30 animate-ping" style={{ animationDuration: '2s' }} />
-                                            <div className="h-6 w-6 animate-spin rounded-full border-[2.5px] border-tera-neon/50 border-t-tera-neon" />
-                                        </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-sm font-semibold text-tera-primary md:text-[0.98rem]">{thinkingMessage}</span>
-                                            <span className="text-xs text-tera-secondary animate-pulse">{(loadingHasImages ? imageThinkingPhases : thinkingPhases)[thinkingPhase]}</span>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 grid gap-2 md:grid-cols-2">
-                                        {(loadingHasImages ? imageLoadingSteps : loadingSteps).map((step, index) => {
-                                            const phases = loadingHasImages ? imageLoadingSteps : loadingSteps
-                                            const isActive = index === Math.min(thinkingPhase, phases.length - 1)
-                                            const isDone = index < thinkingPhase
-                                            return (
-                                                <div
-                                                    key={step}
-                                                    className={`flex items-center gap-2 rounded-[14px] border px-3 py-2 text-xs transition-all duration-500 ${
-                                                        isActive
-                                                            ? 'border-tera-neon/30 bg-tera-neon/5 text-tera-primary'
-                                                            : isDone
-                                                                ? 'border-tera-neon/20 bg-tera-neon/5 text-tera-secondary'
-                                                                : 'border-tera-border bg-tera-muted text-tera-secondary'
-                                                    }`}
-                                                >
-                                                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.62rem] font-semibold transition-all duration-300 ${
-                                                        isActive
-                                                            ? 'border-tera-neon bg-tera-neon text-tera-bg'
-                                                            : isDone
-                                                                ? 'border-tera-neon/40 bg-tera-neon/20 text-tera-neon'
-                                                                : 'border-tera-border bg-tera-bg text-tera-primary'
-                                                    }`}>
-                                                        {isDone ? (
-                                                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M20 6 9 17l-5-5" />
-                                                            </svg>
-                                                        ) : (
-                                                            String(index + 1).padStart(2, '0')
-                                                        )}
-                                                    </span>
-                                                    <span>{step}</span>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <ThinkingProcess
+                            message={thinkingMessage}
+                            hasImages={loadingHasImages}
+                            isResearch={researchMode}
+                            isStreaming={isStreaming}
+                        />
                     )}
                     <div ref={messagesEndRef} />
                 </div>

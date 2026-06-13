@@ -63,7 +63,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
         fullName: data.full_name,
         school: data.school,
         gradeLevels: data.grade_levels,
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
+        lemonSqueezyCustomerId: data.lemon_squeezy_customer_id || null,
     }
 }
 

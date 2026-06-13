@@ -15,7 +15,7 @@ export async function extractTextFromFile(url: string, filename: string): Promis
             const arrayBuffer = await response.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
 
-            const { default: pdfParse } = await import('pdf-parse')
+            const pdfParse = (await import('pdf-parse')).default
             const data = await pdfParse(buffer)
             return data.text || ''
         } else if (ext === 'docx') {
