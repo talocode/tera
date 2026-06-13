@@ -1,10 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import UserMenu from './UserMenu'
+import { fetchUserSessions } from '@/app/actions/user'
 
 type User = {
   id: string
@@ -23,6 +24,13 @@ type NavItem = {
   label: string
   icon: string
   href: string
+}
+
+type ChatSession = {
+  session_id: string
+  title: string | null
+  created_at: string
+  prompt: string
 }
 
 export const navigation: NavItem[] = [
@@ -127,6 +135,12 @@ const IconUsage = () => (
   </svg>
 )
 
+const IconMessage = () => (
+  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+)
+
 const getIcon = (iconName: string): React.ReactNode => {
   const icons: Record<string, () => React.ReactNode> = {
     chat: IconChat,
@@ -141,9 +155,48 @@ const getIcon = (iconName: string): React.ReactNode => {
   return Icon ? <Icon /> : null
 }
 
+function formatRelativeTime(dateStr: string): string {
+  const now = Date.now()
+  const then = new Date(dateStr).getTime()
+  const diffMs = now - then
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays}d ago`
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
   const pathname = usePathname()
   const expanded = pinned || mobileOpen
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  const loadChatHistory = useCallback(async () => {
+    if (!user?.id) return
+    setHistoryLoading(true)
+    try {
+      const sessions = await fetchUserSessions(user.id, 15)
+      setChatHistory(sessions)
+    } catch (err) {
+      console.error('Failed to load sidebar chat history:', err)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    loadChatHistory()
+  }, [loadChatHistory])
+
+  useEffect(() => {
+    const handleRefresh = () => loadChatHistory()
+    window.addEventListener('tera:usage-refresh', handleRefresh)
+    return () => window.removeEventListener('tera:usage-refresh', handleRefresh)
+  }, [loadChatHistory])
 
   return (
     <>
@@ -189,7 +242,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
           </div>
 
           {/* Nav */}
-          <nav className="mt-6 flex flex-1 flex-col gap-0.5">
+          <nav className="mt-6 flex flex-col gap-0.5">
             {navigation.map((item) => {
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
@@ -232,8 +285,52 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             })}
           </nav>
 
+          {/* Chat History */}
+          {user?.id && (
+            <div className="mt-4 flex flex-1 flex-col min-h-0">
+              <div className={[
+                'flex items-center gap-2 px-3 mb-2 transition-all duration-200',
+                expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
+              ].join(' ')}>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-tera-secondary/60">Recent Chats</span>
+                {historyLoading && <div className="h-3 w-3 animate-spin rounded-full border border-tera-secondary border-t-transparent" />}
+              </div>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-0.5 scrollbar-thin">
+                {chatHistory.map((session) => {
+                  const isActive = pathname === `/new/${session.session_id}`
+                  const title = session.title || session.prompt?.slice(0, 40) || 'New chat'
+                  return (
+                    <Link
+                      key={session.session_id}
+                      href={`/new/${session.session_id}`}
+                      onClick={() => { if (mobileOpen && onCloseMobile) onCloseMobile() }}
+                      className={[
+                        'flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-[12.5px] transition-all duration-150 group/item',
+                        isActive
+                          ? 'bg-tera-panel text-tera-primary'
+                          : 'text-tera-secondary hover:bg-tera-panel/50 hover:text-tera-primary',
+                      ].join(' ')}
+                      title={title}
+                    >
+                      <span className="shrink-0 text-tera-secondary/50 group-hover/item:text-tera-secondary">
+                        <IconMessage />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{title}</span>
+                      <span className="shrink-0 text-[10px] text-tera-secondary/40 tabular-nums">
+                        {formatRelativeTime(session.created_at)}
+                      </span>
+                    </Link>
+                  )
+                })}
+                {!historyLoading && chatHistory.length === 0 && (
+                  <p className="px-3 py-2 text-[11.5px] text-tera-secondary/40 italic">No chats yet</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Bottom: User */}
-          <div className="pt-3">
+          <div className="pt-3 border-t border-tera-border/50 mt-2">
             <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
           </div>
         </div>
