@@ -2,6 +2,7 @@
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
@@ -425,7 +426,7 @@ export default function PromptShell({
     const conversationRef = useRef<HTMLDivElement | null>(null)
     const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null)
     const [chatMode, setChatMode] = useState<ChatMode>('ask')
-    const showInitialPrompt = !historyLoading && !sessionId && conversations.every((entry) => !entry.userMessage)
+    const showInitialPrompt = !historyLoading && conversations.length === 0
     const [isListening, setIsListening] = useState(false)
     const recognitionRef = useRef<any>(null)
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId || null)
@@ -436,6 +437,10 @@ export default function PromptShell({
     const [searchHistoryOpen, setSearchHistoryOpen] = useState(false)
     const researchMode = selectedMode === 'research'
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
+    const [thinkingPhase, setThinkingPhase] = useState(0)
+    const [streamingText, setStreamingText] = useState('')
+    const [isStreaming, setIsStreaming] = useState(false)
+    const streamTimerRef = useRef<NodeJS.Timeout | null>(null)
     const [noteSaveStatuses, setNoteSaveStatuses] = useState<Record<string, NoteSaveStatus>>({})
     const [savingNoteIds, setSavingNoteIds] = useState<Record<string, boolean>>({})
     const [bookmarkSaveStatuses, setBookmarkSaveStatuses] = useState<Record<string, BookmarkSaveStatus>>({})
@@ -488,16 +493,66 @@ export default function PromptShell({
         const lp = p.toLowerCase()
         if (lp.includes('draw') || lp.includes('visual') || lp.includes('chart') || lp.includes('diagram') || lp.includes('image')) return 'Tera is Creating Visuals...'
         if (isResearchFlow || lp.includes('research') || lp.includes('source') || lp.includes('citation') || lp.includes('web')) return 'Tera is Searching the web...'
-        if (lp.includes('code') || lp.includes('function') || lp.includes('script') || lp.includes('debug') || lp.includes('api')) return 'Tera is Calling the API...'
+        if (lp.includes('code') || lp.includes('function') || lp.includes('script') || lp.includes('debug') || lp.includes('api')) return 'Tera is Building Code...'
         if (lp.includes('analyze') || lp.includes('data') || lp.includes('trend')) return 'Tera is Analyzing Data...'
         if (lp.includes('solve') || lp.includes('calculate') || lp.includes('math') || lp.includes('equation')) return 'Tera is Solving...'
         if (lp.includes('write') || lp.includes('essay') || lp.includes('story') || lp.includes('poem') || lp.includes('draft')) return 'Tera is Writing...'
+        if (lp.includes('explain') || lp.includes('how') || lp.includes('what') || lp.includes('why')) return 'Tera is Explaining...'
+        if (lp.includes('plan') || lp.includes('strategy') || lp.includes('steps') || lp.includes('guide')) return 'Tera is Planning...'
         return 'Tera is Thinking...'
     }
 
     useEffect(() => {
         setCurrentSessionId(sessionId || null)
     }, [sessionId])
+
+    const thinkingPhases = [
+        'Reading your message...',
+        'Gathering context...',
+        'Structuring the response...',
+        'Refining the answer...',
+    ]
+
+    useEffect(() => {
+        if (status !== 'loading') {
+            setThinkingPhase(0)
+            return
+        }
+        const interval = setInterval(() => {
+            setThinkingPhase((prev) => (prev + 1) % thinkingPhases.length)
+        }, 2200)
+        return () => clearInterval(interval)
+    }, [status])
+
+    const startStreaming = useCallback((fullText: string, onComplete: () => void) => {
+        setIsStreaming(true)
+        setStreamingText('')
+        let index = 0
+        const chunkSize = 3
+        const baseDelay = 18
+
+        const typeNextChunk = () => {
+            if (index >= fullText.length) {
+                setIsStreaming(false)
+                setStreamingText('')
+                streamTimerRef.current = null
+                onComplete()
+                return
+            }
+            const end = Math.min(index + chunkSize, fullText.length)
+            setStreamingText(fullText.slice(0, end))
+            index = end
+            const variance = Math.random() * 12 - 6
+            streamTimerRef.current = setTimeout(typeNextChunk, Math.max(8, baseDelay + variance))
+        }
+        typeNextChunk()
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (streamTimerRef.current) clearTimeout(streamTimerRef.current)
+        }
+    }, [])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -659,18 +714,22 @@ export default function PromptShell({
                 }
 
                 if (result.sessionId && result.sessionId !== currentSessionId) setCurrentSessionId(result.sessionId)
-                const assistantMessage: Message = {
-                    id: createId(),
-                    role: 'tera',
-                    content: result.answer,
-                    timestamp: Date.now(),
-                    chatMode: outgoingChatMode,
-                    citations: result.citations,
-                }
-                setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage, sessionId: result.sessionId } : e))
                 setAttachmentMessage(result.warning || null)
                 dispatchUsageRefresh('messages')
                 if (editingMessageId && result.chatId) setEditingMessageId(result.chatId)
+
+                startStreaming(result.answer, () => {
+                    const assistantMessage: Message = {
+                        id: createId(),
+                        role: 'tera',
+                        content: result.answer,
+                        timestamp: Date.now(),
+                        chatMode: outgoingChatMode,
+                        citations: result.citations,
+                    }
+                    setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage, sessionId: result.sessionId } : e))
+                    setStatus('idle')
+                })
             } catch (error) {
                 if (currentRequestId !== requestIdRef.current) return
                 const msg = error instanceof Error ? error.message : 'Unable to generate a reply'
@@ -905,15 +964,12 @@ export default function PromptShell({
                         </div>
                     )}
                     {!historyLoading && showInitialPrompt && (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-tera-panel border border-tera-border mb-5">
-                                <svg className="h-6 w-6 text-tera-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M12 5v14" />
-                                    <path d="M5 12h14" />
-                                </svg>
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="relative h-20 w-20 mb-6 animate-in fade-in zoom-in duration-500">
+                                <Image src="/assets/tera-logo.jpg" alt="Tera" fill className="object-contain rounded-2xl" priority />
                             </div>
-                            <h2 className="text-lg font-medium text-tera-primary">What can I help you with?</h2>
-                            <p className="mt-2 max-w-sm text-sm text-tera-secondary">Type a message below to start a conversation.</p>
+                            <h2 className="text-xl font-semibold text-tera-primary tracking-tight">What can I help you with?</h2>
+                            <p className="mt-3 max-w-sm text-sm text-tera-secondary leading-relaxed">Type a message below to start a conversation.</p>
                         </div>
                     )}
                     {conversations.map((entry) => (
@@ -1050,35 +1106,75 @@ export default function PromptShell({
                                 )}
                         </div>
                     ))}
-                    {status === 'loading' && (
-                        <div className="flex justify-start">
+                    {isStreaming && streamingText && (
+                        <div className="flex justify-start animate-in fade-in duration-300">
                             <div className="max-w-[92%] md:max-w-[85%]">
-                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-4 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
+                                <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
+                                    <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
+                                        {parseContent(streamingText).map((block, idx) => {
+                                            if (block.type === 'tera-ui') return null
+                                            if (block.type === 'universal-visual') return null
+                                            if (block.type === 'chart') return null
+                                            if (block.type === 'spreadsheet') return null
+                                            if (block.type === 'mermaid') return null
+                                            if (block.type === 'quiz') return null
+                                            if (block.type === 'code') return null
+                                            return block.type === 'text' ? <div key={idx} className="w-full"><MarkdownRenderer content={block.content} /></div> : null
+                                        })}
+                                        <span className="inline-block h-4 w-[2px] bg-tera-neon animate-pulse ml-0.5 align-text-bottom" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {!isStreaming && status === 'loading' && (
+                        <div className="flex justify-start animate-in fade-in slide-in-from-bottom-3 duration-400">
+                            <div className="max-w-[92%] md:max-w-[85%]">
+                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-5 py-5 text-tera-primary shadow-soft-lg backdrop-blur-xl md:px-6 md:py-6">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex gap-1.5">
-                                            <span className="h-2 w-2 rounded-full bg-tera-neon/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                            <span className="h-2 w-2 rounded-full bg-tera-neon/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                            <span className="h-2 w-2 rounded-full bg-tera-neon/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        <div className="relative flex h-8 w-8 items-center justify-center">
+                                            <div className="absolute inset-0 rounded-full border-2 border-tera-neon/30 animate-ping" style={{ animationDuration: '2s' }} />
+                                            <div className="h-6 w-6 animate-spin rounded-full border-[2.5px] border-tera-neon/50 border-t-tera-neon" />
                                         </div>
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="relative">
-                                                <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent" />
-                                            </div>
-                                            <span className="text-sm font-medium leading-6 animate-pulse md:text-[0.98rem]">{thinkingMessage}</span>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-sm font-semibold text-tera-primary md:text-[0.98rem]">{thinkingMessage}</span>
+                                            <span className="text-xs text-tera-secondary animate-pulse">{thinkingPhases[thinkingPhase]}</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 grid gap-2 md:grid-cols-2">
-                                        {loadingSteps.map((step, index) => (
-                                            <div
-                                                key={step}
-                                                className="flex items-center gap-2 rounded-[14px] border border-tera-border bg-tera-muted px-3 py-2 text-xs text-tera-secondary"
-                                            >
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-tera-border bg-tera-bg text-[0.62rem] font-semibold text-tera-primary">
-                                                    {String(index + 1).padStart(2, '0')}
-                                                </span>
-                                                <span>{step}</span>
-                                            </div>
-                                        ))}
+                                        {loadingSteps.map((step, index) => {
+                                            const isActive = index === Math.min(thinkingPhase, loadingSteps.length - 1)
+                                            const isDone = index < thinkingPhase
+                                            return (
+                                                <div
+                                                    key={step}
+                                                    className={`flex items-center gap-2 rounded-[14px] border px-3 py-2 text-xs transition-all duration-500 ${
+                                                        isActive
+                                                            ? 'border-tera-neon/30 bg-tera-neon/5 text-tera-primary'
+                                                            : isDone
+                                                                ? 'border-tera-neon/20 bg-tera-neon/5 text-tera-secondary'
+                                                                : 'border-tera-border bg-tera-muted text-tera-secondary'
+                                                    }`}
+                                                >
+                                                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.62rem] font-semibold transition-all duration-300 ${
+                                                        isActive
+                                                            ? 'border-tera-neon bg-tera-neon text-tera-bg'
+                                                            : isDone
+                                                                ? 'border-tera-neon/40 bg-tera-neon/20 text-tera-neon'
+                                                                : 'border-tera-border bg-tera-bg text-tera-primary'
+                                                    }`}>
+                                                        {isDone ? (
+                                                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M20 6 9 17l-5-5" />
+                                                            </svg>
+                                                        ) : (
+                                                            String(index + 1).padStart(2, '0')
+                                                        )}
+                                                    </span>
+                                                    <span>{step}</span>
+                                                </div>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -1107,10 +1203,9 @@ export default function PromptShell({
                                     <HistoryIcon />
                                 </button>
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
-                                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M12 5v14" />
-                                        <path d="M5 12h14" />
-                                    </svg>
+                                    <div className="relative h-5 w-5">
+                                        <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain" />
+                                    </div>
                                 </button>
                             </div>
 

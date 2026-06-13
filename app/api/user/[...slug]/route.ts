@@ -165,7 +165,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             }
 
             const { data: { publicUrl } } = supabaseServer.storage.from('attachments').getPublicUrl(filePath)
-            return NextResponse.json({ name: file.name, url: publicUrl, type })
+            return NextResponse.json({ name: file.name, url: publicUrl, type, size: file.size })
         } catch (error) {
             console.error('Attachment API Error:', error)
             const message = error instanceof Error ? error.message : 'Unknown upload error'
