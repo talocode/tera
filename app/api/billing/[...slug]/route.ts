@@ -30,6 +30,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
             }
 
+            // Check if user has a payment method stored
+            const { data: userData } = await supabaseServer
+                .from('users')
+                .select('lemon_squeezy_customer_id')
+                .eq('id', userId)
+                .single()
+
+            if (!userData?.lemon_squeezy_customer_id) {
+                return NextResponse.json({ error: 'No payment method on file. Please add a payment method first.' }, { status: 400 })
+            }
+
             const credits = calculateCreditsFromTopup(parsedAmount)
             const checkoutUrl = await getCheckoutUrlForCreditPack(parsedAmount, credits, email, userId, returnUrl)
             return NextResponse.json({ success: true, checkoutUrl, credits })

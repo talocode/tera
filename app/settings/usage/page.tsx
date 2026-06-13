@@ -186,6 +186,40 @@ export default function UsagePage() {
     try {
       const amountUsd = Number(topupAmountUsd)
       if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+        setCreditPackLoading(false)
+        alert('Minimum top-up is $1.')
+        return
+      }
+      const response = await fetch('/api/billing/create-credit-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountUsd,
+          email: user.email,
+          returnUrl: `${window.location.origin}/settings/usage`,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.checkoutUrl) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+      window.location.href = data.checkoutUrl
+    } catch (error) {
+      console.error('Error opening credit pack checkout:', error)
+      setCreditPackLoading(false)
+      const msg = error instanceof Error ? error.message : 'Failed to load credit checkout'
+      if (msg.includes('checkout') || msg.includes('variant') || msg.includes('Missing')) {
+        setPaymentModalOpen(true)
+      } else {
+        alert('Failed to load credit checkout. Please try again.')
+      }
+    }
+  }
+
+    setCreditPackLoading(true)
+    try {
+      const amountUsd = Number(topupAmountUsd)
+      if (!Number.isFinite(amountUsd) || amountUsd < 1) {
         alert('Minimum top-up is $1.')
         return
       }
