@@ -11,6 +11,7 @@ import {
   fetchUserProfile,
   fetchUserUsageSummary,
   fetchWeeklyUsageHistory,
+  fetchStorageUsage,
 } from '@/app/actions/user'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { buildUsageMetricSummary, type ProfileUsageSummary } from '@/lib/profile-usage'
@@ -70,6 +71,7 @@ export default function UsagePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
   const [creditUsage, setCreditUsage] = useState<CreditUsageState>(null)
+  const [storageUsage, setStorageUsage] = useState<{ usedBytes: number; limitBytes: number; limitDisplay: string; usedDisplay: string; percentageUsed: number } | null>(null)
   const [usageHistory, setUsageHistory] = useState<UsageHistoryData[]>([])
   const [loading, setLoading] = useState(true)
   const [usageLoading, setUsageLoading] = useState(true)
@@ -133,6 +135,16 @@ export default function UsagePage() {
     }
   }, [user])
 
+  const loadStorageUsage = useCallback(async () => {
+    if (!user) return
+    try {
+      const data = await fetchStorageUsage(user.id)
+      if (data) setStorageUsage(data)
+    } catch {
+      setStorageUsage(null)
+    }
+  }, [user])
+
   const loadProfile = useCallback(async () => {
     if (!user) return
     setLoading(true)
@@ -149,8 +161,8 @@ export default function UsagePage() {
 
   useEffect(() => {
     if (!user) return
-    void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory()])
-  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, user])
+    void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage()])
+  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, user])
 
   useEffect(() => {
     window.addEventListener(TERA_USAGE_REFRESH_EVENT, () => {
@@ -164,10 +176,17 @@ export default function UsagePage() {
 
   const handleAddCredits = async () => {
     if (!user?.email) return
+
+    if (!hasPaymentMethod) {
+      setPaymentModalOpen(true)
+      return
+    }
+
     setCreditPackLoading(true)
     try {
       const amountUsd = Number(topupAmountUsd)
       if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+        setCreditPackLoading(false)
         alert('Minimum top-up is $1.')
         return
       }
@@ -181,12 +200,19 @@ export default function UsagePage() {
         }),
       })
       const data = await response.json()
-      if (!response.ok || !data.checkoutUrl) throw new Error(data.error || 'Failed to create checkout')
+      if (!response.ok || !data.checkoutUrl) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
       window.location.href = data.checkoutUrl
     } catch (error) {
-      alert('Failed to load credit checkout. Please try again.')
-    } finally {
+      console.error('Error opening credit pack checkout:', error)
       setCreditPackLoading(false)
+      const msg = error instanceof Error ? error.message : 'Failed to load credit checkout'
+      if (msg.includes('checkout') || msg.includes('variant') || msg.includes('Missing')) {
+        setPaymentModalOpen(true)
+      } else {
+        alert('Failed to load credit checkout. Please try again.')
+      }
     }
   }
 
@@ -329,6 +355,36 @@ export default function UsagePage() {
               <div className="tera-card h-full">
                 <div className="flex h-full flex-col justify-between gap-6">
                   <div>
+                    <p className="text-sm font-medium text-tera-secondary">Storage</p>
+                    <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">
+                      {storageUsage ? storageUsage.usedDisplay : '—'}
+                    </p>
+                    <p className="mt-3 text-sm text-tera-secondary">
+                      Used of <span className="text-tera-primary">{storageUsage?.limitDisplay || '—'}</span> plan storage.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="h-4 overflow-hidden rounded-full bg-white/[0.08]">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          !storageUsage ? 'bg-zinc-500' :
+                          storageUsage.percentageUsed < 50 ? 'bg-emerald-500' :
+                          storageUsage.percentageUsed < 75 ? 'bg-amber-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: storageUsage ? `${Math.max(storageUsage.percentageUsed, 2)}%` : '0%' }}
+                      />
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-4 text-sm text-tera-secondary">
+                      <span>{storageUsage ? `${Math.round(100 - storageUsage.percentageUsed)}% remaining` : 'Loading...'}</span>
+                      <span>{storageUsage?.limitDisplay || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="tera-card h-full">
+                <div className="flex h-full flex-col justify-between gap-6">
+                  <div>
                     <p className="text-sm font-medium text-tera-secondary">AI conversations</p>
                     <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-emerald-400">Unlimited</p>
                     <p className="mt-3 text-sm text-tera-secondary">Tera does not block you based on message count. Computational credits are the active meter.</p>
@@ -384,7 +440,7 @@ export default function UsagePage() {
                 disabled={creditPackLoading}
                 className="tera-button-primary disabled:opacity-60"
               >
-                {creditPackLoading ? 'Loading...' : `Add credits`}
+                {creditPackLoading ? 'Loading...' : hasPaymentMethod ? 'Add credits' : 'Add payment method first'}
               </button>
             </div>
             <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">

@@ -120,6 +120,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                             { status: 413 }
                         )
                     }
+
+                    // Enforce storage quota before upload
+                    const storageLimit = getPlanConfig(userProfile.subscriptionPlan).limits.storageBytes
+                    const { data: userData } = await supabaseServer
+                        .from('users')
+                        .select('storage_used_bytes')
+                        .eq('id', userId)
+                        .single()
+                    const currentBytes = Number(userData?.storage_used_bytes || 0)
+                    if (currentBytes + file.size > storageLimit) {
+                        const usedMB = (currentBytes / (1024 * 1024)).toFixed(1)
+                        const limitMB = (storageLimit / (1024 * 1024)).toFixed(0)
+                        return NextResponse.json(
+                            { error: `Storage full (${usedMB}MB / ${limitMB}MB used). Upgrade your plan for more storage.` },
+                            { status: 413 }
+                        )
+                    }
                 }
             }
 
@@ -132,7 +149,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 throw new Error(uploadError.message)
             }
 
-            if (userId) await incrementFileUploadsServer(userId)
+            if (userId) {
+                await incrementFileUploadsServer(userId)
+                // Track storage usage
+                const { data: userData } = await supabaseServer
+                    .from('users')
+                    .select('storage_used_bytes')
+                    .eq('id', userId)
+                    .single()
+                const currentBytes = Number(userData?.storage_used_bytes || 0)
+                await supabaseServer
+                    .from('users')
+                    .update({ storage_used_bytes: currentBytes + file.size })
+                    .eq('id', userId)
+            }
 
             const { data: { publicUrl } } = supabaseServer.storage.from('attachments').getPublicUrl(filePath)
             return NextResponse.json({ name: file.name, url: publicUrl, type })

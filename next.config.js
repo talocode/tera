@@ -5,16 +5,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  turbopack: {},
+  turbopack: {
+    root: '.',
+  },
   webpack: (config) => {
     if (process.env.DISABLE_WEBPACK_CACHE === "1") {
       config.cache = false;
     }
 
     return config;
-  },
-  experimental: {
-    browserslistForSwc: false,
   },
 }
 
