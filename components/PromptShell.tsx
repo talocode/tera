@@ -425,7 +425,7 @@ export default function PromptShell({
     const conversationRef = useRef<HTMLDivElement | null>(null)
     const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null)
     const [chatMode, setChatMode] = useState<ChatMode>('ask')
-    const showInitialPrompt = conversations.every((entry) => !entry.userMessage)
+    const showInitialPrompt = !historyLoading && !sessionId && conversations.every((entry) => !entry.userMessage)
     const [isListening, setIsListening] = useState(false)
     const recognitionRef = useRef<any>(null)
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId || null)
@@ -811,20 +811,26 @@ export default function PromptShell({
         if (!user?.id || !sessionId) return
         setHistoryLoading(true)
         fetchChatHistory(user.id, sessionId).then(data => {
-            if (data) {
+            if (data && data.length > 0) {
                 const loaded: ConversationEntry[] = data.map(s => {
                     const mode = getChatModeForTool(s.tool ?? tool.name)
                     const citations = Array.isArray((s as any).metadata?.citations) ? (s as any).metadata.citations : undefined
 
                     return {
-                        id: s.id, sessionId: s.id,
-                        userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: s.attachments as AttachmentReference[], timestamp: new Date(s.created_at).getTime(), chatMode: mode },
-                        assistantMessage: { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode: mode, citations }
+                        id: s.id, sessionId: s.session_id || s.id,
+                        userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: (s.attachments as AttachmentReference[]) || [], timestamp: new Date(s.created_at).getTime(), chatMode: mode },
+                        assistantMessage: s.response ? { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode: mode, citations } : undefined
                     }
                 })
-                setConversations(prev => loaded.length === 0 && prev.length > 0 ? prev : loaded)
-                setConversationActive(loaded.length > 0)
+                setConversations(loaded)
+                setConversationActive(true)
+            } else {
+                setConversations([])
+                setConversationActive(false)
             }
+            setHistoryLoading(false)
+        }).catch(err => {
+            console.error('Failed to load chat history:', err)
             setHistoryLoading(false)
         })
     }, [user?.id, sessionId])
@@ -892,7 +898,13 @@ export default function PromptShell({
                             </p>
                         </div>
                     )}
-                    {showInitialPrompt && (
+                    {historyLoading && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-tera-secondary border-t-transparent" />
+                            <p className="mt-4 text-sm text-tera-secondary">Loading conversation...</p>
+                        </div>
+                    )}
+                    {!historyLoading && showInitialPrompt && (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-tera-panel border border-tera-border mb-5">
                                 <svg className="h-6 w-6 text-tera-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
