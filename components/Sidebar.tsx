@@ -158,7 +158,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
 
       <aside
         className={[
-          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary shadow-[0_0_40px_rgba(0,0,0,0.12)] transition-[width,transform] duration-150 ease-out',
+          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary transition-[width,transform] duration-150 ease-out',
           mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
           expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
         ].join(' ')}
@@ -183,7 +183,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
               <div className="relative h-6 w-6">
-                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain dark:brightness-0 dark:invert" priority />
+                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain" priority />
               </div>
             </button>
           </div>

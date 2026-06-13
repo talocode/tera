@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import UsageMetricCard from '@/components/UsageMetricCard'
 import UsageHistoryChart from '@/components/UsageHistoryChart'
+import PaymentMethodModal from '@/components/PaymentMethodModal'
 import {
   fetchCreditUsage,
   fetchUserProfile,
