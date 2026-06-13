@@ -196,6 +196,7 @@ export async function getUserProfileServer(userId: string) {
         gradeLevels: data.grade_levels,
         limitHitChatAt: data.limit_hit_chat_at ? new Date(data.limit_hit_chat_at) : null,
         limitHitUploadAt: data.limit_hit_upload_at ? new Date(data.limit_hit_upload_at) : null,
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
+        lemonSqueezyCustomerId: data.lemon_squeezy_customer_id || null,
     }
 }

@@ -93,6 +93,16 @@ async function handleOrderCreated(event: { data: LemonSqueezyWebhookData; meta?:
           console.error(`Failed to apply credit top-up for user ${userId}`)
           return
         }
+
+        // Persist Lemon Squeezy customer ID so billing portal / auto-top-up work
+        if (data.attributes.customer_id) {
+          await supabaseServer
+            .from('users')
+            .update({ lemon_squeezy_customer_id: data.attributes.customer_id })
+            .eq('id', userId)
+            .then(({ error }) => { if (error) console.error('Failed to persist customer_id:', error) })
+        }
+
         console.log(`✅ Applied ${topupCredits} top-up credits for user ${userId}`)
         await sendCreditTopupPurchasedEmail({
           userId,

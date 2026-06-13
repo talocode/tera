@@ -108,8 +108,8 @@ export default function SettingsPage() {
     }
   }
 
-  const saveSettingsAsync = async (settingsToSave: UserSettings) => {
-    if (!user) return
+  const saveSettingsAsync = async (settingsToSave: UserSettings): Promise<boolean> => {
+    if (!user) return false
 
     try {
       setAutoSaving(true)
@@ -121,11 +121,10 @@ export default function SettingsPage() {
         body: JSON.stringify(settingsToSave),
       })
 
-      if (!response.ok) {
-        console.warn('Failed to auto-save settings')
-      }
+      return response.ok
     } catch (error) {
       console.error('Error auto-saving settings:', error)
+      return false
     } finally {
       setAutoSaving(false)
     }
@@ -140,10 +139,16 @@ export default function SettingsPage() {
         setTheme(nextValue ? 'dark' : 'light')
       }
 
-      void saveSettingsAsync(updated).then(() => {
-        setMessageType('success')
-        setMessage('Settings saved.')
-        setTimeout(() => setMessage(''), 2000)
+      void saveSettingsAsync(updated).then((ok) => {
+        if (ok) {
+          setMessageType('success')
+          setMessage('Settings saved.')
+          setTimeout(() => setMessage(''), 2000)
+        } else {
+          setMessageType('error')
+          setMessage('Failed to save settings.')
+          setTimeout(() => setMessage(''), 3000)
+        }
       })
       return updated
     })
@@ -160,10 +165,16 @@ export default function SettingsPage() {
   const updateSetting = (key: keyof UserSettings, value: number) => {
     setSettings((current) => {
       const updated = { ...current, [key]: value }
-      void saveSettingsAsync(updated).then(() => {
-        setMessageType('success')
-        setMessage('Settings saved.')
-        setTimeout(() => setMessage(''), 2000)
+      void saveSettingsAsync(updated).then((ok) => {
+        if (ok) {
+          setMessageType('success')
+          setMessage('Settings saved.')
+          setTimeout(() => setMessage(''), 2000)
+        } else {
+          setMessageType('error')
+          setMessage('Failed to save settings.')
+          setTimeout(() => setMessage(''), 3000)
+        }
       })
       return updated
     })
