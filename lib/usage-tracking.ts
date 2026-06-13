@@ -29,6 +29,7 @@ export interface UserProfile {
     school: string | null
     gradeLevels: string[] | null
     createdAt: Date
+    lemonSqueezyCustomerId: number | null
 }
 
 /**

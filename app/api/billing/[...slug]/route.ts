@@ -35,6 +35,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             return NextResponse.json({ success: true, checkoutUrl, credits })
         }
 
+        if (action === 'create-payment-method-session') {
+            const { email, returnUrl } = body
+            const session = await auth()
+            if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            const userId = session.user.id
+
+            if (!email) {
+                return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+            }
+
+            const credits = calculateCreditsFromTopup(1)
+            const checkoutUrl = await getCheckoutUrlForCreditPack(1, credits, email, userId, returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/settings/usage`)
+            return NextResponse.json({ success: true, checkoutUrl })
+        }
+
         if (action === 'create-session') {
             const { plan, email, returnUrl, currencyCode } = body
 

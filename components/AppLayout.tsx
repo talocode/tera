@@ -36,7 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       />
 
       <main className={`relative flex min-w-0 flex-1 flex-col transition-[padding] duration-200 ease-out ${sidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[68px]'}`}>
-        <div className="pointer-events-none sticky top-0 z-30 bg-tera-bg/60 backdrop-blur-xl md:hidden">
+        <div className="pointer-events-none sticky top-0 z-30 bg-tera-bg/70 backdrop-blur-xl md:hidden">
           <div className="flex items-center justify-between px-3 py-2.5">
             <button
               type="button"

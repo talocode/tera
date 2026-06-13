@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import UsageMetricCard from '@/components/UsageMetricCard'
 import UsageHistoryChart from '@/components/UsageHistoryChart'
+import PaymentMethodModal from '@/components/PaymentMethodModal'
 import {
   fetchCreditUsage,
   fetchUserProfile,
@@ -83,6 +84,7 @@ export default function UsagePage() {
   const [autoTopupAmount, setAutoTopupAmount] = useState('5')
   const [autoTopupSaving, setAutoTopupSaving] = useState(false)
   const [hasPaymentMethod, setHasPaymentMethod] = useState(false)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
 
   const loadUsageSummary = useCallback(async () => {
     if (!user) return
@@ -136,7 +138,10 @@ export default function UsagePage() {
     setLoading(true)
     try {
       const data = await fetchUserProfile(user.id)
-      if (data) setProfile(data)
+      if (data) {
+        setProfile(data)
+        setHasPaymentMethod(!!data.lemonSqueezyCustomerId)
+      }
     } finally {
       setLoading(false)
     }
@@ -434,12 +439,12 @@ export default function UsagePage() {
                 {hasPaymentMethod ? (
                   <p className="mt-1 text-sm text-tera-primary">Card on file</p>
                 ) : (
-                  <p className="mt-1 text-sm text-tera-secondary">
-                    No payment method saved. Add one via the{' '}
-                    <button type="button" onClick={handleManageSubscription} className="underline text-tera-primary hover:text-tera-accent">
-                      billing portal
-                    </button>.
-                  </p>
+                  <div className="mt-2">
+                    <p className="text-sm text-tera-secondary">No payment method saved.</p>
+                    <button type="button" onClick={() => setPaymentModalOpen(true)} className="tera-button-secondary mt-2 w-full justify-center text-xs">
+                      Add payment method
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -521,6 +526,12 @@ export default function UsagePage() {
           </div>
         </div>
       </div>
+
+      <PaymentMethodModal
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        userEmail={user?.email || ''}
+      />
     </div>
   )
 }

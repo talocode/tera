@@ -65,13 +65,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const session = await auth()
         if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         const userId = session.user.id
+
+        let settings: Record<string, any>
         try {
-            const settings = await request.json()
-            const { data, error } = await supabaseServer.from('user_settings').upsert({ user_id: userId, ...settings, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select().single()
-            if (error && error.message?.includes('relation')) return NextResponse.json({ user_id: userId, ...settings, updated_at: new Date().toISOString() })
+            settings = await request.json()
+        } catch {
+            return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+        }
+
+        try {
+            const { data, error } = await supabaseServer
+                .from('user_settings')
+                .upsert(
+                    { user_id: userId, ...settings, updated_at: new Date().toISOString() },
+                    { onConflict: 'user_id' }
+                )
+                .select()
+                .single()
+
+            if (error && error.message?.includes('relation')) {
+                return NextResponse.json({ user_id: userId, ...settings, updated_at: new Date().toISOString() })
+            }
             if (error) throw error
             return NextResponse.json(data)
-        } catch (err) { return NextResponse.json({ user_id: userId, ...(await request.json().catch(() => ({}))), updated_at: new Date().toISOString() }) }
+        } catch (err) {
+            console.error('Settings save error:', err)
+            return NextResponse.json({ user_id: userId, ...settings, updated_at: new Date().toISOString() })
+        }
     }
 
     if (action === 'attachments') {

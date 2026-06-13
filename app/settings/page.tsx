@@ -79,7 +79,6 @@ export default function SettingsPage() {
       setLoading(true)
       const response = await fetch('/api/user/settings', {
         method: 'GET',
-        headers: { 'x-user-id': user?.id || '' },
       })
 
       if (user) {
@@ -109,8 +108,8 @@ export default function SettingsPage() {
     }
   }
 
-  const saveSettingsAsync = async (settingsToSave: UserSettings) => {
-    if (!user) return
+  const saveSettingsAsync = async (settingsToSave: UserSettings): Promise<boolean> => {
+    if (!user) return false
 
     try {
       setAutoSaving(true)
@@ -118,16 +117,14 @@ export default function SettingsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user.id,
         },
         body: JSON.stringify(settingsToSave),
       })
 
-      if (!response.ok) {
-        console.warn('Failed to auto-save settings')
-      }
+      return response.ok
     } catch (error) {
       console.error('Error auto-saving settings:', error)
+      return false
     } finally {
       setAutoSaving(false)
     }
@@ -142,7 +139,17 @@ export default function SettingsPage() {
         setTheme(nextValue ? 'dark' : 'light')
       }
 
-      void saveSettingsAsync(updated)
+      void saveSettingsAsync(updated).then((ok) => {
+        if (ok) {
+          setMessageType('success')
+          setMessage('Settings saved.')
+          setTimeout(() => setMessage(''), 2000)
+        } else {
+          setMessageType('error')
+          setMessage('Failed to save settings.')
+          setTimeout(() => setMessage(''), 3000)
+        }
+      })
       return updated
     })
   }
@@ -158,7 +165,17 @@ export default function SettingsPage() {
   const updateSetting = (key: keyof UserSettings, value: number) => {
     setSettings((current) => {
       const updated = { ...current, [key]: value }
-      void saveSettingsAsync(updated)
+      void saveSettingsAsync(updated).then((ok) => {
+        if (ok) {
+          setMessageType('success')
+          setMessage('Settings saved.')
+          setTimeout(() => setMessage(''), 2000)
+        } else {
+          setMessageType('error')
+          setMessage('Failed to save settings.')
+          setTimeout(() => setMessage(''), 3000)
+        }
+      })
       return updated
     })
   }
@@ -216,7 +233,7 @@ export default function SettingsPage() {
                   key={item.id}
                   type="button"
                   onClick={() => handleTabClick(item.id)}
-                  className={`min-w-fit rounded-full px-4 py-2.5 text-sm transition xl:flex xl:w-full xl:items-center xl:justify-between xl:rounded-[18px] xl:px-4 xl:py-3 xl:text-left ${activeTab === item.id ? 'bg-white/[0.08] text-tera-primary' : 'text-tera-secondary hover:bg-white/[0.04] hover:text-tera-primary'}`}
+                  className={`min-w-fit rounded-full px-4 py-2.5 text-sm transition xl:flex xl:w-full xl:items-center xl:justify-between xl:rounded-[18px] xl:px-4 xl:py-3 xl:text-left ${activeTab === item.id ? 'bg-white/[0.08] text-tera-primary dark:bg-white/[0.08] light:bg-black/[0.04]' : 'text-tera-secondary hover:bg-white/[0.04] hover:text-tera-primary dark:hover:bg-white/[0.04] light:hover:bg-black/[0.02]'}`}
                 >
                   <span>{item.label}</span>
                   <span className={`hidden h-2.5 w-2.5 rounded-full xl:block ${activeTab === item.id ? 'bg-tera-accent' : 'bg-transparent'}`} />
@@ -227,7 +244,7 @@ export default function SettingsPage() {
 
           <section className="tera-surface p-5 sm:p-6 lg:p-8">
             {message && (
-              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm shadow-soft ${messageType === 'success' ? 'border-tera-border bg-tera-highlight text-tera-primary' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
+              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm ${messageType === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-tera-border dark:bg-tera-highlight dark:text-tera-primary' : 'border-red-200 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200'}`}>
                 {message}
               </div>
             )}

@@ -871,7 +871,7 @@ export default function PromptShell({
             <div className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-20 md:px-10 md:pb-10 md:pt-10 transition-all duration-200 ${backgroundDimClass}`} ref={conversationRef}>
                 <div className="mx-auto min-h-full max-w-4xl space-y-6 md:space-y-8">
                     {(usageLoading ? false : (lowCredits || lowUploads)) && (
-                        <div className="rounded-[24px] border border-amber-400/20 bg-amber-500/10 px-4 py-3 shadow-soft md:px-5 md:py-4">
+                        <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-500/10 md:px-5 md:py-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <p className="text-[0.62rem] uppercase tracking-[0.3em] text-amber-100/90">Usage alert</p>
@@ -913,7 +913,7 @@ export default function PromptShell({
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                                             </button>
                                             <div className="flex flex-col items-end gap-1 w-full">
-                                                <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-4 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl md:px-5">
+                                                <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-4 py-4 text-tera-primary md:px-5">
                                                     <p className="whitespace-pre-wrap text-[0.94rem] leading-relaxed md:text-[0.98rem]">{entry.userMessage.content}</p>
                                                     {entry.userMessage.attachments && entry.userMessage.attachments.length > 0 && (
                                                         <div className="mt-3 flex flex-wrap gap-2">
@@ -933,7 +933,7 @@ export default function PromptShell({
                                 {entry.assistantMessage && (
                                     <div className="flex justify-start w-full">
                                         <div className="w-full">
-                                            <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/82 px-4 py-4 text-tera-primary shadow-panel backdrop-blur-2xl md:px-6 md:py-5">
+                                            <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
                                                 <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
                                                     {parseContent(entry.assistantMessage.content).map((block, idx) => {
                                                         if (block.type === 'tera-ui') return <div key={idx} className="w-full my-4 animate-in fade-in slide-in-from-bottom-2 duration-300"><Renderer spec={block.spec} registry={teraRegistry} /></div>
@@ -943,7 +943,7 @@ export default function PromptShell({
                                                         if (block.type === 'mermaid') return <MermaidRenderer key={idx} chart={block.chart} />
                                                         if (block.type === 'quiz') return <QuizRenderer key={idx} quiz={block.config} />
                                                         if (block.type === 'code') return (
-                                                            <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
+                                                            <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 dark:bg-[#08101a]/90 light:bg-gray-900 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
                                                                 <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
                                                                     <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">{block.language || 'code'}</span>
                                                                     <button onClick={() => navigator.clipboard.writeText(block.code)} className="p-1.5 text-white/40 hover:text-tera-neon transition-colors flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75H19.5A2.25 2.25 0 0121.75 6v10.5A2.25 2.25 0 0119.5 18.75h-2.25m-16.5 0h2.25m0 0v2.25m0-2.25v-8.25m0 0H3.75A2.25 2.25 0 015.25 5.25H7.5" /></svg></button>
@@ -1076,7 +1076,7 @@ export default function PromptShell({
                 </div>
             </div>
 
-            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/84 px-2 py-2 shadow-[0_-24px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
+            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/90 px-2 py-2 backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
