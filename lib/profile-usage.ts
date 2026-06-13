@@ -47,8 +47,9 @@ export function buildUsageMetricSummary(
 export function buildProfileUsageSummary(source: {
     plan: PlanType
     dailyChats: number
-    dailyFileUploads: number
+    monthlyFileUploads: number
     chatResetDate: string | Date | null
+    uploadResetDate?: string | Date | null
     monthlyWebSearches?: number
     webSearchResetDate?: string | Date | null
 }): ProfileUsageSummary {
@@ -63,9 +64,9 @@ export function buildProfileUsageSummary(source: {
             source.chatResetDate,
         ),
         uploads: buildUsageMetricSummary(
-            source.dailyFileUploads,
-            planConfig.limits.fileUploadsPerDay,
-            null, // File uploads usually have a 24h rolling or specific reset
+            source.monthlyFileUploads,
+            planConfig.limits.fileUploadsPerMonth,
+            source.uploadResetDate || null,
         ),
         webSearches: buildUsageMetricSummary(
             source.monthlyWebSearches || 0,

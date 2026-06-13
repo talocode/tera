@@ -2,73 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: dark;
-  --surface-base: #050505;
-  --surface-l1: #0d0d0d;
-  --surface-l2: #141414;
-  --fg-primary: #f4f4f5;
-  --fg-secondary: #9ca3af;
-  --border-l1: rgba(255, 255, 255, 0.045);
-  --border-l2: rgba(255, 255, 255, 0.08);
-  --border-l3: rgba(255, 255, 255, 0.12);
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
 
-  --bg-tera-bg: var(--surface-base);
-  --bg-tera-panel: color-mix(in srgb, var(--surface-l1) 90%, transparent);
-  --bg-tera-panel-strong: color-mix(in srgb, var(--surface-l1) 97%, transparent);
-  --bg-tera-muted: color-mix(in srgb, var(--surface-l2) 74%, transparent);
-  --bg-tera-input: color-mix(in srgb, var(--surface-base) 96%, transparent);
-  --bg-tera-highlight: rgba(255, 255, 255, 0.05);
-  --border-tera: var(--border-l1);
-  --border-tera-strong: var(--border-l2);
-  --text-tera-primary: var(--fg-primary);
-  --text-tera-secondary: var(--fg-secondary);
-  --text-tera-accent: #d5dae2;
-  --text-tera-accent-strong: #ffffff;
-  --shadow-tera-panel: 0 12px 30px rgba(0, 0, 0, 0.22);
-  --shadow-tera-soft: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.light {
-  color-scheme: light;
-  --surface-base: #f5f6f8;
-  --surface-l1: #ffffff;
-  --surface-l2: #eef1f5;
-  --fg-primary: #14181d;
-  --fg-secondary: #5f6975;
-  --border-l1: rgba(17, 24, 39, 0.06);
-  --border-l2: rgba(17, 24, 39, 0.1);
-  --border-l3: rgba(17, 24, 39, 0.16);
-
-  --bg-tera-bg: var(--surface-base);
-  --bg-tera-panel: color-mix(in srgb, var(--surface-l1) 92%, transparent);
-  --bg-tera-panel-strong: color-mix(in srgb, var(--surface-l1) 98%, transparent);
-  --bg-tera-muted: color-mix(in srgb, var(--surface-l2) 82%, transparent);
-  --bg-tera-input: color-mix(in srgb, var(--surface-l1) 96%, transparent);
-  --bg-tera-highlight: rgba(17, 24, 39, 0.05);
-  --border-tera: var(--border-l1);
-  --border-tera-strong: var(--border-l2);
-  --text-tera-primary: var(--fg-primary);
-  --text-tera-secondary: var(--fg-secondary);
-  --text-tera-accent: #3a4350;
-  --text-tera-accent-strong: #1e2733;
-  --shadow-tera-panel: 0 10px 24px rgba(15, 23, 42, 0.06);
-  --shadow-tera-soft: 0 4px 12px rgba(15, 23, 42, 0.04);
-}
-
-.dark {
-  color-scheme: dark;
-  --surface-base: #050505;
-  --surface-l1: #0d0d0d;
-  --surface-l2: #141414;
-  --fg-primary: #f4f4f5;
-  --fg-secondary: #9ca3af;
-  --border-l1: rgba(255, 255, 255, 0.045);
-  --border-l2: rgba(255, 255, 255, 0.08);
-  --border-l3: rgba(255, 255, 255, 0.12);
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+  }
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+
   html,
   body {
     min-height: 100%;
@@ -85,7 +70,7 @@
     isolation: isolate;
     background: var(--bg-tera-bg);
     color: var(--text-tera-primary);
-    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Manrope', Inter, system-ui, -apple-system, 'Segoe UI Variable Display', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
     letter-spacing: -0.01em;
     line-height: 1.5;
@@ -133,9 +118,9 @@
     pointer-events: none;
     z-index: -1;
     background:
-      radial-gradient(circle at 20% 0%, rgba(219, 188, 142, 0.08), transparent 28%),
-      radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.04), transparent 24%),
-      radial-gradient(circle at 50% 100%, rgba(78, 82, 95, 0.14), transparent 30%);
+      radial-gradient(circle at 20% 0%, rgba(219, 188, 142, 0.06), transparent 28%),
+      radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.03), transparent 24%),
+      radial-gradient(circle at 50% 100%, rgba(78, 82, 95, 0.12), transparent 30%);
     opacity: 0.9;
   }
 
@@ -145,11 +130,11 @@
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 48px 48px;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+    background-size: 64px 64px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 92%);
-    opacity: 0.22;
+    opacity: 0.18;
   }
 
   h1,
@@ -166,7 +151,7 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(219, 188, 142, 0.32) transparent;
+    scrollbar-color: rgba(219, 188, 142, 0.28) transparent;
   }
 
   ::selection {

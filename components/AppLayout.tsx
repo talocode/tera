@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, type ReactNode } from 'react'
 import Sidebar from './Sidebar'
@@ -35,12 +35,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
         onSignOut={signOut}
       />
 
-      <main className={`relative flex min-w-0 flex-1 flex-col transition-[padding] duration-300 ${sidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[68px]'}`}>
-        <div className="pointer-events-none sticky top-0 z-30 border-b border-tera-border bg-[#050505]/88 shadow-[0_1px_0_rgba(255,255,255,0.05),0_14px_32px_rgba(0,0,0,0.22)] backdrop-blur-xl md:hidden">
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+      <main className={`relative flex min-w-0 flex-1 flex-col transition-[padding] duration-200 ease-out ${sidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[68px]'}`}>
+        <div className="pointer-events-none sticky top-0 z-30 bg-tera-bg/60 backdrop-blur-xl md:hidden">
+          <div className="flex items-center justify-between px-3 py-2.5">
             <button
               type="button"
-            className="tera-icon-button pointer-events-auto h-11 w-11 rounded-2xl border-0 bg-transparent"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-tera-secondary transition-colors hover:bg-tera-highlight hover:text-tera-primary"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation"
             >
@@ -50,10 +50,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <path d="M4 17h10" />
               </svg>
             </button>
-            <div className="pointer-events-none" />
             <button
               type="button"
-            className="tera-icon-button pointer-events-auto h-11 w-11 rounded-2xl border-0 bg-transparent text-tera-primary"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-tera-secondary transition-colors hover:bg-tera-highlight hover:text-tera-primary"
               onClick={handleNewChat}
               title="Start new chat"
               aria-label="Start new chat"

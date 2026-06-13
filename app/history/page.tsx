@@ -7,6 +7,8 @@ import { fetchHistoryPageData } from '@/app/actions/user'
 import { createSavedWorkflow, loadSavedWorkflows, persistSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 import { loadContinueLaterQueue, pinContinueLaterItem, setContinueLaterReminder, unpinContinueLaterItem } from '@/lib/continue-later'
 
+type Tab = 'history' | 'bookmarks' | 'notes'
+
 interface ChatSession {
   id?: string
   title?: string | null
@@ -73,6 +75,11 @@ export default function HistoryPage() {
   const [savedWorkflowSessionId, setSavedWorkflowSessionId] = useState<string | null>(null)
   const [savedWorkflowsLoaded, setSavedWorkflowsLoaded] = useState(false)
   const [pinnedMap, setPinnedMap] = useState<Record<string, true>>({})
+  const [activeTab, setActiveTab] = useState<Tab>('history')
+  const [bookmarks, setBookmarks] = useState<any[]>([])
+  const [bookmarksLoading, setBookmarksLoading] = useState(false)
+  const [notes, setNotes] = useState<any[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
   const pageSize = 25
 
   const fetchHistory = useCallback(async () => {
@@ -114,6 +121,24 @@ export default function HistoryPage() {
     if (!savedWorkflowsLoaded) return
     persistSavedWorkflows(savedWorkflows)
   }, [savedWorkflows, savedWorkflowsLoaded])
+
+  useEffect(() => {
+    if (activeTab !== 'bookmarks' || !user) return
+    setBookmarksLoading(true)
+    fetch('/api/user/bookmarks', { headers: { 'x-user-id': user.id } })
+      .then((r) => r.json())
+      .then((data) => { setBookmarks(data?.bookmarks || []); setBookmarksLoading(false) })
+      .catch(() => setBookmarksLoading(false))
+  }, [activeTab, user])
+
+  useEffect(() => {
+    if (activeTab !== 'notes' || !user) return
+    setNotesLoading(true)
+    fetch('/api/user/notes', { headers: { 'x-user-id': user.id } })
+      .then((r) => r.json())
+      .then((data) => { setNotes(data?.notes || []); setNotesLoading(false) })
+      .catch(() => setNotesLoading(false))
+  }, [activeTab, user])
 
   const handleExportJson = () => {
     const data = buildExportRows(conversations)
@@ -261,96 +286,130 @@ export default function HistoryPage() {
         <div className="tera-page-header">
           <div>
             <p className="tera-eyebrow">Workspace</p>
-            <h1 className="tera-title mt-3">Chat history</h1>
-            <p className="tera-subtitle mt-4">Search recent sessions, reopen previous conversations, or export JSON, Word, or PDF archives.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search history"
-              value={searchQuery}
-              onChange={(event) => {
-                setSearchQuery(event.target.value)
-                setPage(1)
-              }}
-              className="tera-input min-w-[16rem]"
-            />
-            <button type="button" onClick={handleExportJson} className="tera-button-secondary">
-              Export JSON
-            </button>
-            <button type="button" onClick={handleExportWord} className="tera-button-secondary">
-              Export Word
-            </button>
-            <button type="button" onClick={handleExportPdf} className="tera-button-secondary">
-              Export PDF
-            </button>
+            <h1 className="tera-title mt-3">History</h1>
+            <p className="tera-subtitle mt-4">Browse chat history, bookmarks, and saved notes in one place.</p>
           </div>
         </div>
 
-        <div className="tera-surface mt-8 flex min-h-[60vh] flex-col p-6 md:p-8">
-          <div className="flex items-center justify-between gap-4 pb-5">
-            <div>
-              <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sessions</p>
-              <h2 className="mt-2 text-xl font-semibold text-tera-primary">Your recent conversations</h2>
-            </div>
-            <p className="text-sm text-tera-secondary">Page {page}</p>
-          </div>
+        <div className="mt-6 flex gap-2">
+          {([
+            { id: 'history' as Tab, label: 'Chats' },
+            { id: 'bookmarks' as Tab, label: 'Bookmarks' },
+            { id: 'notes' as Tab, label: 'Notes' },
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-white/[0.08] text-tera-primary' : 'text-tera-secondary hover:text-tera-primary'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="custom-scrollbar mt-6 flex-1 space-y-4 overflow-y-auto pr-2">
-            {loading && <p className="text-sm text-tera-secondary">Loading history...</p>}
-            {!loading && !user && <p className="text-sm text-tera-secondary">Sign in to view your history.</p>}
-            {!loading && user && conversations.length === 0 && <p className="text-sm text-tera-secondary">No conversations found.</p>}
-            {conversations.map((conversation, index) => (
-              <div
-                key={`${conversation.session_id}-${conversation.created_at}-${index}`}
-                className="tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px hover:bg-white/[0.06]"
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">{conversation.tool || 'Chat'}</p>
-                    <p className="mt-2 truncate text-base font-medium text-tera-primary">{conversation.title || 'Untitled chat'}</p>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-tera-secondary">{conversation.last_message}</p>
-                  </div>
-                  <p className="shrink-0 text-xs uppercase tracking-[0.22em] text-tera-secondary">
-                    {new Date(conversation.created_at).toLocaleString()}
-                  </p>
+        <div className="tera-surface mt-8 flex min-h-[60vh] flex-col p-6 md:p-8">
+          {activeTab === 'history' && (
+            <>
+              <div className="flex items-center justify-between gap-4 pb-5">
+                <div>
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sessions</p>
+                  <h2 className="mt-2 text-xl font-semibold text-tera-primary">Your recent conversations</h2>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <Link href={`/new/${conversation.session_id}`} className="tera-button-primary">
-                    Open
-                  </Link>
-                  <button type="button" onClick={() => handlePinConversation(conversation)} className="tera-button-secondary">
-                    {pinnedMap[`chat:${conversation.session_id}`] ? 'Pinned' : 'Pin for later'}
-                  </button>
-                  <button type="button" onClick={() => handleSaveWorkflow(conversation)} className="tera-button-secondary">
-                    {savedWorkflowSessionId === conversation.session_id ? 'Saved workflow' : 'Save workflow'}
-                  </button>
-                  <button type="button" onClick={() => handleReminder(conversation, 1)} className="tera-button-secondary">
-                    Remind tomorrow
-                  </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+                    className="tera-input h-9 min-w-[14rem]"
+                  />
+                  <button type="button" onClick={handleExportJson} className="tera-button-secondary text-xs">JSON</button>
+                  <button type="button" onClick={handleExportWord} className="tera-button-secondary text-xs">Word</button>
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-6 flex items-center justify-between pt-5">
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page === 1 || loading}
-              className="tera-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((current) => current + 1)}
-              disabled={!hasMore || loading}
-              className="tera-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+              <div className="custom-scrollbar mt-6 flex-1 space-y-4 overflow-y-auto pr-2">
+                {loading && <p className="text-sm text-tera-secondary">Loading history...</p>}
+                {!loading && !user && <p className="text-sm text-tera-secondary">Sign in to view your history.</p>}
+                {!loading && user && conversations.length === 0 && <p className="text-sm text-tera-secondary">No conversations found.</p>}
+                {conversations.map((conversation, index) => (
+                  <div
+                    key={`${conversation.session_id}-${conversation.created_at}-${index}`}
+                    className="tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px hover:bg-white/[0.06]"
+                  >
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">{conversation.tool || 'Chat'}</p>
+                        <p className="mt-2 truncate text-base font-medium text-tera-primary">{conversation.title || 'Untitled chat'}</p>
+                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-tera-secondary">{conversation.last_message}</p>
+                      </div>
+                      <p className="shrink-0 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+                        {new Date(conversation.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <Link href={`/new/${conversation.session_id}`} className="tera-button-primary">Open</Link>
+                      <button type="button" onClick={() => handlePinConversation(conversation)} className="tera-button-secondary">
+                        {pinnedMap[`chat:${conversation.session_id}`] ? 'Pinned' : 'Pin for later'}
+                      </button>
+                      <button type="button" onClick={() => handleSaveWorkflow(conversation)} className="tera-button-secondary">
+                        {savedWorkflowSessionId === conversation.session_id ? 'Saved' : 'Save workflow'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-center justify-between pt-5">
+                <button type="button" onClick={() => setPage((c) => Math.max(1, c - 1))} disabled={page === 1 || loading} className="tera-button-secondary disabled:cursor-not-allowed disabled:opacity-50">Previous</button>
+                <button type="button" onClick={() => setPage((c) => c + 1)} disabled={!hasMore || loading} className="tera-button-secondary disabled:cursor-not-allowed disabled:opacity-50">Next</button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'bookmarks' && (
+            <div className="flex-1">
+              <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Bookmarks</p>
+              <h2 className="mt-2 text-xl font-semibold text-tera-primary">Saved bookmarks</h2>
+              <div className="mt-6 space-y-4">
+                {bookmarksLoading ? (
+                  <p className="text-sm text-tera-secondary">Loading bookmarks...</p>
+                ) : bookmarks.length === 0 ? (
+                  <p className="text-sm text-tera-secondary">No bookmarks yet. Save bookmarks from chat responses.</p>
+                ) : (
+                  bookmarks.map((b: any) => (
+                    <div key={b.id} className="tera-card-subtle p-5">
+                      <a href={b.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-tera-primary hover:underline">{b.title}</a>
+                      {b.snippet && <p className="mt-2 text-sm text-tera-secondary line-clamp-2">{b.snippet}</p>}
+                      <p className="mt-2 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">{new Date(b.created_at).toLocaleDateString()}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notes' && (
+            <div className="flex-1">
+              <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Notes</p>
+              <h2 className="mt-2 text-xl font-semibold text-tera-primary">Saved notes</h2>
+              <div className="mt-6 space-y-4">
+                {notesLoading ? (
+                  <p className="text-sm text-tera-secondary">Loading notes...</p>
+                ) : notes.length === 0 ? (
+                  <p className="text-sm text-tera-secondary">No notes yet. Save notes from chat responses.</p>
+                ) : (
+                  notes.map((n: any) => (
+                    <div key={n.id} className="tera-card-subtle p-5">
+                      <p className="text-sm leading-7 text-tera-primary whitespace-pre-wrap">{n.content || n.note_text}</p>
+                      <p className="mt-2 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">{new Date(n.created_at).toLocaleDateString()}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

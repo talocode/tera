@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import { getUserProfileServer, checkAndResetUsageServer } from '@/lib/usage-tracking-server'
 import { buildProfileUsageSummary } from '@/lib/profile-usage'
@@ -45,8 +45,9 @@ export async function fetchUserUsageSummary(userId: string) {
         return buildProfileUsageSummary({
             plan: profile.subscriptionPlan,
             dailyChats: profile.dailyChats,
-            dailyFileUploads: profile.dailyFileUploads,
+            monthlyFileUploads: profile.monthlyFileUploads,
             chatResetDate: profile.chatResetDate,
+            uploadResetDate: profile.uploadResetDate,
             monthlyWebSearches: profile.monthlyWebSearches,
             webSearchResetDate: profile.webSearchResetDate,
         })

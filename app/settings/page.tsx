@@ -1,7 +1,8 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { useTheme } from '@/components/ThemeProvider'
 import { fetchUserProfile } from '@/app/actions/user'
@@ -50,6 +51,7 @@ function SettingToggle({
 export default function SettingsPage() {
   const { user, signOut } = useAuth()
   const { setTheme } = useTheme()
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'preferences' | 'privacy' | 'account'>('preferences')
   const [message, setMessage] = useState('')
@@ -145,6 +147,14 @@ export default function SettingsPage() {
     })
   }
 
+  const handleTabClick = (tabId: string) => {
+    if (tabId === 'usage') {
+      router.push('/settings/usage')
+      return
+    }
+    setActiveTab(tabId as typeof activeTab)
+  }
+
   const updateSetting = (key: keyof UserSettings, value: number) => {
     setSettings((current) => {
       const updated = { ...current, [key]: value }
@@ -177,6 +187,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'preferences', label: 'Preferences' },
+    { id: 'usage', label: 'Usage & Credits' },
     { id: 'privacy', label: 'Privacy' },
     { id: 'account', label: 'Account' },
   ] as const
@@ -204,7 +215,7 @@ export default function SettingsPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabClick(item.id)}
                   className={`min-w-fit rounded-full px-4 py-2.5 text-sm transition xl:flex xl:w-full xl:items-center xl:justify-between xl:rounded-[18px] xl:px-4 xl:py-3 xl:text-left ${activeTab === item.id ? 'bg-white/[0.08] text-tera-primary' : 'text-tera-secondary hover:bg-white/[0.04] hover:text-tera-primary'}`}
                 >
                   <span>{item.label}</span>

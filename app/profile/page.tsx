@@ -449,7 +449,7 @@ export default function ProfilePage() {
         message:
           usageSummary.uploads.remaining <= 0
             ? 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.'
-            : `${usageSummary.uploads.remaining.toLocaleString()} file uploads remain before your daily limit hits zero.`,
+            : `${usageSummary.uploads.remaining.toLocaleString()} file uploads remain before your monthly limit resets.`,
       }
     }
 

@@ -86,9 +86,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
             if (userId) {
                 const userProfile = await getUserProfileServer(userId)
-                if (userProfile && !canUploadFile(userProfile.subscriptionPlan, userProfile.dailyFileUploads)) {
-                    const limit = getPlanConfig(userProfile.subscriptionPlan).limits.fileUploadsPerDay
-                    return NextResponse.json({ error: `Daily upload limit reached (${limit}). Upgrade for more.` }, { status: 403 })
+                if (userProfile && !canUploadFile(userProfile.subscriptionPlan, userProfile.monthlyFileUploads)) {
+                    const limit = getPlanConfig(userProfile.subscriptionPlan).limits.fileUploadsPerMonth
+                    return NextResponse.json({ error: `Monthly upload limit reached (${limit}). Upgrade for more.` }, { status: 403 })
                 }
 
                 if (userProfile) {

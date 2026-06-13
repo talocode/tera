@@ -5,7 +5,7 @@ export type PlanType = 'free' | 'pro' | 'plus'
 
 export interface PlanLimits {
     messagesPerDay: number | 'unlimited'
-    fileUploadsPerDay: number | 'unlimited'
+    fileUploadsPerMonth: number | 'unlimited'
     webSearchesPerMonth: number | 'unlimited'
     maxFileSize: number // in MB
     features: string[]
@@ -31,7 +31,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         description: 'Unlimited AI conversations, free forever.',
         limits: {
             messagesPerDay: 'unlimited',
-            fileUploadsPerDay: 3,
+            fileUploadsPerMonth: 90,
             webSearchesPerMonth: 5,
             maxFileSize: 10,
             features: ['basic-chat', 'basic-tools', 'file-uploads']
@@ -39,7 +39,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         features: [
             'Unlimited AI conversations',
             '150 AI Computational Credits',
-            '3 file uploads per day (10MB each)',
+            '90 file uploads per month (10MB each)',
             'Basic AI tools & features',
             'Mobile & desktop access',
             'Community support'
@@ -53,7 +53,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         description: 'Unlock powerful research & productivity tools.',
         limits: {
             messagesPerDay: 'unlimited',
-            fileUploadsPerDay: 25,
+            fileUploadsPerMonth: 750,
             webSearchesPerMonth: 100,
             maxFileSize: 500,
             features: ['advanced-chat', 'all-tools', 'file-uploads', 'export', 'deep-research', 'priority-support']
@@ -61,7 +61,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         features: [
             'Everything in Free, plus:',
             '1,500 AI Computational Credits',
-            '25 file uploads per day (500MB each)',
+            '750 file uploads per month (500MB each)',
             'Deep Research Mode',
             'Export to PDF & Word',
             'Priority email support',
@@ -77,7 +77,7 @@ export const PLAN_CONFIGS: Record<PlanType, PlanConfig> = {
         description: 'Highest limits plus advanced analytics.',
         limits: {
             messagesPerDay: 'unlimited',
-            fileUploadsPerDay: 'unlimited',
+            fileUploadsPerMonth: 'unlimited',
             webSearchesPerMonth: 300,
             maxFileSize: 2000,
             features: ['advanced-chat', 'all-tools', 'file-uploads', 'export', 'admin', 'analytics', 'deep-research', 'priority-support']
@@ -108,7 +108,7 @@ export function canStartChat(plan: PlanType, currentCount: number): boolean {
 }
 
 export function canUploadFile(plan: PlanType, currentCount: number): boolean {
-    const limit = PLAN_CONFIGS[plan].limits.fileUploadsPerDay
+    const limit = PLAN_CONFIGS[plan].limits.fileUploadsPerMonth
     return limit === 'unlimited' || currentCount < limit
 }
 
@@ -119,7 +119,7 @@ export function getRemainingChats(plan: PlanType, currentCount: number): number 
 }
 
 export function getRemainingFileUploads(plan: PlanType, currentCount: number): number | 'unlimited' {
-    const limit = PLAN_CONFIGS[plan].limits.fileUploadsPerDay
+    const limit = PLAN_CONFIGS[plan].limits.fileUploadsPerMonth
     if (limit === 'unlimited') return 'unlimited'
     return Math.max(0, limit - currentCount)
 }

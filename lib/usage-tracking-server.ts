@@ -2,12 +2,14 @@ import { supabaseServer } from './supabase-server'
 
 /**
  * Check if counters need to be reset (Server Side)
- * Supports both daily reset and 24-hour unlock from when limit was hit
+ * - Chats reset daily
+ * - File uploads reset monthly
+ * - Web searches reset monthly
  */
 export async function checkAndResetUsageServer(userId: string): Promise<boolean> {
     const { data, error } = await supabaseServer
         .from('users')
-        .select('chat_reset_date, limit_hit_chat_at, limit_hit_upload_at, web_search_reset_date')
+        .select('chat_reset_date, limit_hit_chat_at, limit_hit_upload_at, web_search_reset_date, upload_reset_date')
         .eq('id', userId)
         .single()
 
@@ -20,7 +22,7 @@ export async function checkAndResetUsageServer(userId: string): Promise<boolean>
     // Check 24-hour unlock from when chat limit was hit
     if (data.limit_hit_chat_at) {
         const hitTime = new Date(data.limit_hit_chat_at)
-        const unlockTime = new Date(hitTime.getTime() + 24 * 60 * 60 * 1000) // 24 hours later
+        const unlockTime = new Date(hitTime.getTime() + 24 * 60 * 60 * 1000)
 
         if (now >= unlockTime) {
             updates.daily_chats = 0
@@ -29,24 +31,34 @@ export async function checkAndResetUsageServer(userId: string): Promise<boolean>
         }
     }
 
-    // Check 24-hour unlock from when upload limit was hit
-    if (data.limit_hit_upload_at) {
+    // MONTHLY UPLOAD RESET LOGIC
+    const uploadResetDate = data.upload_reset_date ? new Date(data.upload_reset_date) : null
+    if (!uploadResetDate || now >= uploadResetDate) {
+        const nextUploadResetDate = new Date(now)
+        nextUploadResetDate.setMonth(nextUploadResetDate.getMonth() + 1)
+
+        updates.monthly_file_uploads = 0
+        updates.upload_reset_date = nextUploadResetDate.toISOString()
+        updates.limit_hit_upload_at = null
+        needsUpdate = true
+    } else if (data.limit_hit_upload_at) {
+        // Check 24-hour unlock from when upload limit was hit (within the month)
         const hitTime = new Date(data.limit_hit_upload_at)
-        const unlockTime = new Date(hitTime.getTime() + 24 * 60 * 60 * 1000) // 24 hours later
+        const unlockTime = new Date(hitTime.getTime() + 24 * 60 * 60 * 1000)
 
         if (now >= unlockTime) {
-            updates.daily_file_uploads = 0
             updates.limit_hit_upload_at = null
             needsUpdate = true
         }
     }
 
+    // MONTHLY WEB SEARCH RESET LOGIC
     if (data.web_search_reset_date) {
         const resetAt = new Date(data.web_search_reset_date)
         if (now >= resetAt) {
-            updates.monthly_web_searches = 0
             const nextSearchResetDate = new Date(now)
             nextSearchResetDate.setMonth(nextSearchResetDate.getMonth() + 1)
+            updates.monthly_web_searches = 0
             updates.web_search_reset_date = nextSearchResetDate.toISOString()
             needsUpdate = true
         }
@@ -58,22 +70,15 @@ export async function checkAndResetUsageServer(userId: string): Promise<boolean>
         needsUpdate = true
     }
 
-    // DAILY RESET LOGIC (Overrules 24h lock if the day cycle has passed)
-    // If chat_reset_date is passed OR missing, we reset everything
+    // DAILY CHAT RESET LOGIC
     const resetDate = data.chat_reset_date ? new Date(data.chat_reset_date) : null
-
     if (!resetDate || now >= resetDate) {
         const nextChatResetDate = new Date(now)
         nextChatResetDate.setDate(nextChatResetDate.getDate() + 1)
 
         updates.daily_chats = 0
-        updates.daily_file_uploads = 0
         updates.chat_reset_date = nextChatResetDate.toISOString()
-
-        // Clear locks on daily reset - give user a fresh start
         updates.limit_hit_chat_at = null
-        updates.limit_hit_upload_at = null
-
         needsUpdate = true
     }
 
@@ -98,7 +103,6 @@ export async function checkAndResetUsageServer(userId: string): Promise<boolean>
  * Increment chat counter (Server Side)
  */
 export async function incrementChatsServer(userId: string): Promise<boolean> {
-    // First check and reset if needed
     await checkAndResetUsageServer(userId)
 
     const { data, error: fetchError } = await supabaseServer
@@ -121,12 +125,11 @@ export async function incrementChatsServer(userId: string): Promise<boolean> {
  * Increment file upload counter (Server Side)
  */
 export async function incrementFileUploadsServer(userId: string, count: number = 1): Promise<boolean> {
-    // First check and reset if needed
     await checkAndResetUsageServer(userId)
 
     const { data, error: fetchError } = await supabaseServer
         .from('users')
-        .select('daily_file_uploads')
+        .select('monthly_file_uploads')
         .eq('id', userId)
         .single()
 
@@ -134,7 +137,7 @@ export async function incrementFileUploadsServer(userId: string, count: number =
 
     const { error: updateError } = await supabaseServer
         .from('users')
-        .update({ daily_file_uploads: (data.daily_file_uploads || 0) + count })
+        .update({ monthly_file_uploads: (data.monthly_file_uploads || 0) + count })
         .eq('id', userId)
 
     return !updateError
@@ -182,9 +185,10 @@ export async function getUserProfileServer(userId: string) {
         email: data.email,
         subscriptionPlan: (data.subscription_plan || 'free') as 'free' | 'pro' | 'plus',
         dailyChats: data.daily_chats || 0,
-        dailyFileUploads: data.daily_file_uploads || 0,
+        monthlyFileUploads: data.monthly_file_uploads || 0,
         monthlyWebSearches: data.monthly_web_searches || 0,
         chatResetDate: data.chat_reset_date ? new Date(data.chat_reset_date) : null,
+        uploadResetDate: data.upload_reset_date ? new Date(data.upload_reset_date) : null,
         webSearchResetDate: data.web_search_reset_date ? new Date(data.web_search_reset_date) : null,
         profileImageUrl: data.profile_image_url,
         fullName: data.full_name,

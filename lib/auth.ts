@@ -1,4 +1,4 @@
-﻿import NextAuth from 'next-auth'
+import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { supabaseServer } from '@/lib/supabase-server'
 import { sendWelcomeEmail } from '@/lib/transactional-emails'
@@ -63,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
                 profile_image_url: user.image || (profile as any)?.picture || null,
                 subscription_plan: 'free',
                 daily_chats: 0,
-                daily_file_uploads: 0,
+                monthly_file_uploads: 0,
                 created_at: new Date().toISOString(),
               })
 
