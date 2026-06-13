@@ -37,7 +37,7 @@ export async function GET() {
       runColumnCheck(
         'users usage columns',
         'users',
-        'id, subscription_plan, daily_chats, daily_file_uploads, chat_reset_date, free_plan_credits_used, free_plan_credits_reset_date, limit_hit_chat_at, limit_hit_upload_at',
+        'id, subscription_plan, daily_chats, monthly_file_uploads, chat_reset_date, upload_reset_date, free_plan_credits_used, free_plan_credits_reset_date, limit_hit_chat_at, limit_hit_upload_at',
       ),
       runColumnCheck(
         'chat session analytics columns',

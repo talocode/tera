@@ -28,6 +28,7 @@ type UserCreditRecord = {
   purchasedCredits: number
   resetDate: Date | null
   hasCreditLedger: boolean
+  createdAt: Date | null
 }
 
 class UsageReadError extends Error {
@@ -80,6 +81,23 @@ function getNextResetDate(from: Date = new Date()) {
   return date
 }
 
+/**
+ * Calculate the next reset date anchored to the user's signup date.
+ * This ensures the 30-day cycle is always aligned to the original signup,
+ * not a rolling window from "now".
+ */
+function getNextResetDateFromSignup(signupDate: Date, from: Date = new Date()): Date {
+  const resetIntervalMs = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
+  const signupTime = signupDate.getTime()
+  const nowTime = from.getTime()
+
+  const elapsed = nowTime - signupTime
+  const cyclesPassed = Math.floor(elapsed / resetIntervalMs)
+
+  const nextResetTime = signupTime + (cyclesPassed + 1) * resetIntervalMs
+  return new Date(nextResetTime)
+}
+
 function normalizePlan(plan: string | null | undefined): PlanType {
   if (plan === 'pro' || plan === 'plus') {
     return plan
@@ -91,14 +109,14 @@ function normalizePlan(plan: string | null | undefined): PlanType {
 async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | null> {
   const { data, error } = await supabaseServer
     .from('users')
-    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date, purchased_credits_balance')
+    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date, purchased_credits_balance, created_at')
     .eq('id', userId)
     .maybeSingle()
 
   if (error && (isMissingColumnError(error, 'free_plan_credits_used') || isMissingColumnError(error, 'free_plan_credits_reset_date') || isMissingColumnError(error, 'purchased_credits_balance'))) {
     const { data: fallbackData, error: fallbackError } = await supabaseServer
       .from('users')
-      .select('subscription_plan')
+      .select('subscription_plan, created_at')
       .eq('id', userId)
       .maybeSingle()
 
@@ -116,6 +134,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
       purchasedCredits: 0,
       resetDate: null,
       hasCreditLedger: false,
+      createdAt: fallbackData.created_at ? new Date(fallbackData.created_at) : null,
     }
   }
 
@@ -133,6 +152,7 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
     purchasedCredits: Math.max(0, Number(data.purchased_credits_balance || 0)),
     resetDate: data.free_plan_credits_reset_date ? new Date(data.free_plan_credits_reset_date) : null,
     hasCreditLedger: true,
+    createdAt: data.created_at ? new Date(data.created_at) : null,
   }
 }
 
@@ -198,10 +218,19 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const record = await getUserCreditRecord(userId)
     const plan = record?.plan ?? await getUserPlan(userId)
 
-    const activeResetDate = record?.resetDate && now <= record.resetDate
-      ? record.resetDate
-      : getNextResetDate(now)
-    const windowStart = new Date(activeResetDate.getTime() - RESET_INTERVAL_MS)
+    // Use signup-based 30-day gating for free plan
+    // For paid plans, use the stored reset date or calculate from now
+    let activeResetDate: Date
+    if (record?.resetDate && now <= record.resetDate) {
+      activeResetDate = record.resetDate
+    } else if (plan === 'free' && record?.createdAt) {
+      activeResetDate = getNextResetDateFromSignup(record.createdAt, now)
+    } else {
+      activeResetDate = getNextResetDate(now)
+    }
+
+    const resetIntervalMs = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
+    const windowStart = new Date(activeResetDate.getTime() - resetIntervalMs)
 
     if (record?.hasCreditLedger) {
       const total = getPlanCreditCap(plan) + Math.max(0, record.purchasedCredits || 0)
@@ -247,9 +276,18 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
       purchased_credits_balance?: number
     } = { free_plan_credits_used: used }
 
+    // Check if the reset date has passed — use signup-based calculation for free plan
+    let currentResetDate = resetDate
     if (!resetDate || now > resetDate) {
       used = 0
-      const nextReset = getNextResetDate(now)
+      const plan = record.plan ?? 'free'
+      let nextReset: Date
+      if (plan === 'free' && record.createdAt) {
+        nextReset = getNextResetDateFromSignup(record.createdAt, now)
+      } else {
+        nextReset = getNextResetDate(now)
+      }
+      currentResetDate = nextReset
       updatePayload.free_plan_credits_reset_date = nextReset.toISOString()
     }
 

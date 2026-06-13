@@ -16,6 +16,7 @@ type User = {
     email?: string | null
     name?: string | null
     image?: string | null
+    subscriptionPlan?: string
 }
 import type { AttachmentReference, AttachmentType } from '@/lib/attachment'
 import { fetchChatHistory } from '@/app/actions/user'
@@ -351,6 +352,13 @@ const ScanIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px]">
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3.75H5.25A1.5 1.5 0 003.75 5.25v1.5M17.25 3.75h1.5a1.5 1.5 0 011.5 1.5v1.5M6.75 20.25H5.25a1.5 1.5 0 01-1.5-1.5v-1.5M17.25 20.25h1.5a1.5 1.5 0 001.5-1.5v-1.5" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 8.25h.01M8.25 15.75h7.5M15.75 8.25h.01M15.75 15.75h.01" />
+    </svg>
+)
+
+const IconResearch = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 4 8.5 9.5 3 12l5.5 2.5L11 20l2.5-5.5L19 12l-5.5-2.5L11 4Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 4.5 19.5 7l2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" />
     </svg>
 )
 
@@ -870,7 +878,7 @@ export default function PromptShell({
                                     <p className="mt-2 text-sm leading-7 text-amber-50">
                                         {lowCredits
                                             ? `${creditUsage?.remaining.toLocaleString()} computational credits remain before your balance hits zero.`
-                                            : `${usageSummary?.uploads.remaining} file uploads remain before your daily limit hits zero.`}
+                                            : `${usageSummary?.uploads.remaining} file uploads remain before your monthly limit resets.`}
                                     </p>
                                 </div>
                                 <Link href="/profile#credit-packs" className="tera-button-secondary self-start">
@@ -885,32 +893,15 @@ export default function PromptShell({
                         </div>
                     )}
                     {showInitialPrompt && (
-                        <div className="rounded-[28px] border border-tera-border bg-tera-panel/72 px-4 py-4 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
-                            <div className="flex flex-col gap-3 border-b border-tera-border pb-4 md:flex-row md:items-start md:justify-between">
-                                <div className="max-w-2xl">
-                                    <p className="tera-eyebrow">Start a new chat</p>
-                                    <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-tera-primary md:text-2xl">How can Tera help you today?</h2>
-                                    <p className="mt-2 text-sm leading-6 text-tera-secondary md:text-[0.95rem]">
-                                        Pick a starter below or type directly into the composer. Study, research, plan, and summarize are suggestions, not blockers.
-                                    </p>
-                                </div>
-                                <Link href="/search" className="tera-button-secondary self-start">
-                                    Search workspace
-                                </Link>
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-tera-panel border border-tera-border mb-5">
+                                <svg className="h-6 w-6 text-tera-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 5v14" />
+                                    <path d="M5 12h14" />
+                                </svg>
                             </div>
-                            <div className="pt-4">
-                                <PromptStarterTemplates
-                                    onSelectPrompt={(value) => {
-                                        setPrompt(value)
-                                        window.setTimeout(() => {
-                                            const textarea = document.querySelector('textarea[placeholder]') as HTMLTextAreaElement | null
-                                            textarea?.focus()
-                                        }, 0)
-                                    }}
-                                    compact
-                                    layout="inline"
-                                />
-                            </div>
+                            <h2 className="text-lg font-medium text-tera-primary">What can I help you with?</h2>
+                            <p className="mt-2 max-w-sm text-sm text-tera-secondary">Type a message below to start a conversation.</p>
                         </div>
                     )}
                     {conversations.map((entry) => (
@@ -1088,25 +1079,8 @@ export default function PromptShell({
             <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/84 px-2 py-2 shadow-[0_-24px_70px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
-                        {showInitialPrompt && (
-                            <div className="rounded-[20px] border border-tera-border bg-tera-muted/70 px-3 py-3 md:px-4">
-                                <p className="text-[0.62rem] uppercase tracking-[0.24em] text-tera-secondary">Starter ideas</p>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {['study', 'research', 'plan', 'summarize'].map((mode) => (
-                                        <button
-                                            key={mode}
-                                            type="button"
-                                            onClick={() => setChatMode(mode as ChatMode)}
-                                            className="rounded-full border border-tera-border bg-tera-bg px-3 py-1 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:text-tera-primary"
-                                        >
-                                            {mode}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => {
                                         if (!user?.id) {
@@ -1116,12 +1090,15 @@ export default function PromptShell({
                                         setSearchHistoryOpen(true)
                                     }}
                                     className="composer-action-button"
-                                    title="Search history and bookmarks"
+                                    title="History & bookmarks"
                                 >
                                     <HistoryIcon />
                                 </button>
-                                <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment">
-                                    <AttachmentIcon />
+                                <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
+                                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 5v14" />
+                                        <path d="M5 12h14" />
+                                    </svg>
                                 </button>
                             </div>
 
@@ -1154,6 +1131,9 @@ export default function PromptShell({
                                                     { key: 'study', label: 'Study', hint: 'Step-by-step explanations with checkpoints.', icon: <StudyIcon /> },
                                                     { key: 'quiz', label: 'Quiz', hint: 'Practice questions and quick feedback.', icon: <QuizIcon /> },
                                                     { key: 'summarize', label: 'Summarize', hint: 'Condense long text into clear takeaways.', icon: <SummarizeIcon /> },
+                                                    ...(user?.subscriptionPlan === 'pro' || user?.subscriptionPlan === 'plus'
+                                                        ? [{ key: 'research' as ChatMode, label: 'Deep Research', hint: 'Web-backed research with citations.', icon: <IconResearch /> }]
+                                                        : []),
                                                 ] as const).map((item) => {
                                                     const isActive = chatMode === item.key
 

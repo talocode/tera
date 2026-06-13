@@ -27,13 +27,11 @@ type NavItem = {
 
 export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
-  { label: 'Workspace search', icon: 'search', href: '/search' },
-  { label: 'Bookmarks', icon: 'bookmark', href: '/bookmarks' },
+  { label: 'Search', icon: 'search', href: '/search' },
   { label: 'Images', icon: 'images', href: '/images' },
   { label: 'Skills', icon: 'apps', href: '/skills' },
-  { label: 'Deep research', icon: 'research', href: '/deep-research' },
-  { label: 'Notes', icon: 'notes', href: '/notes' },
   { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
+  { label: 'Usage', icon: 'usage', href: '/settings/usage' },
   { label: 'Settings', icon: 'settings', href: '/settings' },
 ]
 
@@ -121,18 +119,23 @@ const IconLab = () => (
   </svg>
 )
 
+const IconUsage = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20V10" />
+    <path d="M18 20V4" />
+    <path d="M6 20v-4" />
+  </svg>
+)
+
 const getIcon = (iconName: string): React.ReactNode => {
   const icons: Record<string, () => React.ReactNode> = {
     chat: IconChat,
     search: IconSearch,
-    bookmark: IconBookmark,
-    queue: IconQueue,
     images: IconImages,
     apps: IconApps,
-    research: IconResearch,
-    notes: IconNotes,
     settings: IconSettings,
     lab: IconLab,
+    usage: IconUsage,
   }
   const Icon = icons[iconName]
   return Icon ? <Icon /> : null
@@ -155,7 +158,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
 
       <aside
         className={[
-          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary shadow-[0_0_40px_rgba(0,0,0,0.12)] transition-[width,transform] duration-300 ease-out',
+          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary shadow-[0_0_40px_rgba(0,0,0,0.12)] transition-[width,transform] duration-150 ease-out',
           mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
           expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
         ].join(' ')}
@@ -191,7 +194,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
                 ? pathname?.startsWith('/new')
-                : pathname === item.href || (item.href.startsWith('/history') && pathname?.startsWith('/history')) || (item.href.startsWith('/queue') && pathname?.startsWith('/queue')) || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/bookmarks') && pathname?.startsWith('/bookmarks')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab'))
+                : pathname === item.href || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab')) || (item.href.startsWith('/settings/usage') && pathname?.startsWith('/settings/usage'))
 
               return (
                 <Link

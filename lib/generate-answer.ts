@@ -55,9 +55,10 @@ export async function generateAnswerForPrompt({
       email: authorEmail || '',
       subscriptionPlan: 'free',
       dailyChats: 0,
-      dailyFileUploads: 0,
+      monthlyFileUploads: 0,
       monthlyWebSearches: 0,
       chatResetDate: null,
+      uploadResetDate: null,
       webSearchResetDate: null,
       limitHitChatAt: null,
       limitHitUploadAt: null,
@@ -69,10 +70,10 @@ export async function generateAnswerForPrompt({
     }
   }
 
-  if (attachments.length > 0 && !canUploadFile(userProfile.subscriptionPlan, userProfile.dailyFileUploads)) {
+  if (attachments.length > 0 && !canUploadFile(userProfile.subscriptionPlan, userProfile.monthlyFileUploads)) {
     const planConfig = getPlanConfig(userProfile.subscriptionPlan)
-    const limit = planConfig.limits.fileUploadsPerDay
-    const errorMessage = `You've reached your daily limit of ${limit} file uploads. Upgrade to Pro or Plus for higher limits.`
+    const limit = planConfig.limits.fileUploadsPerMonth
+    const errorMessage = `You've reached your monthly limit of ${limit} file uploads. Upgrade to Pro or Plus for higher limits.`
     console.error('File upload limit reached:', errorMessage)
     return {
       answer: errorMessage,

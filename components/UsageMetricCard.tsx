@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import type { UsageMetricSummary } from '@/lib/profile-usage'
 
@@ -35,10 +35,23 @@ function formatResetLabel(resetAt: string | null) {
   })}`
 }
 
+function getBarColor(percentageUsed: number, isUnlimited: boolean): string {
+  if (isUnlimited) return 'bg-emerald-500'
+  if (percentageUsed < 50) return 'bg-emerald-500'
+  if (percentageUsed < 75) return 'bg-amber-500'
+  return 'bg-red-500'
+}
+
+function getStatusColor(percentageUsed: number, isUnlimited: boolean): string {
+  if (isUnlimited) return 'text-emerald-400'
+  if (percentageUsed < 50) return 'text-emerald-400'
+  if (percentageUsed < 75) return 'text-amber-400'
+  return 'text-red-400'
+}
+
 export default function UsageMetricCard({
   title,
   metric,
-  accentClassName = 'bg-tera-neon',
   description,
 }: {
   title: string
@@ -46,26 +59,20 @@ export default function UsageMetricCard({
   accentClassName?: string
   description?: string
 }) {
+  const barColor = getBarColor(metric.percentageUsed, metric.isUnlimited)
+  const statusColor = getStatusColor(metric.percentageUsed, metric.isUnlimited)
   const remainingLabel = metric.isUnlimited
     ? 'Unlimited access'
     : `${Math.round(metric.percentageRemaining)}% remaining`
-
-  // Dynamic color based on usage percentage
-  const getBarColor = () => {
-    if (metric.isUnlimited) return 'bg-tera-neon'
-    if (metric.percentageUsed > 90) return 'bg-red-500'
-    if (metric.percentageUsed > 75) return 'bg-amber-500'
-    return 'bg-tera-neon'
-  }
-
-  const activeColor = metric.isUnlimited ? accentClassName : getBarColor()
 
   return (
     <div className="tera-card h-full">
       <div className="flex h-full flex-col justify-between gap-6">
         <div>
           <p className="text-sm font-medium text-tera-secondary">{title}</p>
-          <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">{remainingLabel}</p>
+          <p className={`mt-3 text-4xl font-semibold tracking-[-0.05em] ${statusColor}`}>
+            {remainingLabel}
+          </p>
           <p className="mt-3 text-sm text-tera-secondary">
             Used: <span className="text-tera-primary">{metric.used.toLocaleString()}</span>
             {!metric.isUnlimited && (
@@ -80,7 +87,7 @@ export default function UsageMetricCard({
         <div>
           <div className="h-4 overflow-hidden rounded-full bg-white/[0.08]">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${activeColor}`}
+              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
               style={{ width: `${metric.isUnlimited ? 100 : Math.max(metric.percentageUsed, 4)}%` }}
             />
           </div>
@@ -94,4 +101,3 @@ export default function UsageMetricCard({
     </div>
   )
 }
-
