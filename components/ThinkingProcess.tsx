@@ -83,7 +83,7 @@ export default function ThinkingProcess({ message, hasImages, isResearch, isStre
       }
     })
 
-    return () => clearTimeout(stageTimer)
+    return () => {}
   }, [stages])
 
   const progress = Math.min((elapsed / totalDuration) * 100, 98)
