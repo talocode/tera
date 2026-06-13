@@ -164,6 +164,12 @@ export default function UsagePage() {
 
   const handleAddCredits = async () => {
     if (!user?.email) return
+
+    if (!hasPaymentMethod) {
+      setPaymentModalOpen(true)
+      return
+    }
+
     setCreditPackLoading(true)
     try {
       const amountUsd = Number(topupAmountUsd)
@@ -384,7 +390,7 @@ export default function UsagePage() {
                 disabled={creditPackLoading}
                 className="tera-button-primary disabled:opacity-60"
               >
-                {creditPackLoading ? 'Loading...' : `Add credits`}
+                {creditPackLoading ? 'Loading...' : hasPaymentMethod ? 'Add credits' : 'Add payment method first'}
               </button>
             </div>
             <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">

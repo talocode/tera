@@ -45,9 +45,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 return NextResponse.json({ error: 'Email is required' }, { status: 400 })
             }
 
-            const credits = calculateCreditsFromTopup(1)
-            const checkoutUrl = await getCheckoutUrlForCreditPack(1, credits, email, userId, returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/settings/usage`)
-            return NextResponse.json({ success: true, checkoutUrl })
+            try {
+                const credits = calculateCreditsFromTopup(1)
+                const checkoutUrl = await getCheckoutUrlForCreditPack(1, credits, email, userId, returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/settings/usage`)
+                return NextResponse.json({ success: true, checkoutUrl })
+            } catch (checkoutError) {
+                const msg = checkoutError instanceof Error ? checkoutError.message : String(checkoutError)
+                console.error('[Billing API] create-payment-method-session failed:', msg)
+                return NextResponse.json({ error: `Failed to create checkout: ${msg}` }, { status: 500 })
+            }
         }
 
         if (action === 'create-session') {
