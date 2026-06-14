@@ -20,6 +20,7 @@ type CreditState = {
   total: number
   resetDate: string | null
   plan: PlanType
+  purchasedCredits: number
 }
 
 type UserCreditRecord = {
@@ -236,7 +237,14 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
       const total = getPlanCreditCap(plan) + Math.max(0, record.purchasedCredits || 0)
       const used = Math.max(0, record.resetDate && now <= record.resetDate ? record.used : 0)
       const remaining = Math.max(0, total - used)
-      return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
+      return {
+        used,
+        remaining,
+        total,
+        resetDate: activeResetDate.toISOString(),
+        plan,
+        purchasedCredits: Math.max(0, record.purchasedCredits || 0),
+      }
     }
 
     const ledgerSummary = await getUsageLedgerWindowSummary(userId, windowStart)
@@ -245,7 +253,14 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const used = ledgerSummary ? ledgerUsage : sessionUsage
     const total = getPlanCreditCap(plan)
     const remaining = Math.max(0, total - used)
-    return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
+    return {
+      used,
+      remaining,
+      total,
+      resetDate: activeResetDate.toISOString(),
+      plan,
+      purchasedCredits: 0,
+    }
   } catch (error) {
     console.error('[credit_usage_read_failed]', { userId, error })
     throw error
