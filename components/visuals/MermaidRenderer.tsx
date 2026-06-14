@@ -124,8 +124,8 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
     return (
         <div className="w-full my-4 space-y-3">
             {/* Code Section */}
-            <div className="rounded-lg border border-white/10 bg-[#0a0a0a]/60 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+            <div className="rounded-lg border border-tera-border bg-[#0a0a0a]/60 overflow-hidden">
+                <div className="flex items-center justify-between border-b border-tera-border bg-tera-surface-muted px-4 py-2">
                     <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
                         📝 Mermaid Diagram Code
                     </h3>
@@ -136,9 +136,9 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
             </div>
 
             {/* Diagram Rendering Section */}
-            <div className="rounded-xl border border-white/10 bg-[#0A0A0A] p-4 shadow-lg overflow-x-auto">
+            <div className="rounded-xl border border-tera-border bg-[#0A0A0A] p-4 shadow-lg overflow-x-auto">
                 {error ? (
-                    <div className="text-red-400 text-xs p-3 bg-red-900/10 rounded border border-red-900/20">
+                    <div className="rounded border border-red-900/20 bg-red-900/10 p-3 text-xs text-red-400">
                         <p className="font-semibold mb-2">⚠️ Diagram Render Issue</p>
                         <p className="mb-2">{error}</p>
                         <p className="text-white/40 text-[10px]">Tip: Try asking Tera to &quot;redraw the diagram with simpler labels&quot;</p>

@@ -1,6 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { fetchNotes, addNote, updateNote, deleteNote, type Note } from '@/app/actions/notes'
 
@@ -57,20 +58,25 @@ export default function NotesPage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <div className="tera-page-header">
           <div>
             <p className="tera-eyebrow">Workspace</p>
             <h1 className="tera-title mt-3">Notes</h1>
             <p className="tera-subtitle mt-4">Capture quick ideas, snippets, and working thoughts without leaving the main Tera workspace.</p>
           </div>
-          <button type="button" onClick={() => setIsAdding((current) => !current)} className={isAdding ? 'tera-button-secondary' : 'tera-button-primary'}>
-            {isAdding ? 'Cancel' : 'Add note'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/search" className="tera-button-secondary">
+              Search workspace
+            </Link>
+            <button type="button" onClick={() => setIsAdding((current) => !current)} className={isAdding ? 'tera-button-secondary' : 'tera-button-primary'}>
+              {isAdding ? 'Cancel' : 'Add note'}
+            </button>
+          </div>
         </div>
 
         <div className="tera-surface mt-8 p-6 md:p-8">
-          <div className="flex items-center justify-between gap-4 border-b border-tera-border pb-5">
+          <div className="flex items-center justify-between gap-4 pb-5">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Notebook</p>
               <h2 className="mt-2 text-xl font-semibold text-tera-primary">Thoughts and references</h2>
@@ -79,7 +85,7 @@ export default function NotesPage() {
           </div>
 
           {isAdding && (
-            <div className="mt-6 rounded-[24px] border border-tera-neon/20 bg-tera-highlight p-5">
+            <div className="mt-6 tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px">
               <textarea
                 value={newNote}
                 onChange={(event) => setNewNote(event.target.value)}
@@ -98,12 +104,12 @@ export default function NotesPage() {
             {loading ? (
               <p className="text-sm text-tera-secondary">Loading notes...</p>
             ) : notes.length === 0 && !isAdding ? (
-              <div className="rounded-[24px] border border-tera-border bg-white/[0.03] px-5 py-6 text-sm text-tera-secondary">
+              <div className="tera-card-subtle px-5 py-6 text-sm text-tera-secondary">
                 No notes yet. Capture your first idea.
               </div>
             ) : (
               notes.map((note) => (
-                <div key={note.id} className="group rounded-[24px] border border-tera-border bg-white/[0.04] p-5 transition hover:border-white/16 hover:bg-white/[0.06]">
+                <div key={note.id} className="group tera-card-subtle p-5 transition-transform duration-200 hover:-translate-y-px hover:bg-white/[0.06]">
                   {editingNote?.id === note.id ? (
                     <div>
                       <textarea

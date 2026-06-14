@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -13,11 +13,8 @@ interface AnalyticsData {
     newUsersWeek: number
     newUsersMonth: number
     activeUsersToday: number
-    activeUsersWeek: number
     totalChatSessions: number
     chatsToday: number
-    chatsThisWeek: number
-    totalWebSearches: number
     avgChatsPerUser: number
     chatLimitHits: number
     uploadLimitHits: number
@@ -110,12 +107,12 @@ export default function AdminPage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <div className="tera-page-header">
           <div>
             <p className="tera-eyebrow">Admin</p>
             <h1 className="tera-title mt-3">Analytics dashboard</h1>
-            <p className="tera-subtitle mt-4">Monitor user growth, chat activity, search usage, limits, and upgrade conversion from one dark dashboard.</p>
+            <p className="tera-subtitle mt-4">Monitor user growth, chat activity, limits, and upgrade conversion from one dark dashboard.</p>
           </div>
           <button type="button" onClick={fetchAnalytics} disabled={loading} className="tera-button-secondary disabled:opacity-60">
             {loading ? 'Refreshing...' : 'Refresh'}
@@ -133,7 +130,7 @@ export default function AdminPage() {
             <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               <MetricCard title="Total users" value={analytics.summary.totalUsers} subtext={`+${analytics.summary.newUsersToday} today`} />
               <MetricCard title="Total chats" value={analytics.summary.totalChatSessions} subtext={`${analytics.summary.chatsToday} today`} />
-              <MetricCard title="Web searches" value={analytics.summary.totalWebSearches} subtext="Current total" />
+              <MetricCard title="Active users" value={analytics.summary.activeUsersToday} subtext="Today's activity" />
               <MetricCard title="Upgrade rate" value={`${analytics.summary.upgradeRate}%`} subtext={`${analytics.summary.upgradedAfterLimit} after limit`} />
             </div>
 
@@ -181,7 +178,7 @@ export default function AdminPage() {
                 <p className="tera-eyebrow">Recent signups</p>
                 <div className="mt-4 space-y-3">
                   {analytics.recentSignups.length > 0 ? analytics.recentSignups.map((item) => (
-                    <div key={item.id} className="rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4">
+                    <div key={item.id} className="tera-card-subtle px-4 py-4">
                       <p className="text-sm font-medium text-tera-primary">{item.email}</p>
                       <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{item.subscription_plan || 'free'} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
@@ -193,7 +190,7 @@ export default function AdminPage() {
                 <p className="tera-eyebrow">Top users</p>
                 <div className="mt-4 space-y-3">
                   {analytics.topActiveUsers.length > 0 ? analytics.topActiveUsers.map((item) => (
-                    <div key={item.id} className="rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4">
+                    <div key={item.id} className="tera-card-subtle px-4 py-4">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <p className="text-sm font-medium text-tera-primary">{item.email}</p>

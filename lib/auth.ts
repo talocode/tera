@@ -1,6 +1,7 @@
-﻿import NextAuth from 'next-auth'
+import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { supabaseServer } from '@/lib/supabase-server'
+import { sendWelcomeEmail } from '@/lib/transactional-emails'
 import { resolveAppOrigin, rewriteToAppOrigin } from '@/lib/url'
 
 function syncAuthOriginFromRequest(req?: Request & { nextUrl?: URL }) {
@@ -35,7 +36,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
       error: '/auth/error',
     },
     callbacks: {
-      async signIn({ user, profile }) {
+      async signIn({ user, profile }: { user: any; profile: any }) {
         if (!user.email) {
           return false
         }
@@ -62,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
                 profile_image_url: user.image || (profile as any)?.picture || null,
                 subscription_plan: 'free',
                 daily_chats: 0,
-                daily_file_uploads: 0,
+                monthly_file_uploads: 0,
                 created_at: new Date().toISOString(),
               })
 
@@ -70,6 +71,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
               console.error('Error creating user:', insertError)
             } else {
               user.id = newUserId
+              sendWelcomeEmail({
+                userId: newUserId,
+                email: user.email,
+                name: user.name || profile?.name || null,
+              }).catch((error) => console.error('[welcome_email_failed]', { userId: newUserId, error }))
             }
           } else {
             user.id = existingUser.id
@@ -82,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         }
       },
 
-      async jwt({ token, user }) {
+      async jwt({ token, user }: { token: any; user: any }) {
         if (user && user.email) {
           try {
             const { data } = await supabaseServer.from('users').select('id').eq('email', user.email).single()
@@ -114,7 +120,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         return token
       },
 
-      async session({ session, token }) {
+      async session({ session, token }: { session: any; token: any }) {
         if (session.user && token) {
           if (!token.userId && token.email) {
             try {
@@ -135,11 +141,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
           session.user.email = token.email as string
           session.user.name = token.name as string
           session.user.image = token.picture as string
+
+          if (!session.user.image && token.userId) {
+            try {
+              const { data: profileData } = await supabaseServer
+                .from('users')
+                .select('profile_image_url')
+                .eq('id', token.userId)
+                .single()
+              if (profileData?.profile_image_url) {
+                session.user.image = profileData.profile_image_url
+              }
+            } catch {
+            }
+          }
         }
         return session
       },
 
-      async redirect({ url, baseUrl }) {
+      async redirect({ url, baseUrl }: { url: any; baseUrl: any }) {
         const appOrigin = resolveAppOrigin(baseUrl)
 
         if (url.startsWith('/')) {

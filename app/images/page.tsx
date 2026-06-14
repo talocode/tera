@@ -4,16 +4,20 @@ import { auth } from '@/lib/auth'
 import { supabaseServer } from '@/lib/supabase-server'
 import ImageGallery from '@/components/ImageGallery'
 
+export const dynamic = 'force-dynamic'
+
 type Attachment = {
   url?: string
   name?: string
   type?: string
+  size?: number
 }
 
 type ImageRow = {
   url: string
   name: string
   uploadedAt: string
+  size?: number
 }
 
 export default async function ImagesPage() {
@@ -49,6 +53,7 @@ export default async function ImagesPage() {
         url: attachment.url,
         name: attachment.name || 'Uploaded image',
         uploadedAt: row.created_at,
+        size: attachment.size,
       })
     }
   }
@@ -59,7 +64,7 @@ export default async function ImagesPage() {
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-tera-secondary">Library</p>
           <h1 className="mt-2 text-3xl font-semibold text-tera-primary">Your Images</h1>
-          <p className="mt-2 text-sm text-tera-secondary">All images you uploaded with the upload date.</p>
+          <p className="mt-2 text-sm text-tera-secondary">All images you uploaded with date and file size.</p>
         </div>
         <Link href="/new" className="tera-button-secondary rounded-full px-5 py-2 text-sm">
           Back to chat

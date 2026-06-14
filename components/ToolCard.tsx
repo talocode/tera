@@ -19,7 +19,7 @@ export default function ToolCard({ tool, selected, onSelect }: ToolCardProps) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-[16px] border ${selected ? 'border-tera-border bg-tera-highlight text-tera-accent' : 'border-tera-border bg-white/[0.03] text-tera-primary'}`}>
+          <div className={`flex h-12 w-12 items-center justify-center rounded-[16px] border border-tera-border ${selected ? 'bg-tera-highlight text-tera-accent' : 'bg-tera-muted text-tera-primary'}`}>
             <span className="text-xl leading-none">{tool.icon}</span>
           </div>
           <div>
@@ -34,7 +34,7 @@ export default function ToolCard({ tool, selected, onSelect }: ToolCardProps) {
 
       <div className="flex flex-wrap gap-2 pt-1">
         {tool.tags.map((tag) => (
-          <span key={tag} className="rounded-full border border-tera-border bg-white/[0.03] px-3 py-1.5 text-[0.62rem] uppercase tracking-[0.2em] text-tera-secondary">
+          <span key={tag} className="rounded-full border border-tera-border bg-tera-muted px-3 py-1.5 text-[0.62rem] uppercase tracking-[0.2em] text-tera-secondary">
             {tag}
           </span>
         ))}

@@ -1,5 +1,4 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
-import { google } from 'googleapis'
 import { saveGoogleTokens } from '@/lib/google-sheets'
 import { resolveAppOrigin } from '@/lib/url'
 
@@ -21,6 +20,7 @@ export async function GET(request: NextRequest) {
 
     const appOrigin = resolveAppOrigin(request.nextUrl.origin)
 
+    const { google } = await import('googleapis')
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,

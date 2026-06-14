@@ -1,91 +1,166 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: dark;
-  --surface-base: #111315;
-  --surface-l1: #16191d;
-  --surface-l2: #1d2126;
-  --fg-primary: #eceff3;
-  --fg-secondary: #b4bcc7;
-  --border-l1: rgba(255, 255, 255, 0.08);
-  --border-l2: rgba(255, 255, 255, 0.12);
-  --border-l3: rgba(255, 255, 255, 0.18);
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
 
-  --bg-tera-bg: var(--surface-base);
-  --bg-tera-panel: color-mix(in srgb, var(--surface-l1) 90%, transparent);
-  --bg-tera-panel-strong: color-mix(in srgb, var(--surface-l1) 97%, transparent);
-  --bg-tera-muted: color-mix(in srgb, var(--surface-l2) 74%, transparent);
-  --bg-tera-input: color-mix(in srgb, var(--surface-base) 96%, transparent);
-  --bg-tera-highlight: rgba(255, 255, 255, 0.05);
-  --border-tera: var(--border-l1);
-  --border-tera-strong: var(--border-l2);
-  --text-tera-primary: var(--fg-primary);
-  --text-tera-secondary: var(--fg-secondary);
-  --text-tera-accent: #d5dae2;
-  --text-tera-accent-strong: #f3f6fa;
-  --shadow-tera-panel: 0 8px 24px rgba(0, 0, 0, 0.22);
-  --shadow-tera-soft: 0 4px 14px rgba(0, 0, 0, 0.16);
-}
+    color-scheme: dark;
+    --surface-base: #050505;
+    --surface-l1: #0d0d0d;
+    --surface-l2: #141414;
+    --fg-primary: #f4f4f5;
+    --fg-secondary: #9ca3af;
+    --border-l1: rgba(255, 255, 255, 0.045);
+    --border-l2: rgba(255, 255, 255, 0.08);
+    --border-l3: rgba(255, 255, 255, 0.12);
 
-.light {
-  color-scheme: light;
-  --surface-base: #f5f6f8;
-  --surface-l1: #ffffff;
-  --surface-l2: #eef1f5;
-  --fg-primary: #14181d;
-  --fg-secondary: #5f6975;
-  --border-l1: rgba(17, 24, 39, 0.08);
-  --border-l2: rgba(17, 24, 39, 0.13);
-  --border-l3: rgba(17, 24, 39, 0.2);
+    --bg-tera-bg: var(--surface-base);
+    --bg-tera-panel: color-mix(in srgb, var(--surface-l1) 90%, transparent);
+    --bg-tera-panel-strong: color-mix(in srgb, var(--surface-l1) 97%, transparent);
+    --bg-tera-muted: color-mix(in srgb, var(--surface-l2) 74%, transparent);
+    --bg-tera-input: color-mix(in srgb, var(--surface-base) 96%, transparent);
+    --bg-tera-highlight: rgba(255, 255, 255, 0.05);
+    --border-tera: var(--border-l1);
+    --border-tera-strong: var(--border-l2);
+    --text-tera-primary: var(--fg-primary);
+    --text-tera-secondary: var(--fg-secondary);
+    --text-tera-accent: #d5dae2;
+    --text-tera-accent-strong: #ffffff;
+    --shadow-tera-panel: 0 12px 30px rgba(0, 0, 0, 0.22);
+    --shadow-tera-soft: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
 
-  --bg-tera-bg: var(--surface-base);
-  --bg-tera-panel: color-mix(in srgb, var(--surface-l1) 92%, transparent);
-  --bg-tera-panel-strong: color-mix(in srgb, var(--surface-l1) 98%, transparent);
-  --bg-tera-muted: color-mix(in srgb, var(--surface-l2) 82%, transparent);
-  --bg-tera-input: color-mix(in srgb, var(--surface-l1) 96%, transparent);
-  --bg-tera-highlight: rgba(17, 24, 39, 0.05);
-  --border-tera: var(--border-l1);
-  --border-tera-strong: var(--border-l2);
-  --text-tera-primary: var(--fg-primary);
-  --text-tera-secondary: var(--fg-secondary);
-  --text-tera-accent: #3a4350;
-  --text-tera-accent-strong: #1e2733;
-  --shadow-tera-panel: 0 8px 22px rgba(15, 23, 42, 0.08);
-  --shadow-tera-soft: 0 4px 12px rgba(15, 23, 42, 0.06);
-}
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 224 71% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 220.9 39.3% 11%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 220.9 39.3% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71% 4%;
 
-.dark {
-  color-scheme: dark;
-  --surface-base: #111315;
-  --surface-l1: #16191d;
-  --surface-l2: #1d2126;
-  --fg-primary: #eceff3;
-  --fg-secondary: #b4bcc7;
-  --border-l1: rgba(255, 255, 255, 0.08);
-  --border-l2: rgba(255, 255, 255, 0.12);
-  --border-l3: rgba(255, 255, 255, 0.18);
+    color-scheme: light;
+    --surface-base: #ffffff;
+    --surface-l1: #ffffff;
+    --surface-l2: #f8f9fa;
+    --fg-primary: #111827;
+    --fg-secondary: #6b7280;
+    --border-l1: rgba(0, 0, 0, 0.06);
+    --border-l2: rgba(0, 0, 0, 0.1);
+    --border-l3: rgba(0, 0, 0, 0.15);
+
+    --bg-tera-bg: #ffffff;
+    --bg-tera-panel: #ffffff;
+    --bg-tera-panel-strong: #ffffff;
+    --bg-tera-muted: #f8f9fa;
+    --bg-tera-input: #ffffff;
+    --bg-tera-highlight: rgba(0, 0, 0, 0.03);
+    --border-tera: var(--border-l1);
+    --border-tera-strong: var(--border-l2);
+    --text-tera-primary: var(--fg-primary);
+    --text-tera-secondary: var(--fg-secondary);
+    --text-tera-accent: #4b5563;
+    --text-tera-accent-strong: #1f2937;
+    --shadow-tera-panel: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-tera-soft: 0 1px 6px rgba(0, 0, 0, 0.04);
+  }
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+
   html,
   body {
     min-height: 100%;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
     position: relative;
     min-height: 100vh;
     overflow-x: hidden;
+    isolation: isolate;
     background: var(--bg-tera-bg);
     color: var(--text-tera-primary);
-    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Manrope', Inter, system-ui, -apple-system, 'Segoe UI Variable Display', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
+    font-size: 14px;
     letter-spacing: -0.01em;
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+  }
+
+  @media (max-width: 768px) {
+    body {
+      font-size: 15px;
+    }
+  }
+
+  :where(a, button, input, textarea, select, summary):focus-visible {
+    outline: 2px solid rgba(219, 188, 142, 0.62);
+    outline-offset: 3px;
+  }
+
+  @keyframes tera-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.992);
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes tera-soft-pulse {
+    0%,
+    100% {
+      opacity: 0.92;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 
   .light body,
@@ -94,11 +169,43 @@
   }
 
   body::before {
-    content: none;
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(219, 188, 142, 0.06), transparent 28%),
+      radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.03), transparent 24%),
+      radial-gradient(circle at 50% 100%, rgba(78, 82, 95, 0.12), transparent 30%);
+    opacity: 0.9;
+  }
+
+  .light body::before {
+    background:
+      radial-gradient(circle at 20% 0%, rgba(219, 188, 142, 0.04), transparent 28%),
+      radial-gradient(circle at 80% 20%, rgba(100, 130, 180, 0.03), transparent 24%),
+      radial-gradient(circle at 50% 100%, rgba(78, 82, 95, 0.03), transparent 30%);
+    opacity: 1;
   }
 
   body::after {
-    content: none;
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 92%);
+    opacity: 0.18;
+  }
+
+  .light body::after {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    opacity: 0.5;
   }
 
   h1,
@@ -115,12 +222,21 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(219, 188, 142, 0.32) transparent;
+    scrollbar-color: rgba(219, 188, 142, 0.28) transparent;
+  }
+
+  .light * {
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
   }
 
   ::selection {
     background: rgba(219, 188, 142, 0.22);
     color: #fff;
+  }
+
+  .light ::selection {
+    background: rgba(219, 188, 142, 0.25);
+    color: #1a1a1a;
   }
 
   a {
@@ -131,10 +247,12 @@
 @layer components {
   .tera-page {
     @apply relative min-h-screen w-full text-tera-primary;
+    z-index: 1;
   }
 
   .tera-page-shell {
     @apply relative z-10 mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .tera-page-header {
@@ -146,69 +264,196 @@
   }
 
   .tera-title {
-    @apply text-3xl font-semibold tracking-[-0.04em] text-tera-primary sm:text-4xl;
+    @apply text-2xl font-semibold tracking-[-0.04em] text-tera-primary sm:text-3xl;
   }
 
   .tera-subtitle {
-    @apply max-w-3xl text-sm leading-7 text-tera-secondary sm:text-base;
+    @apply max-w-3xl text-xs leading-6 text-tera-secondary sm:text-sm;
   }
 
+  /* Surface — elevated container */
   .tera-surface {
-    @apply rounded-[28px] border border-tera-border bg-tera-panel backdrop-blur-xl;
+    @apply rounded-[28px] border border-tera-border bg-tera-panel backdrop-blur-xl transition-all duration-200;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-panel);
   }
 
+  .tera-surface:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  }
+
+  .light .tera-surface:hover {
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
+  }
+
+  .tera-surface:active {
+    transform: translateY(0) scale(0.996);
+  }
+
+  .tera-surface:focus-within {
+    border-color: rgba(219, 188, 142, 0.16);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(219, 188, 142, 0.1);
+  }
+
+  .light .tera-surface:focus-within {
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(219, 188, 142, 0.15);
+  }
+
   .tera-surface-muted {
-    @apply rounded-[24px] border border-tera-border bg-tera-muted backdrop-blur-xl;
+    @apply rounded-[24px] border border-tera-border bg-tera-muted backdrop-blur-xl transition-all duration-200;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-soft);
   }
 
+  /* Card */
   .tera-card {
-    @apply rounded-[24px] border border-tera-border bg-tera-panel p-5 backdrop-blur-xl sm:p-6;
+    @apply rounded-[24px] border border-tera-border bg-tera-panel p-5 backdrop-blur-xl transition-all duration-200 sm:p-6;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-soft);
+  }
+
+  .tera-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .light .tera-card:hover {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .tera-card:active {
+    transform: translateY(0) scale(0.996);
+  }
+
+  .tera-card:focus-within {
+    border-color: rgba(219, 188, 142, 0.14);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(219, 188, 142, 0.08);
   }
 
   .tera-card-subtle {
-    @apply rounded-[22px] border border-tera-border bg-tera-muted backdrop-blur-xl;
+    @apply rounded-[22px] border border-tera-border bg-tera-muted backdrop-blur-xl transition-all duration-200;
+    animation: tera-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
     box-shadow: var(--shadow-tera-soft);
   }
 
+  .tera-card-subtle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  }
+
+  .light .tera-card-subtle:hover {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+  }
+
+  .tera-card-subtle:active {
+    transform: translateY(0) scale(0.996);
+  }
+
+  /* Buttons */
   .tera-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition duration-200 focus:outline-none;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition duration-200 focus:outline-none;
+    letter-spacing: 0;
+  }
+
+  .tera-button:focus-visible,
+  .tera-icon-button:focus-visible,
+  .tera-badge:focus-visible,
+  .tera-segmented-item:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(219, 188, 142, 0.18);
   }
 
   .tera-button-primary {
     @apply tera-button;
-    background: linear-gradient(180deg, var(--text-tera-accent-strong), var(--text-tera-accent));
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    background: linear-gradient(180deg, #ffffff 0%, #eef2f6 100%);
+    color: #0f141a;
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+
+  .light .tera-button-primary {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
     color: #ffffff;
-    box-shadow: 0 14px 28px rgba(219, 188, 142, 0.18);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
+
+  .light .tera-button-primary:hover {
+    background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
   }
 
   .tera-button-primary:hover {
     transform: translateY(-1px);
-    filter: brightness(1.02);
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+    box-shadow:
+      0 18px 32px rgba(0, 0, 0, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  }
+
+  .tera-button-primary:active {
+    transform: translateY(0) scale(0.99);
   }
 
   .tera-button-upgrade {
-    @apply tera-button border border-white/15 text-white;
-    background: linear-gradient(180deg, #2a313d, #1a2029);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    @apply tera-button text-white;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: linear-gradient(180deg, #2f3846 0%, #1a222d 100%);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+  }
+
+  .light .tera-button-upgrade {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   }
 
   .tera-button-upgrade:hover {
-    border-color: rgba(255, 255, 255, 0.26);
-    background: linear-gradient(180deg, #303949, #1f2732);
+    border-color: rgba(255, 255, 255, 0.24);
+    background: linear-gradient(180deg, #364154 0%, #202936 100%);
     color: #ffffff;
   }
 
   .tera-button-secondary {
-    @apply tera-button border border-tera-border text-tera-primary backdrop-blur-xl;
-    background-color: color-mix(in srgb, var(--surface-l2) 78%, transparent);
+    @apply tera-button text-tera-primary backdrop-blur-xl;
+    border: 1px solid color-mix(in srgb, var(--border-tera-strong) 88%, transparent);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-l2) 92%, transparent), color-mix(in srgb, var(--surface-l1) 94%, transparent));
+    box-shadow:
+      0 10px 20px rgba(0, 0, 0, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .light .tera-button-secondary {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   }
 
   .tera-button-secondary:hover {
-    border-color: var(--border-tera-strong);
-    background-color: color-mix(in srgb, var(--surface-l2) 90%, transparent);
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--text-tera-primary) 14%, var(--border-tera-strong));
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-l2) 98%, transparent), color-mix(in srgb, var(--surface-l1) 96%, transparent));
+    box-shadow:
+      0 14px 24px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .light .tera-button-secondary:hover {
+    background: #f8f9fa;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .tera-button-secondary:active {
+    transform: translateY(0) scale(0.99);
   }
 
   .tera-button-ghost {
@@ -217,8 +462,41 @@
 
   .tera-button-ghost:hover {
     @apply text-tera-primary;
+    background-color: var(--bg-tera-highlight);
   }
 
+  .light .tera-button-ghost:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .tera-button:focus-visible,
+  .tera-button-primary:focus-visible,
+  .tera-button-secondary:focus-visible,
+  .tera-button-upgrade:focus-visible,
+  .tera-button-ghost:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.12),
+      0 0 0 6px rgba(208, 216, 226, 0.18);
+  }
+
+  .light .tera-button:focus-visible,
+  .light .tera-button-primary:focus-visible,
+  .light .tera-button-secondary:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06), 0 0 0 6px rgba(219, 188, 142, 0.25);
+  }
+
+  .tera-button:disabled,
+  .tera-button-primary:disabled,
+  .tera-button-secondary:disabled,
+  .tera-button-upgrade:disabled,
+  .tera-button-ghost:disabled {
+    cursor: not-allowed;
+    opacity: 0.56;
+    transform: none;
+  }
+
+  /* Icon button */
   .tera-icon-button {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-full border border-tera-border text-tera-secondary transition;
     background-color: color-mix(in srgb, var(--surface-l2) 80%, transparent);
@@ -230,15 +508,28 @@
     color: var(--text-tera-primary);
   }
 
+  .tera-icon-button:active {
+    transform: translateY(0) scale(0.97);
+  }
+
+  /* Composer */
   .composer-action-button {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-tera-secondary transition-all duration-150;
     border: 0;
     background-color: rgba(255, 255, 255, 0.06);
   }
 
+  .light .composer-action-button {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
   .composer-action-button:hover {
     @apply text-tera-primary;
     background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .light .composer-action-button:hover {
+    background-color: rgba(0, 0, 0, 0.07);
   }
 
   .composer-action-button:active {
@@ -263,9 +554,20 @@
     background-color: var(--bg-tera-highlight);
   }
 
+  .composer-menu-row:active {
+    transform: scale(0.995);
+  }
+
+  /* Input */
   .tera-input {
     @apply rounded-2xl border border-tera-border bg-tera-input px-4 py-3 text-tera-primary focus:outline-none;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .light .tera-input {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   .tera-input:focus {
@@ -273,15 +575,39 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 0 0 3px rgba(219, 188, 142, 0.1);
   }
 
+  .light .tera-input:focus {
+    box-shadow: 0 0 0 3px rgba(219, 188, 142, 0.12);
+  }
+
   .tera-input::placeholder {
     color: rgba(222, 214, 201, 0.58);
   }
 
+  .light .tera-input::placeholder {
+    color: rgba(0, 0, 0, 0.35);
+  }
+
+  /* Badge */
   .tera-badge {
     @apply inline-flex items-center gap-2 rounded-full border border-tera-border px-3 py-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary;
     background-color: rgba(255, 255, 255, 0.03);
+    transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease;
   }
 
+  .light .tera-badge {
+    background-color: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .tera-badge:hover {
+    transform: translateY(-1px);
+  }
+
+  .tera-badge:active {
+    transform: translateY(0) scale(0.99);
+  }
+
+  /* Segmented */
   .tera-segmented {
     @apply inline-flex items-center gap-1 rounded-full border border-tera-border bg-tera-panel p-1 backdrop-blur-xl;
   }
@@ -290,14 +616,39 @@
     @apply rounded-full px-4 py-2 text-sm font-medium text-tera-secondary transition;
   }
 
+  .tera-segmented-item:hover {
+    color: var(--text-tera-primary);
+  }
+
+  .tera-segmented-item:active {
+    transform: scale(0.99);
+  }
+
   .tera-segmented-item[data-active="true"] {
     @apply text-tera-primary;
     background-color: rgba(255, 255, 255, 0.06);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   }
 
+  .light .tera-segmented-item[data-active="true"] {
+    background-color: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
   .tera-prose {
     @apply max-w-none break-words text-tera-primary;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tera-page-shell,
+  .tera-surface,
+  .tera-surface-muted,
+  .tera-card,
+  .tera-card-subtle {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }
 
@@ -317,8 +668,18 @@
   background-clip: padding-box;
 }
 
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  background-clip: padding-box;
+}
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(219, 188, 142, 0.34);
+  background-clip: padding-box;
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
   background-clip: padding-box;
 }
 

@@ -1,0 +1,6 @@
+{
+  "kind": "openai_compatible",
+  "baseUrl": "https://api.mistral.ai",
+  "modelId": "mistral-small-latest",
+  "apiKeySet": true
+}

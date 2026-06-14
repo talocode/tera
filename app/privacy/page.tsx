@@ -1,14 +1,14 @@
-﻿import Link from 'next/link'
+import Link from 'next/link'
 
 export default function PrivacyPage() {
   return (
     <div className="tera-page">
-      <div className="tera-page-shell max-w-5xl pt-24 md:pt-10">
+      <div className="tera-page-shell max-w-5xl pt-20 md:pt-10">
         <div className="tera-surface px-6 py-10 md:px-10 md:py-12">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-tera-border pb-6">
             <div>
               <p className="tera-eyebrow">Legal</p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Privacy policy</h1>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl lg:text-5xl">Privacy policy</h1>
             </div>
             <Link href="/terms" className="tera-button-secondary">
               View terms

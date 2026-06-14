@@ -110,6 +110,28 @@ export async function clearSearchHistory(userId: string) {
     }
 }
 
+// Clear user's bookmarks
+export async function clearBookmarks(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return false
+
+        const { error } = await supabaseServer
+            .from('search_bookmarks')
+            .delete()
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Failed to clear bookmarks:', error)
+            return false
+        }
+        return true
+    } catch (error) {
+        console.error('Error clearing bookmarks:', error)
+        return false
+    }
+}
+
 // Save a bookmark
 export async function saveBookmark(
     userId: string,

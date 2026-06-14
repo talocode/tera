@@ -1,13 +1,18 @@
 import { supabaseServer } from './supabase-server'
 import type { PlanType } from './plan-config'
+import { getUsageLedgerWindowSummary } from './usage-ledger'
 
 const PLAN_MONTHLY_CREDIT_CAPS: Record<PlanType, number> = {
   free: 150,
   pro: 1500,
   plus: 5000
 }
-const RESET_INTERVAL_DAYS = 30
-const RESET_INTERVAL_MS = RESET_INTERVAL_DAYS * 24 * 60 * 60 * 1000
+const CREDIT_USAGE_CONFIG = {
+  resetIntervalDays: 30,
+  tokensPerCredit: 5000,
+} as const
+
+const RESET_INTERVAL_MS = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
 
 type CreditState = {
   used: number
@@ -15,12 +20,23 @@ type CreditState = {
   total: number
   resetDate: string | null
   plan: PlanType
+  purchasedCredits: number
 }
 
 type UserCreditRecord = {
   plan: PlanType
   used: number
+  purchasedCredits: number
   resetDate: Date | null
+  hasCreditLedger: boolean
+  createdAt: Date | null
+}
+
+class UsageReadError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message)
+    this.name = 'UsageReadError'
+  }
 }
 
 function isMissingColumnError(error: unknown, columnName: string) {
@@ -48,10 +64,39 @@ export function getPlanCreditCap(plan: PlanType): number {
   return PLAN_MONTHLY_CREDIT_CAPS[plan]
 }
 
+export function calculateCreditsForTokens(tokenCount: number): number {
+  const normalizedTokenCount = Number.isFinite(tokenCount)
+    ? Math.max(1, Math.round(tokenCount))
+    : 1
+
+  return Math.max(1, Math.ceil(normalizedTokenCount / CREDIT_USAGE_CONFIG.tokensPerCredit))
+}
+
+export function getTokensPerCredit() {
+  return CREDIT_USAGE_CONFIG.tokensPerCredit
+}
+
 function getNextResetDate(from: Date = new Date()) {
   const date = new Date(from)
-  date.setDate(date.getDate() + RESET_INTERVAL_DAYS)
+  date.setDate(date.getDate() + CREDIT_USAGE_CONFIG.resetIntervalDays)
   return date
+}
+
+/**
+ * Calculate the next reset date anchored to the user's signup date.
+ * This ensures the 30-day cycle is always aligned to the original signup,
+ * not a rolling window from "now".
+ */
+function getNextResetDateFromSignup(signupDate: Date, from: Date = new Date()): Date {
+  const resetIntervalMs = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
+  const signupTime = signupDate.getTime()
+  const nowTime = from.getTime()
+
+  const elapsed = nowTime - signupTime
+  const cyclesPassed = Math.floor(elapsed / resetIntervalMs)
+
+  const nextResetTime = signupTime + (cyclesPassed + 1) * resetIntervalMs
+  return new Date(nextResetTime)
 }
 
 function normalizePlan(plan: string | null | undefined): PlanType {
@@ -65,36 +110,50 @@ function normalizePlan(plan: string | null | undefined): PlanType {
 async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | null> {
   const { data, error } = await supabaseServer
     .from('users')
-    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date')
+    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date, purchased_credits_balance, created_at')
     .eq('id', userId)
     .maybeSingle()
 
-  if (error && (isMissingColumnError(error, 'free_plan_credits_used') || isMissingColumnError(error, 'free_plan_credits_reset_date'))) {
+  if (error && (isMissingColumnError(error, 'free_plan_credits_used') || isMissingColumnError(error, 'free_plan_credits_reset_date') || isMissingColumnError(error, 'purchased_credits_balance'))) {
     const { data: fallbackData, error: fallbackError } = await supabaseServer
       .from('users')
-      .select('subscription_plan')
+      .select('subscription_plan, created_at')
       .eq('id', userId)
       .maybeSingle()
 
-    if (fallbackError || !fallbackData) {
+    if (fallbackError) {
+      throw new UsageReadError('Unable to read user plan while falling back from missing credit columns.', fallbackError)
+    }
+
+    if (!fallbackData) {
       return null
     }
 
     return {
       plan: normalizePlan(fallbackData.subscription_plan),
       used: 0,
+      purchasedCredits: 0,
       resetDate: null,
+      hasCreditLedger: false,
+      createdAt: fallbackData.created_at ? new Date(fallbackData.created_at) : null,
     }
   }
 
-  if (error || !data) {
+  if (error) {
+    throw new UsageReadError('Unable to read user credit record.', error)
+  }
+
+  if (!data) {
     return null
   }
 
   return {
     plan: normalizePlan(data.subscription_plan),
     used: Math.max(0, Number(data.free_plan_credits_used || 0)),
+    purchasedCredits: Math.max(0, Number(data.purchased_credits_balance || 0)),
     resetDate: data.free_plan_credits_reset_date ? new Date(data.free_plan_credits_reset_date) : null,
+    hasCreditLedger: true,
+    createdAt: data.created_at ? new Date(data.created_at) : null,
   }
 }
 
@@ -105,7 +164,11 @@ async function getUserPlan(userId: string): Promise<PlanType> {
     .eq('id', userId)
     .maybeSingle()
 
-  if (error || !data) {
+  if (error) {
+    throw new UsageReadError('Unable to read user plan for credit usage.', error)
+  }
+
+  if (!data) {
     return 'free'
   }
 
@@ -126,18 +189,28 @@ async function getSessionCreditUsage(userId: string, windowStart: Date): Promise
       .eq('user_id', userId)
       .gte('created_at', windowStart.toISOString())
 
-    if (fallbackError || !fallbackData) {
+    if (fallbackError) {
+      throw new UsageReadError('Unable to read chat sessions while falling back from missing token usage column.', fallbackError)
+    }
+
+    if (!fallbackData) {
       return 0
     }
 
     return fallbackData.length
   }
 
-  if (error || !data) {
+  if (error) {
+    throw new UsageReadError('Unable to read session credit usage.', error)
+  }
+
+  if (!data) {
     return 0
   }
 
-  return data.reduce((sum: number, row: { token_usage?: number | null }) => sum + Math.max(0, Number(row.token_usage || 0)), 0)
+  return data.reduce((sum: number, row: { token_usage?: number | null }) => (
+    sum + calculateCreditsForTokens(Number(row.token_usage || 0))
+  ), 0)
 }
 
 export async function getUserCreditsRemaining(userId: string): Promise<CreditState> {
@@ -145,20 +218,52 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const now = new Date()
     const record = await getUserCreditRecord(userId)
     const plan = record?.plan ?? await getUserPlan(userId)
-    const total = getPlanCreditCap(plan)
 
-    const activeResetDate = record?.resetDate && now <= record.resetDate
-      ? record.resetDate
-      : getNextResetDate(now)
-    const windowStart = new Date(activeResetDate.getTime() - RESET_INTERVAL_MS)
+    // Use signup-based 30-day gating for free plan
+    // For paid plans, use the stored reset date or calculate from now
+    let activeResetDate: Date
+    if (record?.resetDate && now <= record.resetDate) {
+      activeResetDate = record.resetDate
+    } else if (plan === 'free' && record?.createdAt) {
+      activeResetDate = getNextResetDateFromSignup(record.createdAt, now)
+    } else {
+      activeResetDate = getNextResetDate(now)
+    }
+
+    const resetIntervalMs = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
+    const windowStart = new Date(activeResetDate.getTime() - resetIntervalMs)
+
+    if (record?.hasCreditLedger) {
+      const total = getPlanCreditCap(plan) + Math.max(0, record.purchasedCredits || 0)
+      const used = Math.max(0, record.resetDate && now <= record.resetDate ? record.used : 0)
+      const remaining = Math.max(0, total - used)
+      return {
+        used,
+        remaining,
+        total,
+        resetDate: activeResetDate.toISOString(),
+        plan,
+        purchasedCredits: Math.max(0, record.purchasedCredits || 0),
+      }
+    }
+
+    const ledgerSummary = await getUsageLedgerWindowSummary(userId, windowStart)
+    const ledgerUsage = ledgerSummary?.creditsCharged ?? 0
     const sessionUsage = await getSessionCreditUsage(userId, windowStart)
-    const storedUsage = record?.resetDate && now <= record.resetDate ? record.used : 0
-    const used = Math.max(storedUsage, sessionUsage)
+    const used = ledgerSummary ? ledgerUsage : sessionUsage
+    const total = getPlanCreditCap(plan)
     const remaining = Math.max(0, total - used)
-    return { used, remaining, total, resetDate: activeResetDate.toISOString(), plan }
+    return {
+      used,
+      remaining,
+      total,
+      resetDate: activeResetDate.toISOString(),
+      plan,
+      purchasedCredits: 0,
+    }
   } catch (error) {
-    const resetDate = getNextResetDate().toISOString()
-    return { used: 0, remaining: PLAN_MONTHLY_CREDIT_CAPS.free, total: PLAN_MONTHLY_CREDIT_CAPS.free, resetDate, plan: 'free' }
+    console.error('[credit_usage_read_failed]', { userId, error })
+    throw error
   }
 }
 
@@ -166,29 +271,155 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
   try {
     const record = await getUserCreditRecord(userId)
 
-    if (!record) return true
+    if (!record) {
+      console.error('[credit_usage_accounting_failed]', {
+        userId,
+        cost,
+        reason: 'missing_user_credit_record',
+      })
+      return false
+    }
 
     const now = new Date()
     const resetDate = record.resetDate
 
+    const charge = Math.max(1, cost)
     let used = record.used
-    const updatePayload: { free_plan_credits_used: number; free_plan_credits_reset_date?: string } = { free_plan_credits_used: used }
+    const updatePayload: {
+      free_plan_credits_used: number
+      free_plan_credits_reset_date?: string
+      purchased_credits_balance?: number
+    } = { free_plan_credits_used: used }
 
+    // Check if the reset date has passed — use signup-based calculation for free plan
+    let currentResetDate = resetDate
     if (!resetDate || now > resetDate) {
       used = 0
-      const nextReset = getNextResetDate(now)
+      const plan = record.plan ?? 'free'
+      let nextReset: Date
+      if (plan === 'free' && record.createdAt) {
+        nextReset = getNextResetDateFromSignup(record.createdAt, now)
+      } else {
+        nextReset = getNextResetDate(now)
+      }
+      currentResetDate = nextReset
       updatePayload.free_plan_credits_reset_date = nextReset.toISOString()
     }
 
-    updatePayload.free_plan_credits_used = used + Math.max(1, cost)
+    // Consume one-time top-up credits first so spent balance does not reappear on the next reset.
+    const purchasedCreditsToConsume = record.hasCreditLedger
+      ? Math.min(record.purchasedCredits, charge)
+      : 0
+    const monthlyCreditsToConsume = charge - purchasedCreditsToConsume
+
+    if (record.hasCreditLedger) {
+      updatePayload.purchased_credits_balance = Math.max(0, record.purchasedCredits - purchasedCreditsToConsume)
+    }
+
+    updatePayload.free_plan_credits_used = used + monthlyCreditsToConsume
 
     const { error: updateError } = await supabaseServer
       .from('users')
       .update(updatePayload)
       .eq('id', userId)
 
-    return !updateError
-  } catch (error) {
+    if (updateError) {
+      console.error('[credit_usage_accounting_failed]', {
+        userId,
+        cost,
+        reason: 'update_failed',
+        error: updateError,
+      })
+      return false
+    }
+
     return true
+  } catch (error) {
+    console.error('[credit_usage_accounting_failed]', {
+      userId,
+      cost,
+      reason: 'exception',
+      error,
+    })
+    return false
+  }
+}
+
+export async function addPurchasedCredits(userId: string, creditsToAdd: number): Promise<boolean> {
+  const credits = Math.max(0, Math.floor(Number(creditsToAdd || 0)))
+  if (credits <= 0) return false
+
+  try {
+    const { data, error } = await supabaseServer
+      .from('users')
+      .select('purchased_credits_balance')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('[credit_topup_read_failed]', { userId, error })
+      return false
+    }
+
+    const nextBalance = Math.max(0, Number(data?.purchased_credits_balance || 0)) + credits
+    const { error: updateError } = await supabaseServer
+      .from('users')
+      .update({ purchased_credits_balance: nextBalance })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('[credit_topup_update_failed]', { userId, credits, error: updateError })
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[credit_topup_failed]', { userId, credits, error })
+    return false
+  }
+}
+
+export async function applyPurchasedCreditTopup(
+  userId: string,
+  creditsToAdd: number,
+  orderIdentifier: string,
+  orderNumber: string,
+  amountUsd?: number | null,
+): Promise<'applied' | 'duplicate'> {
+  const credits = Math.max(0, Math.floor(Number(creditsToAdd || 0)))
+  if (credits <= 0) throw new Error('Top-up credits must be greater than zero')
+  if (!orderIdentifier) throw new Error('Missing Lemon Squeezy order identifier')
+  if (!orderNumber) throw new Error('Missing Lemon Squeezy order number')
+
+  try {
+    const { data, error } = await supabaseServer.rpc('apply_purchased_credit_topup', {
+      p_user_id: userId,
+      p_order_identifier: orderIdentifier,
+      p_order_number: orderNumber,
+      p_credits: credits,
+      p_amount_usd: amountUsd ?? null,
+    })
+
+    if (error) {
+      console.error('[credit_topup_fulfillment_failed]', {
+        userId,
+        orderIdentifier,
+        orderNumber,
+        credits,
+        error,
+      })
+      throw error
+    }
+
+    return data ? 'applied' : 'duplicate'
+  } catch (error) {
+    console.error('[credit_topup_fulfillment_failed]', {
+      userId,
+      orderIdentifier,
+      orderNumber,
+      credits,
+      error,
+    })
+    throw error
   }
 }

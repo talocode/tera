@@ -88,7 +88,7 @@ export default function ApiKeysPage() {
           <div className="mt-4 space-y-3">
             {keys.length === 0 && <p className="text-sm text-tera-secondary">No keys yet.</p>}
             {keys.map((key) => (
-              <div key={key.id} className="flex flex-col gap-2 rounded-xl border border-tera-border bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
+              <div key={key.id} className="tera-card-subtle flex flex-col gap-2 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="font-medium text-tera-primary">{key.maskedKey}••••{key.suffix}</p>
                   <p className="text-xs text-tera-secondary">Created {new Date(key.createdAt).toLocaleString()}</p>

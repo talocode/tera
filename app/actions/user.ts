@@ -1,13 +1,13 @@
-﻿'use server'
+'use server'
 
 import { getUserProfileServer, checkAndResetUsageServer } from '@/lib/usage-tracking-server'
 import { buildProfileUsageSummary } from '@/lib/profile-usage'
-import { getWebSearchUsageState } from '@/lib/web-search-usage'
 import { supabaseServer } from '@/lib/supabase-server'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import dns from 'node:dns'
 import { getUserCreditsRemaining } from '@/lib/free-plan-credits'
+import { getDailyUsageLedgerHistory, getUsageLedgerWindowSummary } from '@/lib/usage-ledger'
 
 // Force IPv4 to avoid SSL/TLS handshake issues with Supabase on some networks
 try {
@@ -38,20 +38,18 @@ export async function fetchUserUsageSummary(userId: string) {
 
         await checkAndResetUsageServer(userId)
 
-        const [profile, webSearch] = await Promise.all([
-            getUserProfileServer(userId),
-            getWebSearchUsageState(userId),
-        ])
+        const profile = await getUserProfileServer(userId)
 
         if (!profile) return null
 
         return buildProfileUsageSummary({
             plan: profile.subscriptionPlan,
             dailyChats: profile.dailyChats,
-            dailyFileUploads: profile.dailyFileUploads,
-            monthlyWebSearches: webSearch.used,
+            monthlyFileUploads: profile.monthlyFileUploads,
             chatResetDate: profile.chatResetDate,
-            webSearchResetDate: webSearch.resetDate ? new Date(webSearch.resetDate) : null,
+            uploadResetDate: profile.uploadResetDate,
+            monthlyWebSearches: profile.monthlyWebSearches,
+            webSearchResetDate: profile.webSearchResetDate,
         })
     } catch (error) {
         console.error('Error fetching user usage summary:', error)
@@ -118,12 +116,48 @@ export async function fetchCreditUsage(userId: string) {
     return await getUserCreditsRemaining(userId)
 }
 
+export async function fetchStorageUsage(userId: string) {
+    const session = await auth()
+    if (!session?.user?.id || session.user.id !== userId) return null
+
+    const { data, error } = await supabaseServer
+        .from('users')
+        .select('storage_used_bytes, subscription_plan')
+        .eq('id', userId)
+        .single()
+
+    if (error || !data) return null
+
+    const usedBytes = Number(data.storage_used_bytes || 0)
+    const plan = (data.subscription_plan || 'free') as 'free' | 'pro' | 'plus'
+    const { getPlanConfig } = await import('@/lib/plan-config')
+    const planConfig = getPlanConfig(plan)
+    const limitBytes = planConfig.limits.storageBytes
+
+    return {
+        usedBytes,
+        limitBytes,
+        limitDisplay: limitBytes >= 1024 * 1024 * 1024
+            ? `${(limitBytes / (1024 * 1024 * 1024)).toFixed(0)}GB`
+            : `${(limitBytes / (1024 * 1024)).toFixed(0)}MB`,
+        usedDisplay: usedBytes >= 1024 * 1024 * 1024
+            ? `${(usedBytes / (1024 * 1024 * 1024)).toFixed(2)}GB`
+            : usedBytes >= 1024 * 1024
+                ? `${(usedBytes / (1024 * 1024)).toFixed(1)}MB`
+                : `${usedBytes}B`,
+        percentageUsed: limitBytes > 0 ? Math.min(100, (usedBytes / limitBytes) * 100) : 0,
+    }
+}
+
 export async function fetchDailyTokenUsage(userId: string) {
     const session = await auth()
     if (!session?.user?.id || session.user.id !== userId) return null
 
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
+
+    const summary = await getUsageLedgerWindowSummary(userId, startOfDay)
+    if (summary) return { usedToday: summary.tokenUsage }
 
     const { data, error } = await supabaseServer
         .from('chat_sessions')
@@ -140,6 +174,54 @@ export async function fetchDailyTokenUsage(userId: string) {
     return { usedToday }
 }
 
+export async function fetchWeeklyUsageHistory(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return []
+
+        const ledgerHistory = await getDailyUsageLedgerHistory(userId, 7)
+        if (ledgerHistory.some((day) => day.tokens > 0 || day.credits > 0 || day.chats > 0)) {
+            return ledgerHistory.map(({ date, tokens }) => ({ date, used: tokens }))
+        }
+
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+        sevenDaysAgo.setHours(0, 0, 0, 0)
+
+        const { data, error } = await supabaseServer
+            .from('chat_sessions')
+            .select('created_at, token_usage')
+            .eq('user_id', userId)
+            .gte('created_at', sevenDaysAgo.toISOString())
+            .order('created_at', { ascending: true })
+
+        if (error) throw error
+
+        // Group by day
+        const history: Record<string, number> = {}
+        for (let i = 0; i < 7; i++) {
+            const date = new Date()
+            date.setDate(date.getDate() - i)
+            const dateStr = date.toISOString().split('T')[0]
+            history[dateStr] = 0
+        }
+
+        data?.forEach((row: any) => {
+            const dateStr = row.created_at.split('T')[0]
+            if (history[dateStr] !== undefined) {
+                history[dateStr] += Number(row.token_usage || 0)
+            }
+        })
+
+        return Object.entries(history)
+            .map(([date, used]) => ({ date, used }))
+            .sort((a, b) => a.date.localeCompare(b.date))
+    } catch (error) {
+        console.error('Error fetching weekly usage history:', error)
+        return []
+    }
+}
+
 export async function fetchChatHistory(userId: string, sessionId: string) {
     try {
         const session = await auth()
@@ -147,7 +229,7 @@ export async function fetchChatHistory(userId: string, sessionId: string) {
 
         const { data, error } = await supabaseServer
             .from('chat_sessions')
-            .select('id, prompt, response, attachments, created_at')
+            .select('id, session_id, prompt, response, attachments, created_at, tool, metadata')
             .eq('user_id', userId)
             .eq('session_id', sessionId)
             .order('created_at', { ascending: true })
@@ -158,6 +240,87 @@ export async function fetchChatHistory(userId: string, sessionId: string) {
     } catch (error) {
         console.error('Error fetching chat history:', error)
         return []
+    }
+}
+
+export interface UserMemory {
+    id: string
+    memory_text: string
+    created_at: string
+}
+
+export async function fetchUserMemories(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return []
+
+        const { data, error } = await supabaseServer
+            .from('user_memories')
+            .select('id, memory_text, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(20)
+
+        if (error) {
+            console.error('Error fetching memories:', error)
+            return []
+        }
+
+        return data || []
+    } catch (error) {
+        console.error('Error fetching memories:', error)
+        return []
+    }
+}
+
+export async function addUserMemory(userId: string, memoryText: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return null
+
+        const cleanedMemory = memoryText.trim()
+        if (!cleanedMemory) return null
+
+        const { data, error } = await supabaseServer
+            .from('user_memories')
+            .insert([{ user_id: userId, memory_text: cleanedMemory }])
+            .select('id, memory_text, created_at')
+            .single()
+
+        if (error) {
+            console.error('Error adding memory:', error)
+            return null
+        }
+
+        revalidatePath('/profile')
+        return data
+    } catch (error) {
+        console.error('Error adding memory:', error)
+        return null
+    }
+}
+
+export async function deleteUserMemory(userId: string, memoryId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return false
+
+        const { error } = await supabaseServer
+            .from('user_memories')
+            .delete()
+            .eq('id', memoryId)
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error deleting memory:', error)
+            return false
+        }
+
+        revalidatePath('/profile')
+        return true
+    } catch (error) {
+        console.error('Error deleting memory:', error)
+        return false
     }
 }
 

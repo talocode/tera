@@ -1,0 +1,42 @@
+{
+  "id": "e44ed371-65d0-4399-97a1-fd2bbf46de00",
+  "taskId": "5b12269e-62c9-41d1-af4d-a9d06bc811d5",
+  "status": "ready_for_review",
+  "title": "Plan for: what is Tera about",
+  "objective": "what is Tera about",
+  "steps": [
+    {
+      "id": "step_1",
+      "kind": "inspect",
+      "title": "Analyze workspace context",
+      "objective": "Assess current state of relevant files.",
+      "status": "pending",
+      "filesLikelyInvolved": [],
+      "requiredTools": [
+        "fs_list"
+      ]
+    },
+    {
+      "id": "step_2",
+      "kind": "edit",
+      "title": "Implement changes",
+      "objective": "```json\n{\n  \"plan\": {\n    \"id\": \"c0f7b5e8-1234-5678-9abc-def123456789\",\n    \"taskId\": \"what_is_tera_about\",\n    \"status\": \"draft\",\n    \"title\": \"Investigate Tera project to understand its purpose\",\n  ",
+      "status": "pending",
+      "filesLikelyInvolved": [
+        "src/main.rs"
+      ],
+      "requiredTools": [
+        "fs_write"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "stepId": "step_2",
+      "dependsOn": "step_1"
+    }
+  ],
+  "assumptions": [],
+  "risks": [],
+  "architectureProposal": null
+}

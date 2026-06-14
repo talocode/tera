@@ -8,6 +8,7 @@ import { PLAN_CONFIGS, canStartChat, canUploadFile, getRemainingChats, getRemain
 export interface UsageStats {
     dailyChats: number
     dailyFileUploads: number
+    monthlyWebSearches?: number
     chatResetDate: Date
 }
 
@@ -16,8 +17,11 @@ export interface UserProfile {
     email: string
     subscriptionPlan: PlanType
     dailyChats: number
-    dailyFileUploads: number
+    monthlyFileUploads: number
+    monthlyWebSearches: number
     chatResetDate: Date | null
+    uploadResetDate: Date | null
+    webSearchResetDate: Date | null
     limitHitChatAt: Date | null
     limitHitUploadAt: Date | null
     profileImageUrl: string | null
@@ -25,6 +29,7 @@ export interface UserProfile {
     school: string | null
     gradeLevels: string[] | null
     createdAt: Date
+    lemonSqueezyCustomerId: number | null
 }
 
 /**
@@ -47,15 +52,19 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
         email: data.email,
         subscriptionPlan: (data.subscription_plan || 'free') as PlanType,
         dailyChats: data.daily_chats || 0,
-        dailyFileUploads: data.daily_file_uploads || 0,
+        monthlyFileUploads: data.monthly_file_uploads || 0,
+        monthlyWebSearches: data.monthly_web_searches || 0,
         chatResetDate: data.chat_reset_date ? new Date(data.chat_reset_date) : null,
+        uploadResetDate: data.upload_reset_date ? new Date(data.upload_reset_date) : null,
+        webSearchResetDate: data.web_search_reset_date ? new Date(data.web_search_reset_date) : null,
         limitHitChatAt: data.limit_hit_chat_at ? new Date(data.limit_hit_chat_at) : null,
         limitHitUploadAt: data.limit_hit_upload_at ? new Date(data.limit_hit_upload_at) : null,
         profileImageUrl: data.profile_image_url,
         fullName: data.full_name,
         school: data.school,
         gradeLevels: data.grade_levels,
-        createdAt: new Date(data.created_at)
+        createdAt: new Date(data.created_at),
+        lemonSqueezyCustomerId: data.lemon_squeezy_customer_id || null,
     }
 }
 
@@ -65,7 +74,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 export async function getUsageStats(userId: string): Promise<UsageStats | null> {
     const { data, error } = await supabase
         .from('users')
-        .select('daily_chats, daily_file_uploads, chat_reset_date')
+        .select('daily_chats, monthly_file_uploads, monthly_web_searches, chat_reset_date')
         .eq('id', userId)
         .single()
 
@@ -76,7 +85,8 @@ export async function getUsageStats(userId: string): Promise<UsageStats | null> 
 
     return {
         dailyChats: data.daily_chats || 0,
-        dailyFileUploads: data.daily_file_uploads || 0,
+        dailyFileUploads: data.monthly_file_uploads || 0,
+        monthlyWebSearches: data.monthly_web_searches || 0,
         chatResetDate: data.chat_reset_date ? new Date(data.chat_reset_date) : new Date()
     }
 }
@@ -88,7 +98,7 @@ export async function getUsageStats(userId: string): Promise<UsageStats | null> 
 export async function checkAndResetUsage(userId: string): Promise<boolean> {
     const { data, error } = await supabase
         .from('users')
-        .select('chat_reset_date, limit_hit_chat_at, limit_hit_upload_at')
+        .select('chat_reset_date, limit_hit_chat_at, limit_hit_upload_at, upload_reset_date')
         .eq('id', userId)
         .single()
 
@@ -110,20 +120,28 @@ export async function checkAndResetUsage(userId: string): Promise<boolean> {
         }
     }
 
-    // Check 24-hour unlock from when upload limit was hit
-    if (data.limit_hit_upload_at) {
+    // MONTHLY UPLOAD RESET LOGIC
+    const uploadResetDate = data.upload_reset_date ? new Date(data.upload_reset_date) : null
+    if (!uploadResetDate || now >= uploadResetDate) {
+        const nextUploadResetDate = new Date(now)
+        nextUploadResetDate.setMonth(nextUploadResetDate.getMonth() + 1)
+
+        updates.monthly_file_uploads = 0
+        updates.upload_reset_date = nextUploadResetDate.toISOString()
+        updates.limit_hit_upload_at = null
+        needsUpdate = true
+    } else if (data.limit_hit_upload_at) {
+        // Check 24-hour unlock from when upload limit was hit (within the month)
         const hitTime = new Date(data.limit_hit_upload_at)
-        const unlockTime = new Date(hitTime.getTime() + 24 * 60 * 60 * 1000) // 24 hours later
+        const unlockTime = new Date(hitTime.getTime() + 24 * 60 * 60 * 1000)
 
         if (now >= unlockTime) {
-            updates.daily_file_uploads = 0
             updates.limit_hit_upload_at = null
             needsUpdate = true
         }
     }
 
-    // DAILY RESET LOGIC (Overrules 24h lock if the day cycle has passed)
-    // If chat_reset_date is passed OR missing, we reset everything
+    // DAILY CHAT RESET LOGIC
     const resetDate = data.chat_reset_date ? new Date(data.chat_reset_date) : null
 
     if (!resetDate || now >= resetDate) {
@@ -131,12 +149,10 @@ export async function checkAndResetUsage(userId: string): Promise<boolean> {
         nextChatResetDate.setDate(nextChatResetDate.getDate() + 1)
 
         updates.daily_chats = 0
-        updates.daily_file_uploads = 0
         updates.chat_reset_date = nextChatResetDate.toISOString()
 
-        // Clear locks on daily reset - give user a fresh start
+        // Clear chat locks on daily reset
         updates.limit_hit_chat_at = null
-        updates.limit_hit_upload_at = null
 
         needsUpdate = true
     }
@@ -196,7 +212,7 @@ export async function canUserUploadFiles(userId: string, fileCount: number = 1):
     const remaining = getRemainingFileUploads(profile.subscriptionPlan, stats.dailyFileUploads)
 
     if (!allowed) {
-        const limit = PLAN_CONFIGS[profile.subscriptionPlan].limits.fileUploadsPerDay
+        const limit = PLAN_CONFIGS[profile.subscriptionPlan].limits.fileUploadsPerMonth
         const remainingStr = remaining === 'unlimited' ? 'unlimited' : remaining
 
         // Calculate unlock time (24 hours from when limit was first hit)
@@ -213,7 +229,7 @@ export async function canUserUploadFiles(userId: string, fileCount: number = 1):
         return {
             allowed: false,
             remaining: remaining === 'unlimited' ? 'unlimited' : 0,
-            reason: `Daily upload limit reached (${limit}). Access unlocks in 24 hours.`,
+            reason: `Monthly upload limit reached (${limit}). Resets next month or upgrade for higher limits.`,
             unlocksAt
         }
     }
@@ -306,7 +322,7 @@ export async function incrementFileUploads(userId: string, count: number = 1): P
 
     const { data, error: fetchError } = await supabase
         .from('users')
-        .select('daily_file_uploads')
+        .select('monthly_file_uploads')
         .eq('id', userId)
         .single()
 
@@ -314,7 +330,7 @@ export async function incrementFileUploads(userId: string, count: number = 1): P
 
     const { error: updateError } = await supabase
         .from('users')
-        .update({ daily_file_uploads: (data.daily_file_uploads || 0) + count })
+        .update({ monthly_file_uploads: (data.monthly_file_uploads || 0) + count })
         .eq('id', userId)
 
     return !updateError
@@ -370,7 +386,7 @@ export async function updateSubscriptionPlan(
         updates.limit_hit_chat_at = null
         updates.limit_hit_upload_at = null
         updates.daily_chats = 0
-        updates.daily_file_uploads = 0
+        updates.monthly_file_uploads = 0
     }
 
     const { error } = await supabase

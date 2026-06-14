@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { sendTeamInviteEmail } from '@/lib/transactional-emails'
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,7 +96,12 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // TODO: Send invite email to inviteeEmail
+    sendTeamInviteEmail({
+      ownerUserId,
+      ownerEmail: session.user?.email,
+      inviteeEmail: member.member_email,
+      role: member.role || 'collaborator',
+    }).catch((error) => console.error('[team_invite_email_failed]', { ownerUserId, inviteeEmail: member.member_email, error }))
 
     return NextResponse.json({
       success: true,

@@ -17,19 +17,12 @@
     "ios": {
       "supportsTabletMode": true,
       "bundleIdentifier": "com.teraai.app",
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "Tera needs access to your microphone for voice input",
-        "NSCameraRollUsageDescription": "Tera needs access to your photos for uploads",
-        "NSPhotoLibraryUsageDescription": "Tera needs access to your photo library"
-      }
+      "infoPlist": {}
     },
     "android": {
       "package": "com.teraai.app",
       "versionCode": 1,
       "permissions": [
-        "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "INTERNET",
         "ACCESS_NETWORK_STATE"
       ],
@@ -43,7 +36,9 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-font",
+      "expo-secure-store"
     ],
     "scheme": "tera"
   }

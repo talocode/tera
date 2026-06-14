@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 
 interface UpgradePromptProps {
-    type: 'lesson-plans' | 'chats' | 'file-uploads' | 'web-search' | 'research-mode' | 'credits'
+    type: 'lesson-plans' | 'chats' | 'file-uploads' | 'research-mode' | 'credits'
     onClose?: () => void
     inline?: boolean
 }
@@ -27,22 +28,16 @@ const PROMPTS = {
         benefit: 'Upgrade to Pro for more uploads or Plus for unlimited uploads.',
         icon: 'UP',
     },
-    'web-search': {
-        title: 'Web Search Limit Reached',
-        description: 'You have reached your monthly web search limit.',
-        benefit: 'Upgrade to Pro or Plus to unlock more searches.',
-        icon: 'WS',
-    },
     'research-mode': {
         title: 'Deep Research Mode',
-        description: 'Deep Research mode is available on Pro and Plus plans.',
-        benefit: 'Upgrade to unlock deeper multi-source research.',
+        description: 'Deep Research uses Grokipedia as a canonical source for multi-step analytical reasoning.',
+        benefit: 'Upgrade to Pro to unlock comprehensive research depth and high-density citations.',
         icon: 'DR',
     },
     credits: {
-        title: 'Monthly Credit Cap Reached',
-        description: 'Chats are free and unlimited, but monthly credits power AI responses.',
-        benefit: 'Upgrade to Pro or Plus for more monthly credits, or wait for your reset date.',
+        title: 'Credit limit reached',
+        description: 'Conversations are unlimited, but AI computational credits power responses.',
+        benefit: `Upgrade to Pro or Plus for more computational credits, or buy a top-up pack now. Current rate: ${CREDITS_PER_USD.toLocaleString()} credits per $1.`,
         icon: 'CR',
     },
 } as const
@@ -77,7 +72,7 @@ export default function UpgradePrompt({ type, onClose, inline = false }: Upgrade
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="relative mx-4 w-full max-w-md rounded-2xl border border-tera-border bg-tera-panel p-6 shadow-2xl">
+            <div className="relative mx-4 w-full max-w-md rounded-2xl border border-tera-border bg-tera-panel p-6 shadow-panel">
                 {onClose && (
                     <button type="button" onClick={onClose} className="absolute right-4 top-4 text-tera-secondary transition hover:text-tera-primary" aria-label="Close">
                         ×
@@ -98,8 +93,8 @@ export default function UpgradePrompt({ type, onClose, inline = false }: Upgrade
                                 Maybe Later
                             </button>
                         )}
-                        <Link href="/pricing" className="tera-button-upgrade flex-1 rounded-lg px-4 py-3 text-center font-semibold">
-                            View Plans
+                        <Link href={type === 'credits' ? '/pricing#credit-packs' : '/pricing'} className="tera-button-upgrade flex-1 rounded-lg px-4 py-3 text-center font-semibold">
+                            {type === 'credits' ? 'Buy Credits' : 'View Plans'}
                         </Link>
                     </div>
                 </div>

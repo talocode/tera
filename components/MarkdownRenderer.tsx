@@ -41,7 +41,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
           h3: ({ children }) => <h3 className="mb-2 mt-5 text-lg font-semibold text-tera-primary">{children}</h3>,
           h4: ({ children }) => <h4 className="mb-2 mt-4 text-base font-semibold text-tera-primary">{children}</h4>,
           table: ({ children }) => (
-            <div className="my-6 w-full overflow-x-auto rounded-[20px] border border-tera-border bg-white/[0.03]">
+            <div className="my-6 w-full overflow-x-auto rounded-[20px] border border-tera-border bg-tera-surface-muted">
               <table className="w-full text-left text-sm">{children}</table>
             </div>
           ),
@@ -51,7 +51,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
             </thead>
           ),
           tbody: ({ children }) => <tbody className="divide-y divide-tera-border/70">{children}</tbody>,
-          tr: ({ children }) => <tr className="hover:bg-white/[0.03]">{children}</tr>,
+          tr: ({ children }) => <tr className="hover:bg-tera-surface-muted">{children}</tr>,
           th: ({ children }) => <th className="px-4 py-3 font-medium">{children}</th>,
           td: ({ children }) => <td className="px-4 py-3 align-top text-tera-primary/95">{children}</td>,
           hr: () => <hr className="my-6 border-tera-border opacity-70" />,

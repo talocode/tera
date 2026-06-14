@@ -3,6 +3,7 @@ node_modules/
 
 # Next.js build output
 .next/
+.open-next/
 out/
 
 # Production
@@ -41,3 +42,6 @@ coverage/
 .env.local
 .env.development.local
 .env.production.local
+.vercel
+
+.forge/

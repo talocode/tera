@@ -1,0 +1,7 @@
+packages:
+  - backend-server
+  - mobile
+allowBuilds:
+  esbuild: false
+  sharp: false
+  workerd: true

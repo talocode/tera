@@ -1,4 +1,4 @@
-﻿import { getPlanConfig, type PlanType } from './plan-config'
+import { getPlanConfig, type PlanType } from './plan-config'
 
 export type UsageLimit = number | 'unlimited'
 
@@ -6,77 +6,72 @@ export interface UsageMetricSummary {
     used: number
     limit: UsageLimit
     remaining: number | 'unlimited'
-    isUnlimited: boolean
-    percentageRemaining: number
     percentageUsed: number
+    percentageRemaining: number
+    isUnlimited: boolean
     resetAt: string | null
 }
 
 export interface ProfileUsageSummary {
     plan: PlanType
     planDisplayName: string
-    messages: UsageMetricSummary
+    chats: UsageMetricSummary
     uploads: UsageMetricSummary
-    webSearch: UsageMetricSummary
+    webSearches: UsageMetricSummary
 }
 
-export interface ProfileUsageSource {
-    plan: PlanType
-    dailyChats: number
-    dailyFileUploads: number
-    monthlyWebSearches: number
-    chatResetDate: Date | null
-    webSearchResetDate: Date | null
-}
+export function buildUsageMetricSummary(
+    used: number,
+    limit: UsageLimit,
+    resetAt: string | Date | null = null
+): UsageMetricSummary {
+    const isUnlimited = limit === 'unlimited'
+    const remaining = isUnlimited ? 'unlimited' : Math.max(0, limit - used)
 
-export function buildUsageMetricSummary(used: number, limit: UsageLimit, resetAt: Date | null): UsageMetricSummary {
-    if (limit === 'unlimited') {
-        return {
-            used,
-            limit,
-            remaining: 'unlimited',
-            isUnlimited: true,
-            percentageRemaining: 100,
-            percentageUsed: 0,
-            resetAt: resetAt ? resetAt.toISOString() : null,
-        }
+    let percentageUsed = 0
+    if (!isUnlimited && limit > 0) {
+        percentageUsed = Math.min(100, (used / limit) * 100)
     }
-
-    const remaining = Math.max(0, limit - used)
-    const percentageUsed = limit > 0 ? Math.min(100, (used / limit) * 100) : 0
 
     return {
         used,
         limit,
         remaining,
-        isUnlimited: false,
-        percentageRemaining: Math.max(0, 100 - percentageUsed),
         percentageUsed,
-        resetAt: resetAt ? resetAt.toISOString() : null,
+        percentageRemaining: isUnlimited ? 100 : 100 - percentageUsed,
+        isUnlimited,
+        resetAt: resetAt ? (resetAt instanceof Date ? resetAt.toISOString() : resetAt) : null,
     }
 }
 
-export function buildProfileUsageSummary(source: ProfileUsageSource): ProfileUsageSummary {
+export function buildProfileUsageSummary(source: {
+    plan: PlanType
+    dailyChats: number
+    monthlyFileUploads: number
+    chatResetDate: string | Date | null
+    uploadResetDate?: string | Date | null
+    monthlyWebSearches?: number
+    webSearchResetDate?: string | Date | null
+}): ProfileUsageSummary {
     const planConfig = getPlanConfig(source.plan)
 
     return {
         plan: source.plan,
         planDisplayName: planConfig.displayName,
-        messages: buildUsageMetricSummary(
+        chats: buildUsageMetricSummary(
             source.dailyChats,
             planConfig.limits.messagesPerDay,
             source.chatResetDate,
         ),
         uploads: buildUsageMetricSummary(
-            source.dailyFileUploads,
-            planConfig.limits.fileUploadsPerDay,
-            source.chatResetDate,
+            source.monthlyFileUploads,
+            planConfig.limits.fileUploadsPerMonth,
+            source.uploadResetDate || null,
         ),
-        webSearch: buildUsageMetricSummary(
-            source.monthlyWebSearches,
+        webSearches: buildUsageMetricSummary(
+            source.monthlyWebSearches || 0,
             planConfig.limits.webSearchesPerMonth,
-            source.webSearchResetDate,
+            source.webSearchResetDate || null,
         ),
     }
 }
-

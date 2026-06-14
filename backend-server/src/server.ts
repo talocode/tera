@@ -4,16 +4,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import chatRoutes from './routes/chat.js';
 import toolsRoutes from './routes/tools.js';
-import searchRoutes from './routes/search.js';
 
 dotenv.config();
-
-// Configuration validation
-if (!process.env.SEARXNG_BASE_URL) {
-  console.error('❌ SEARXNG_BASE_URL is missing in .env file.');
-  console.error('Please configure SearXNG before starting the server.');
-  process.exit(1);
-}
 
 const app: express.Express = express();
 const PORT = process.env.PORT || 5000;
@@ -50,7 +42,6 @@ app.get('/health', (req: express.Request, res: express.Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/tools', toolsRoutes);
-app.use('/api/search', searchRoutes);
 
 // Error handling middleware
 app.use(
