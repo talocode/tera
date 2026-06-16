@@ -11,6 +11,7 @@ import { fetchCreditUsage, fetchUserUsageSummary } from '@/app/actions/user'
 import { saveBookmark } from '@/app/actions/search'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import type { ProfileUsageSummary } from '@/lib/profile-usage'
+import { shouldRecommendDeepResearch, shouldUseRealTimeWeb } from '@/lib/smart-query-detector'
 
 type User = {
     id: string
@@ -31,6 +32,7 @@ import PromptStarterTemplates from './PromptStarterTemplates'
 import ThinkingProcess from './ThinkingProcess'
 import { useTheme } from './ThemeProvider'
 type SurfaceMode = 'chat' | 'research' | 'image'
+type ResponseModeKey = ChatMode | 'research'
 
 type Message = {
     id: string
@@ -157,7 +159,7 @@ const isNoteSaveMode = (chatMode?: ChatMode) => chatMode === 'study' || chatMode
 
 const mapSurfaceModeToChatMode = (surfaceMode: SurfaceMode, currentChatMode: ChatMode): ChatMode => {
     if (surfaceMode === 'research') {
-        return currentChatMode === 'ask' ? 'study' : currentChatMode
+        return currentChatMode === 'image' ? 'ask' : currentChatMode
     }
 
     if (surfaceMode === 'image') {
@@ -456,9 +458,20 @@ export default function PromptShell({
     const textareaPlaceholder = isListening
         ? 'Listening...'
         : showInitialPrompt
-            ? `${selectedChatModeConfig.placeholder} Start with study, research, plan, or summarize.`
-            : selectedChatModeConfig.placeholder
+            ? `${selectedMode === 'research'
+                ? 'Ask for current facts, sources, or comparisons...'
+                : selectedChatModeConfig.placeholder} Start with study, research, plan, or summarize.`
+            : selectedMode === 'research'
+                ? 'Ask for current facts, sources, or comparisons...'
+                : selectedChatModeConfig.placeholder
     const closeComposerMenu = useCallback(() => setAttachmentOpen(false), [])
+    const openSearchHistory = () => {
+        if (!user?.id) {
+            onRequireSignIn?.()
+            return
+        }
+        setSearchHistoryOpen(true)
+    }
     const refreshUsageSignals = useCallback(async () => {
         if (!user?.id || !userReady) return
 
@@ -481,10 +494,13 @@ export default function PromptShell({
         }
     }, [user?.id, userReady])
 
-    const handleResponseModeSelect = useCallback((mode: ChatMode) => {
+    const handleResponseModeSelect = useCallback((mode: ChatMode | 'research') => {
         if (mode === 'image') {
             setSelectedMode('image')
             setChatMode('image')
+        } else if (mode === 'research') {
+            setSelectedMode('research')
+            setChatMode((current) => (current === 'image' ? 'ask' : current))
         } else {
             setSelectedMode('chat')
             setChatMode(mode)
@@ -692,7 +708,18 @@ export default function PromptShell({
         setStatus('loading')
         const currentRequestId = ++requestIdRef.current
         const entryId = editingMessageId ?? createId()
-        const outgoingChatMode = researchMode ? mapSurfaceModeToChatMode('research', mode) : mode
+        const hasResearchAccess = user?.subscriptionPlan === 'pro' || user?.subscriptionPlan === 'plus'
+        const useResearchFlow = hasResearchAccess && (
+            selectedMode === 'research' ||
+            shouldRecommendDeepResearch(messageToSend) ||
+            shouldUseRealTimeWeb(messageToSend)
+        )
+
+        if (useResearchFlow && selectedMode !== 'research') {
+            setSelectedMode('research')
+        }
+
+        const outgoingChatMode = useResearchFlow ? mapSurfaceModeToChatMode('research', mode) : mode
         const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode: outgoingChatMode }
         
         setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage: undefined } : e) : [...prev, { id: entryId, userMessage }])
@@ -701,7 +728,7 @@ export default function PromptShell({
 
         startTransition(async () => {
             try {
-                setThinkingMessage(getThinkingMessage(messageToSend, researchMode, attachmentsToSend.some(a => a.type === 'image')))
+                setThinkingMessage(getThinkingMessage(messageToSend, useResearchFlow, attachmentsToSend.some(a => a.type === 'image')))
                 setLoadingHasImages(attachmentsToSend.some(a => a.type === 'image'))
                 const result = await generateAnswer({
                     prompt: messageToSend,
@@ -711,7 +738,7 @@ export default function PromptShell({
                     attachments: attachmentsToSend,
                     sessionId: currentSessionId,
                     chatId: editingMessageId ?? undefined,
-                    researchMode,
+                    researchMode: useResearchFlow,
                     chatMode: outgoingChatMode,
                 })
 
@@ -751,7 +778,7 @@ export default function PromptShell({
             setEditingMessageId(null)
             setQueuedMessage(null)
         })
-    }, [editingMessageId, hasBumpedInput, tool, user?.id, user?.email, currentSessionId, researchMode])
+    }, [editingMessageId, hasBumpedInput, selectedMode, tool, user?.id, user?.email, user?.subscriptionPlan, currentSessionId])
 
     const handleSaveNote = async (assistantMessage: Message) => {
         if (!user?.id) {
@@ -880,7 +907,7 @@ export default function PromptShell({
     }, [userReady, queuedMessage, processMessage])
 
     useEffect(() => {
-        if (!user?.id || !sessionId) return
+        if (!user?.id || !userReady || !sessionId) return
         let cancelled = false
         setHistoryLoading(true)
         fetchChatHistory(user.id, sessionId).then(data => {
@@ -909,7 +936,7 @@ export default function PromptShell({
             setHistoryLoading(false)
         })
         return () => { cancelled = true }
-    }, [user?.id, sessionId])
+    }, [user?.id, userReady, sessionId])
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null)
     useEffect(() => { if (conversationActive || status === 'loading') setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100) }, [conversations, conversationActive, status])
@@ -1162,20 +1189,7 @@ export default function PromptShell({
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => {
-                                        if (!user?.id) {
-                                            onRequireSignIn?.()
-                                            return
-                                        }
-                                        setSearchHistoryOpen(true)
-                                    }}
-                                    className="composer-action-button"
-                                    title="History & bookmarks"
-                                >
-                                    <HistoryIcon />
-                                </button>
+                        <div className="flex items-center gap-1">
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
                                     <div className="relative h-5 w-5">
                                         <Image src={theme === 'light' ? '/images/TERA_LOGO_ONLY1.png' : '/images/TERA_LOGO_ONLY.png'} alt="Tera" fill className="object-contain" />
@@ -1246,10 +1260,12 @@ export default function PromptShell({
                                                     { key: 'quiz', label: 'Quiz', hint: 'Practice questions and quick feedback.', icon: <QuizIcon /> },
                                                     { key: 'summarize', label: 'Summarize', hint: 'Condense long text into clear takeaways.', icon: <SummarizeIcon /> },
                                                     ...(user?.subscriptionPlan === 'pro' || user?.subscriptionPlan === 'plus'
-                                                        ? [{ key: 'research' as ChatMode, label: 'Deep Research', hint: 'Web-backed research with citations.', icon: <IconResearch /> }]
+                                                        ? [{ key: 'research', label: 'Deep Research', hint: 'Web-backed research with citations.', icon: <IconResearch /> }]
                                                         : []),
-                                                ] as const).map((item) => {
-                                                    const isActive = chatMode === item.key
+                                                ] as Array<{ key: ResponseModeKey; label: string; hint: string; icon: React.ReactNode }>).map((item) => {
+                                                    const isActive = item.key === 'research'
+                                                        ? selectedMode === 'research'
+                                                        : selectedMode !== 'research' && chatMode === item.key
 
                                                     return (
                                                         <button
@@ -1298,6 +1314,19 @@ export default function PromptShell({
                                         <div className="px-2 sm:px-3 pb-3">
                                             <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Attachments</p>
                                             <div className="space-y-px">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAttachmentOpen(false)
+                                                        openSearchHistory()
+                                                    }}
+                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                >
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <HistoryIcon />
+                                                    </span>
+                                                    History & bookmarks
+                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('file')}

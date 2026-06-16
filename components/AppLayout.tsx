@@ -13,7 +13,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarPinned, setSidebarPinned] = useState(false)
   const [sidebarHovered, setSidebarHovered] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const { user, signOut, userReady } = useAuth()
   const sidebarExpanded = sidebarPinned || sidebarHovered
 
   const handleNewChat = () => {
@@ -32,6 +32,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         onCloseMobile={() => setMobileNavOpen(false)}
         onNewChat={handleNewChat}
         user={user}
+        userReady={userReady}
         onSignOut={signOut}
       />
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { markBillingRefreshPending } from '@/lib/billing-refresh'
 
 interface PaymentMethodModalProps {
   isOpen: boolean
@@ -30,6 +31,7 @@ export default function PaymentMethodModal({ isOpen, onClose, userEmail }: Payme
       if (!response.ok || !data.checkoutUrl) {
         throw new Error(data.error || 'Failed to create checkout')
       }
+      markBillingRefreshPending('payment-method')
       window.location.href = data.checkoutUrl
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to open payment setup')

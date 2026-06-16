@@ -10,6 +10,32 @@ const RESEARCH_KEYWORDS = [
     'comparison', 'versus', 'vs', 'history of', 'origin of'
 ]
 
+const REAL_TIME_WEB_KEYWORDS = [
+    'latest',
+    'current',
+    'today',
+    'now',
+    'recent',
+    'breaking',
+    'news',
+    'weather',
+    'stock',
+    'stocks',
+    'price',
+    'prices',
+    'availability',
+    'available',
+    'release',
+    'released',
+    'version',
+    'live',
+    'updates',
+    'update',
+    'exchange rate',
+    'what happened',
+    'what is happening',
+]
+
 /**
  * Determines if a query should trigger a recommendation for Deep Research mode
  * @param query - The user's query
@@ -27,7 +53,21 @@ export function shouldRecommendDeepResearch(query: string): boolean {
 }
 
 /**
- * Extract key search terms for Grokipedia indexing
+ * Determines if a query should prefer fresh web context.
+ * This is intentionally conservative so we do not over-trigger research mode.
+ */
+export function shouldUseRealTimeWeb(query: string): boolean {
+    if (!query || query.trim().length < 10) {
+        return false
+    }
+
+    const normalizedQuery = query.toLowerCase().trim()
+
+    return REAL_TIME_WEB_KEYWORDS.some(keyword => normalizedQuery.includes(keyword))
+}
+
+/**
+ * Extract key search terms for web research indexing.
  * @param query - The user's query
  * @returns string - Optimized term
  */
