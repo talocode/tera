@@ -21,6 +21,7 @@ type CreditState = {
   purchasedCredits: number
   resetDate: string | null
   plan: PlanType
+  purchasedCredits: number
 }
 
 type UserCreditRecord = {
@@ -244,6 +245,9 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
         purchasedCredits: Math.max(0, record.purchasedCredits || 0),
         resetDate: activeResetDate.toISOString(),
         plan,
+        resetDate: activeResetDate.toISOString(),
+        plan,
+        purchasedCredits: Math.max(0, record.purchasedCredits || 0),
       }
     }
 
@@ -260,6 +264,9 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
       purchasedCredits: 0,
       resetDate: activeResetDate.toISOString(),
       plan,
+      resetDate: activeResetDate.toISOString(),
+      plan,
+      purchasedCredits: 0,
     }
   } catch (error) {
     console.error('[credit_usage_read_failed]', { userId, error })

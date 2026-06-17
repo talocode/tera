@@ -133,18 +133,24 @@ export async function fetchStorageUsage(userId: string) {
     const { getPlanConfig } = await import('@/lib/plan-config')
     const planConfig = getPlanConfig(plan)
     const limitBytes = planConfig.limits.storageBytes
+    const formatBytes = (bytes: number) => {
+        if (bytes >= 1024 * 1024 * 1024) {
+            return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`
+        }
+        if (bytes >= 1024 * 1024) {
+            return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+        }
+        if (bytes >= 1024) {
+            return `${(bytes / 1024).toFixed(1)}KB`
+        }
+        return `${bytes}B`
+    }
 
     return {
         usedBytes,
         limitBytes,
-        limitDisplay: limitBytes >= 1024 * 1024 * 1024
-            ? `${(limitBytes / (1024 * 1024 * 1024)).toFixed(0)}GB`
-            : `${(limitBytes / (1024 * 1024)).toFixed(0)}MB`,
-        usedDisplay: usedBytes >= 1024 * 1024 * 1024
-            ? `${(usedBytes / (1024 * 1024 * 1024)).toFixed(2)}GB`
-            : usedBytes >= 1024 * 1024
-                ? `${(usedBytes / (1024 * 1024)).toFixed(1)}MB`
-                : `${usedBytes}B`,
+        limitDisplay: formatBytes(limitBytes),
+        usedDisplay: formatBytes(usedBytes),
         percentageUsed: limitBytes > 0 ? Math.min(100, (usedBytes / limitBytes) * 100) : 0,
     }
 }

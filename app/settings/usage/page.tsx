@@ -26,6 +26,7 @@ type CreditUsageState = {
   total: number
   purchasedCredits: number
   resetDate: string | null
+  purchasedCredits: number
 } | null
 
 type UsageHistoryData = {
@@ -323,6 +324,7 @@ export default function UsagePage() {
   const purchasedCreditsRemaining = creditUsage ? Math.max(0, creditUsage.purchasedCredits) : 0
   const planCreditsRemaining = creditUsage ? Math.max(0, creditUsage.remaining - purchasedCreditsRemaining) : 0
   const availableCreditsLabel = creditUsage ? creditUsage.remaining.toLocaleString() : '—'
+  const purchasedCredits = creditUsage?.purchasedCredits ?? 0
 
   if (authLoading || loading) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Loading usage data...</div>
@@ -407,6 +409,36 @@ export default function UsagePage() {
                     <div className="mt-4 flex items-center justify-between gap-4 text-sm text-tera-secondary">
                       <span>{creditUsage?.remaining.toLocaleString() || '0'} credits left</span>
                       <span>{creditDaysLeft !== null ? `${creditDaysLeft} days until reset` : 'No reset date'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="tera-card h-full">
+                <div className="flex h-full flex-col justify-between gap-6">
+                  <div>
+                    <p className="text-sm font-medium text-tera-secondary">Purchased credits</p>
+                    <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">
+                      {creditUsage ? purchasedCredits.toLocaleString() : '—'}
+                    </p>
+                    <p className="mt-3 text-sm text-tera-secondary">
+                      Credits added after a saved payment method or top-up purchase.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="h-4 overflow-hidden rounded-full bg-white/[0.08]">
+                      <div
+                        className="h-full rounded-full bg-sky-500 transition-all duration-500"
+                        style={{
+                          width: creditUsage
+                            ? `${Math.max(creditUsage.total > 0 ? (purchasedCredits / creditUsage.total) * 100 : 0, purchasedCredits > 0 ? 4 : 0)}%`
+                            : '0%',
+                        }}
+                      />
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-4 text-sm text-tera-secondary">
+                      <span>{purchasedCredits > 0 ? 'Available for use' : 'No top-ups yet'}</span>
+                      <span>{creditUsage ? `${creditUsage.total.toLocaleString()} total credits` : '—'}</span>
                     </div>
                   </div>
                 </div>
