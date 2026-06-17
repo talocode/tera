@@ -320,7 +320,7 @@ export default function UsagePage() {
   const estimatedTopupCredits = Number.isFinite(topupAmount) && topupAmount >= 1 ? Math.max(1, Math.floor(topupAmount * CREDITS_PER_USD)) : null
   const hasPaymentMethod = !!profile?.lemonSqueezyCustomerId
   const planCreditCap = profile ? getPlanCreditCap(profile.subscriptionPlan) : 0
-  const purchasedCreditsRemaining = creditUsage ? Math.max(0, creditUsage.purchasedCredits - creditUsage.used) : 0
+  const purchasedCreditsRemaining = creditUsage ? Math.max(0, creditUsage.purchasedCredits) : 0
   const planCreditsRemaining = creditUsage ? Math.max(0, creditUsage.remaining - purchasedCreditsRemaining) : 0
   const availableCreditsLabel = creditUsage ? creditUsage.remaining.toLocaleString() : '—'
 

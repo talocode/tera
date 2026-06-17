@@ -137,10 +137,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
             }
           }
 
+          let subscriptionPlan: string | undefined
+          if (token.userId) {
+            try {
+              const { data: profileData } = await supabaseServer
+                .from('users')
+                .select('subscription_plan')
+                .eq('id', token.userId)
+                .maybeSingle()
+
+              subscriptionPlan = profileData?.subscription_plan || 'free'
+            } catch {
+              subscriptionPlan = 'free'
+            }
+          }
+
           session.user.id = token.userId as string
           session.user.email = token.email as string
           session.user.name = token.name as string
           session.user.image = token.picture as string
+          session.user.subscriptionPlan = subscriptionPlan || 'free'
 
           if (!session.user.image && token.userId) {
             try {

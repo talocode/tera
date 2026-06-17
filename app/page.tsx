@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import SeoFooter from '@/components/seo/SeoFooter'
 import {
   DEFAULT_DESCRIPTION,
@@ -8,6 +7,7 @@ import {
   SITE_URL,
   buildPageMetadata,
 } from '@/lib/seo'
+import { getHomepageStats } from '@/lib/homepage-stats'
 
 export const metadata: Metadata = buildPageMetadata({
   title: DEFAULT_TITLE,
@@ -15,7 +15,11 @@ export const metadata: Metadata = buildPageMetadata({
   path: '/',
 })
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {
+  const stats = await getHomepageStats()
+
   return (
     <div className="tera-page">
       <div className="mx-auto w-full max-w-6xl px-6">
@@ -46,12 +50,7 @@ export default function HomePage() {
         {/* Stats bar */}
         <section className="border-y border-tera-border py-12">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {[
-              { value: '50K+', label: 'Active learners' },
-              { value: '2M+', label: 'Chat sessions' },
-              { value: '10M+', label: 'Prompts processed' },
-              { value: '99.9%', label: 'Uptime' },
-            ].map((stat) => (
+            {stats.map((stat) => (
               <div key={stat.label}>
                 <p className="text-3xl font-bold tracking-[-0.03em] text-tera-primary">{stat.value}</p>
                 <p className="mt-2 text-sm text-tera-secondary">{stat.label}</p>
