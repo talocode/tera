@@ -52,6 +52,7 @@ interface SidebarProps {
   onCloseMobile?: () => void
   onNewChat?: () => void
   user?: User | null
+  userReady?: boolean
   onSignOut?: () => void
 }
 
@@ -170,7 +171,7 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, onSignOut }: SidebarProps) {
+export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, userReady, onSignOut }: SidebarProps) {
   const pathname = usePathname()
   const expanded = pinned || mobileOpen
   const { theme } = useTheme()
@@ -178,7 +179,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
   const [historyLoading, setHistoryLoading] = useState(false)
 
   const loadChatHistory = useCallback(async () => {
-    if (!user?.id) return
+    if (!user?.id || !userReady) return
     setHistoryLoading(true)
     try {
       const sessions = await fetchUserSessions(user.id, 15)
@@ -188,7 +189,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
     } finally {
       setHistoryLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, userReady])
 
   useEffect(() => {
     loadChatHistory()
