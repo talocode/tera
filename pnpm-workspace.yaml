@@ -1,6 +1,7 @@
 packages:
   - backend-server
   - mobile
+  - apps/browser
 allowBuilds:
   esbuild: false
   sharp: false

@@ -46,6 +46,7 @@ type Message = {
         url: string
         snippet?: string | null
         publishedDate?: string | null
+        provider?: string | null
     }>
 }
 
@@ -454,6 +455,7 @@ export default function PromptShell({
     const [creditUsage, setCreditUsage] = useState<{ used: number; remaining: number; total: number; resetDate: string | null } | null>(null)
     const [usageLoading, setUsageLoading] = useState(false)
     const requestIdRef = useRef(0)
+    const historyRequestIdRef = useRef(0)
     const selectedChatModeConfig = getChatModeConfig(chatMode)
     const textareaPlaceholder = isListening
         ? 'Listening...'
@@ -581,6 +583,23 @@ export default function PromptShell({
             if (streamTimerRef.current) clearTimeout(streamTimerRef.current)
         }
     }, [])
+
+    useEffect(() => {
+        setConversations([])
+        setConversationActive(false)
+        setStatus('idle')
+        setEditingMessageId(null)
+        setQueuedMessage(null)
+        setPrompt(initialPrompt || '')
+        setPendingAttachments([])
+        setAttachmentMessage(null)
+        setNoteSaveStatuses({})
+        setSavingNoteIds({})
+        setBookmarkSaveStatuses({})
+        setChatMode('ask')
+        setSelectedMode('chat')
+        setHistoryLoading(false)
+    }, [initialPrompt, sessionId, tool.name])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -907,27 +926,64 @@ export default function PromptShell({
     }, [userReady, queuedMessage, processMessage])
 
     useEffect(() => {
+        if (!user?.id || !sessionId) return
+
+        const historyRequestId = ++historyRequestIdRef.current
         if (!user?.id || !userReady || !sessionId) return
         let cancelled = false
         setHistoryLoading(true)
-        fetchChatHistory(user.id, sessionId).then(data => {
-            if (cancelled) return
-            if (data && data.length > 0) {
-                const loaded: ConversationEntry[] = data.map((s: any) => {
-                    const mode = getChatModeForTool(s.tool ?? tool.name)
-                    const citations = Array.isArray(s.metadata?.citations) ? s.metadata.citations : undefined
 
-                    return {
-                        id: s.id, sessionId: s.session_id || s.id,
-                        userMessage: { id: `${s.id}-user`, role: 'user', content: s.prompt, attachments: (s.attachments as AttachmentReference[]) || [], timestamp: new Date(s.created_at).getTime(), chatMode: mode },
-                        assistantMessage: s.response ? { id: `${s.id}-assistant`, role: 'tera', content: s.response, timestamp: new Date(s.created_at).getTime() + 1000, chatMode: mode, citations } : undefined
-                    }
-                })
-                setConversations(loaded)
-                setConversationActive(true)
-            } else {
+        void fetchChatHistory(user.id, sessionId)
+            .then((data) => {
+                if (historyRequestId !== historyRequestIdRef.current) return
+
+                if (data && data.length > 0) {
+                    const loaded: ConversationEntry[] = data.map((s) => {
+                        const mode = getChatModeForTool(s.tool ?? tool.name)
+                        const citations = Array.isArray((s as any).metadata?.citations) ? (s as any).metadata.citations : undefined
+
+                        return {
+                            id: s.id,
+                            sessionId: s.session_id || s.id,
+                            userMessage: {
+                                id: `${s.id}-user`,
+                                role: 'user',
+                                content: s.prompt,
+                                attachments: (s.attachments as AttachmentReference[]) || [],
+                                timestamp: new Date(s.created_at).getTime(),
+                                chatMode: mode,
+                            },
+                            assistantMessage: s.response
+                                ? {
+                                    id: `${s.id}-assistant`,
+                                    role: 'tera',
+                                    content: s.response,
+                                    timestamp: new Date(s.created_at).getTime() + 1000,
+                                    chatMode: mode,
+                                    citations,
+                                }
+                                : undefined,
+                        }
+                    })
+                    setConversations(loaded)
+                    setConversationActive(true)
+                } else {
+                    setConversations([])
+                    setConversationActive(false)
+                }
+            })
+            .catch((err) => {
+                if (historyRequestId !== historyRequestIdRef.current) return
+                console.error('Failed to load chat history:', err)
                 setConversations([])
                 setConversationActive(false)
+            })
+            .finally(() => {
+                if (historyRequestId === historyRequestIdRef.current) {
+                    setHistoryLoading(false)
+                }
+            })
+    }, [user?.id, sessionId, tool.name])
             }
             setHistoryLoading(false)
         }).catch(err => {
@@ -970,10 +1026,35 @@ export default function PromptShell({
     const composerDimClass = attachmentOpen ? 'opacity-25' : 'opacity-100'
     const lowCreditThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
     const lowCredits = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= lowCreditThreshold
-    const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && (usageSummary.uploads.remaining as number) > 0 && (usageSummary.uploads.remaining as number) <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
-    const loadingSteps = researchMode
-        ? ['Reading your request', 'Searching web sources', 'Checking citations', 'Writing the response']
-        : ['Reading your request', 'Calling the model', 'Saving credits and history']
+    const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
+    const loadingSteps = (() => {
+        const promptText = prompt.trim().toLowerCase()
+        const requestSummary = prompt.trim()
+            ? `Working on: ${prompt.trim().slice(0, 90)}${prompt.trim().length > 90 ? '…' : ''}`
+            : 'Working on your request'
+
+        if (researchMode || promptText.includes('research') || promptText.includes('source') || promptText.includes('citation') || promptText.includes('web')) {
+            return [requestSummary, 'Searching web sources', 'Checking citations', 'Writing the response']
+        }
+
+        if (promptText.includes('image') || promptText.includes('visual') || promptText.includes('chart') || promptText.includes('diagram') || promptText.includes('draw')) {
+            return [requestSummary, 'Planning the visual', 'Generating the output', 'Polishing the result']
+        }
+
+        if (promptText.includes('code') || promptText.includes('function') || promptText.includes('script') || promptText.includes('debug') || promptText.includes('api')) {
+            return [requestSummary, 'Inspecting the request', 'Reasoning through the implementation', 'Preparing the answer']
+        }
+
+        if (promptText.includes('summar') || promptText.includes('write') || promptText.includes('essay') || promptText.includes('draft')) {
+            return [requestSummary, 'Reading your request', 'Drafting the response', 'Refining the wording']
+        }
+
+        if (promptText.includes('solve') || promptText.includes('calculate') || promptText.includes('math') || promptText.includes('equation')) {
+            return [requestSummary, 'Parsing the problem', 'Working through the steps', 'Checking the result']
+        }
+
+        return [requestSummary, 'Reading your request', 'Calling the model', 'Saving the response']
+    })()
 
     const imageLoadingSteps = ['Receiving your image', 'Analyzing visual content', 'Extracting details', 'Writing response']
 
@@ -1072,9 +1153,16 @@ export default function PromptShell({
                                                     <div className="mt-4 rounded-[22px] border border-tera-border bg-black/10 px-4 py-3 shadow-soft">
                                                         <div className="flex items-center justify-between gap-3">
                                                             <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
-                                                            <span className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
-                                                                {entry.assistantMessage.citations.length} source{entry.assistantMessage.citations.length === 1 ? '' : 's'}
-                                                            </span>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {entry.assistantMessage.citations.some((citation) => citation.provider === 'firecrawl') && (
+                                                                    <span className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                                        Sources fetched with Firecrawl
+                                                                    </span>
+                                                                )}
+                                                                <span className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                                    {entry.assistantMessage.citations.length} source{entry.assistantMessage.citations.length === 1 ? '' : 's'}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                         <div className="mt-3 space-y-3">
                                                             {entry.assistantMessage.citations.map((citation, index) => (
@@ -1155,19 +1243,33 @@ export default function PromptShell({
                     {isStreaming && streamingText && (
                         <div className="flex justify-start animate-in fade-in duration-300">
                             <div className="max-w-[92%] md:max-w-[85%]">
-                                <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
-                                    <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
-                                        {parseContent(streamingText).map((block, idx) => {
-                                            if (block.type === 'tera-ui') return null
-                                            if (block.type === 'universal-visual') return null
-                                            if (block.type === 'chart') return null
-                                            if (block.type === 'spreadsheet') return null
-                                            if (block.type === 'mermaid') return null
-                                            if (block.type === 'quiz') return null
-                                            if (block.type === 'code') return null
-                                            return block.type === 'text' ? <div key={idx} className="w-full"><MarkdownRenderer content={block.content} /></div> : null
-                                        })}
-                                        <span className="inline-block h-4 w-[2px] bg-tera-neon animate-pulse ml-0.5 align-text-bottom" />
+                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-4 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-tera-border bg-[#08101a]">
+                                            <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain p-2" priority />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="relative">
+                                                    <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent" />
+                                                </div>
+                                                <span className="text-sm font-medium leading-6 animate-pulse md:text-[0.98rem]">{thinkingMessage}</span>
+                                            </div>
+                                            <p className="mt-1 text-xs text-tera-secondary">{loadingSteps[0]}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                                        {loadingSteps.slice(1).map((step, index) => (
+                                            <div
+                                                key={step}
+                                                className="flex items-center gap-2 rounded-[14px] border border-tera-border bg-tera-muted px-3 py-2 text-xs text-tera-secondary"
+                                            >
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-tera-border bg-tera-bg text-[0.62rem] font-semibold text-tera-primary">
+                                                    {String(index + 2).padStart(2, '0')}
+                                                </span>
+                                                <span>{step}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -1385,4 +1487,3 @@ export default function PromptShell({
         </div>
     )
 }
-
