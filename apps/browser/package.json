@@ -5,12 +5,10 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "build:mac": "electron-builder --mac",
-    "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux",
-    "lint": "echo 'Linting...'",
-    "typecheck": "echo 'Typecheck...'"
+    "validate": "node scripts/validate.js",
+    "build": "npm run validate",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "keywords": [
     "browser",
@@ -36,26 +34,25 @@
     },
     "files": [
       "src/**/*",
-      "companion/**/*",
-      "branding/**/*"
+      "public/**/*"
     ],
     "mac": {
       "category": "public.app-category.browsers",
-      "icon": "branding/tera-icon.icns",
+      "icon": "public/icon.png",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "win": {
-      "icon": "branding/tera-icon.ico",
+      "icon": "public/icon.png",
       "target": [
         "nsis",
         "zip"
       ]
     },
     "linux": {
-      "icon": "branding/tera-icon.png",
+      "icon": "public/icon.png",
       "target": [
         "AppImage",
         "deb"
