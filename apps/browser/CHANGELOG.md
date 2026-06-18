@@ -17,6 +17,10 @@ Initial release of Tera Browser.
 - Learn with Tera action
 - Initial desktop build configuration inside the Tera repo
 
+### Upstream
+
+- Adapted UI layer from [Xplorer](https://github.com/daniel-farina/xplorer) by Daniel Farina
+
 ### Notes
 
 This release focuses on making Tera available directly inside the browsing workflow.

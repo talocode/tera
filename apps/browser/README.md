@@ -13,6 +13,10 @@ Tera Browser brings Tera AI into the browsing workflow so users can search, summ
 - **Summarize current page with Tera** — Quick page summaries
 - **Learn from current page with Tera** — Extract key ideas and learn
 
+## Upstream Attribution
+
+Tera Browser is adapted from [Xplorer](https://github.com/daniel-farina/xplorer) by Daniel Farina. Xplorer is an AI-native Chromium fork with Grok integration. We have rebranded and adapted the UI layer for Tera's mission of learning, research, and deep work.
+
 ## Why Tera Browser?
 
 Most people open a browser before they open an AI app. Tera Browser should bring Tera into search, browsing, page understanding, summarization, and learning workflows.
@@ -59,9 +63,14 @@ apps/browser/
   src/
     main.js          # Electron main process
     preload.js       # Secure IPC bridge
-    newtab.html      # New tab page
-  public/
-    icon.png         # App icon
+  companion/
+    ui/              # Browser UI (adapted from Xplorer)
+      search.html    # Search page
+      search.js      # Search logic
+      toolbar.html   # Toolbar
+      toolbar.js     # Toolbar logic
+      ...
+  branding/          # Icons and branding assets
   package.json
   README.md
   CHANGELOG.md
@@ -73,7 +82,7 @@ Tera Browser is built with Electron, which provides a Chromium-based browsing ex
 
 - **Main Process** (`src/main.js`): Handles window management, menus, and Tera integrations
 - **Preload Script** (`src/preload.js`): Secure bridge between web content and Electron
-- **New Tab** (`src/newtab.html`): Tera-first search experience
+- **Companion UI** (`companion/ui/`): Browser interface adapted from Xplorer
 
 ## Tera Integration
 
@@ -96,7 +105,10 @@ https://teraai.chat/?q=<encoded query>
 
 - [Tera AI](https://teraai.chat)
 - [GitHub](https://github.com/talocode/tera)
+- [Xplorer (Upstream)](https://github.com/daniel-farina/xplorer)
 
 ## License
 
 MIT © Talocode
+
+Adapted from Xplorer by Daniel Farina.

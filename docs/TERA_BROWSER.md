@@ -16,6 +16,10 @@ Tera Browser is the browser extension of the Tera ecosystem:
 - **Tera Browser** — Brings Tera into the browsing workflow
 - **Tera Mobile** — Mobile AI companion
 
+## Upstream Attribution
+
+Tera Browser is adapted from [Xplorer](https://github.com/daniel-farina/xplorer) by Daniel Farina. Xplorer is an AI-native Chromium fork with Grok integration. We have rebranded and adapted the UI layer for Tera's mission.
+
 ## Features
 
 ### v0.1.0
@@ -63,7 +67,7 @@ This will create platform-specific installers in the `dist/` directory.
 
 ## Limitations / TODOs
 
-- [ ] Custom Tera icon (using placeholder)
+- [ ] Custom Tera icons (using Xplorer placeholders)
 - [ ] Persistent browser history and bookmarks
 - [ ] Tab management
 - [ ] Extension support
@@ -74,10 +78,8 @@ This will create platform-specific installers in the `dist/` directory.
 - [ ] Address bar autocomplete
 - [ ] Download manager
 
-## Upstream Attribution
-
-Tera Browser is built from scratch using Electron. It is not a fork of any existing browser project.
-
 ## License
 
 MIT © Talocode
+
+Adapted from Xplorer by Daniel Farina.

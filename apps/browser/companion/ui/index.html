@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" class="grok-build">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grok — Xplorer</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script>document.documentElement.setAttribute('data-theme',matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');</script>
+  <link rel="stylesheet" href="/toolbar.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="grok-toolbar-mount"></div>
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-label">Conversations</div>
+      <button type="button" id="new-chat" class="sidebar-new" title="New conversation">+ New</button>
+    </div>
+    <input type="search" id="conv-filter" class="conv-filter" placeholder="Filter chats… (/)" autocomplete="off" title="Press / to focus">
+    <ul id="conv-list"></ul>
+  </aside>
+  <main class="chat">
+    <div id="messages" class="messages"></div>
+    <form id="composer" class="composer">
+      <select id="model-select" class="composer-model-select" title="Model" aria-label="Model"></select>
+      <textarea id="input" rows="1" placeholder="Ask Grok to browse, organize tabs, manage bookmarks…"></textarea>
+      <button type="button" id="stop" class="composer-stop" hidden title="Stop generating">Stop</button>
+      <button type="submit" id="send">Send</button>
+    </form>
+  </main>
+  <script src="/toolbar.js"></script>
+  <script src="/common.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, ipcMain, session } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
 
 const TERA_URL = 'https://teraai.chat';
@@ -15,7 +15,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: 'Tera Browser',
-    icon: path.join(__dirname, '..', 'public', 'icon.png'),
+    icon: path.join(__dirname, '..', 'branding', 'tera-icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -23,7 +23,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'newtab.html'));
+  mainWindow.loadFile(path.join(__dirname, '..', 'companion', 'ui', 'search.html'));
 
   const template = [
     {
@@ -34,10 +34,7 @@ function createWindow() {
           accelerator: 'CmdOrCtrl+T',
           click: () => {
             mainWindow.webContents.executeJavaScript(`
-              window.location.href = 'about:blank';
-              setTimeout(() => {
-                document.title = 'New Tab - Tera Browser';
-              }, 100);
+              window.location.href = '/search';
             `);
           }
         },
@@ -114,7 +111,7 @@ function createWindow() {
         {
           label: 'Tera Search',
           click: () => {
-            mainWindow.loadFile(path.join(__dirname, 'newtab.html'));
+            mainWindow.loadFile(path.join(__dirname, '..', 'companion', 'ui', 'search.html'));
           }
         }
       ]
@@ -134,7 +131,7 @@ function createWindow() {
         {
           label: 'About Tera Browser',
           click: () => {
-            shell.openExternal('https://teraai.chat');
+            shell.openExternal(TERA_URL);
           }
         }
       ]
