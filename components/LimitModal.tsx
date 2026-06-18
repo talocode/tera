@@ -25,7 +25,7 @@ const LIMIT_INFO = {
     },
     'research-mode': {
         title: 'Deep Research Mode',
-        message: 'Deep Research uses Grokipedia as a canonical source for multi-step analytical reasoning and is available on Pro and Plus plans.',
+        message: 'Deep Research uses Context.dev and Tavily for multi-step analytical reasoning and is available on Pro and Plus plans.',
         upgrade: 'Upgrade to unlock comprehensive research depth and high-density citations.',
     },
     credits: {

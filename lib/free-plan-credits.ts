@@ -18,6 +18,7 @@ type CreditState = {
   used: number
   remaining: number
   total: number
+  purchasedCredits: number
   resetDate: string | null
   plan: PlanType
   purchasedCredits: number
@@ -241,6 +242,9 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
         used,
         remaining,
         total,
+        purchasedCredits: Math.max(0, record.purchasedCredits || 0),
+        resetDate: activeResetDate.toISOString(),
+        plan,
         resetDate: activeResetDate.toISOString(),
         plan,
         purchasedCredits: Math.max(0, record.purchasedCredits || 0),
@@ -257,6 +261,9 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
       used,
       remaining,
       total,
+      purchasedCredits: 0,
+      resetDate: activeResetDate.toISOString(),
+      plan,
       resetDate: activeResetDate.toISOString(),
       plan,
       purchasedCredits: 0,

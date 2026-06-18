@@ -30,7 +30,7 @@ const PROMPTS = {
     },
     'research-mode': {
         title: 'Deep Research Mode',
-        description: 'Deep Research uses Grokipedia as a canonical source for multi-step analytical reasoning.',
+        description: 'Deep Research uses Context.dev and Tavily to gather current sources for multi-step analytical reasoning.',
         benefit: 'Upgrade to Pro to unlock comprehensive research depth and high-density citations.',
         icon: 'DR',
     },

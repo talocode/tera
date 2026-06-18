@@ -14,14 +14,17 @@ import {
   fetchStorageUsage,
 } from '@/app/actions/user'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
-import { buildUsageMetricSummary, type ProfileUsageSummary } from '@/lib/profile-usage'
+import { getPlanCreditCap } from '@/lib/free-plan-credits'
+import { type ProfileUsageSummary } from '@/lib/profile-usage'
 import { TERA_USAGE_REFRESH_EVENT } from '@/lib/usage-events'
+import { BILLING_REFRESH_INTERVAL_MS, BILLING_REFRESH_MAX_ATTEMPTS, clearBillingRefreshPending, markBillingRefreshPending, readBillingRefreshPending } from '@/lib/billing-refresh'
 import type { UserProfile } from '@/lib/usage-tracking'
 
 type CreditUsageState = {
   used: number
   remaining: number
   total: number
+  purchasedCredits: number
   resetDate: string | null
   purchasedCredits: number
 } | null
@@ -68,7 +71,7 @@ function getDaysRemaining(resetDate: string | null): number | null {
 }
 
 export default function UsagePage() {
-  const { user } = useAuth()
+  const { user, userReady, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
   const [creditUsage, setCreditUsage] = useState<CreditUsageState>(null)
@@ -86,7 +89,6 @@ export default function UsagePage() {
   const [autoTopupEnabled, setAutoTopupEnabled] = useState(false)
   const [autoTopupAmount, setAutoTopupAmount] = useState('5')
   const [autoTopupSaving, setAutoTopupSaving] = useState(false)
-  const [hasPaymentMethod, setHasPaymentMethod] = useState(false)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
 
   const loadUsageSummary = useCallback(async () => {
@@ -146,34 +148,82 @@ export default function UsagePage() {
     }
   }, [user])
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async (options?: { silent?: boolean }) => {
     if (!user) return
-    setLoading(true)
+    if (!options?.silent) {
+      setLoading(true)
+    }
     try {
       const data = await fetchUserProfile(user.id)
-      if (data) {
-        setProfile(data)
-        setHasPaymentMethod(!!data.lemonSqueezyCustomerId)
-      }
+      setProfile(data)
+      return data
     } finally {
-      setLoading(false)
+      if (!options?.silent) {
+        setLoading(false)
+      }
     }
   }, [user])
 
   useEffect(() => {
-    if (!user) return
+    if (!user?.id || !userReady) return
     void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage()])
-  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, user])
+  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, user?.id, userReady])
 
   useEffect(() => {
-    window.addEventListener(TERA_USAGE_REFRESH_EVENT, () => {
-      void Promise.all([loadUsageSummary(), loadCreditUsage(), loadUsageHistory()])
-    })
-  }, [loadUsageSummary, loadCreditUsage, loadUsageHistory])
+    if (!user?.id || !userReady || typeof window === 'undefined') return
+
+    const handleRefresh = () => {
+      void Promise.all([loadProfile({ silent: true }), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage()])
+    }
+
+    window.addEventListener(TERA_USAGE_REFRESH_EVENT, handleRefresh)
+    return () => window.removeEventListener(TERA_USAGE_REFRESH_EVENT, handleRefresh)
+  }, [loadCreditUsage, loadProfile, loadStorageUsage, loadUsageHistory, loadUsageSummary, user?.id, userReady])
+
+  useEffect(() => {
+    if (!user?.id || !userReady || typeof window === 'undefined') return
+
+    const pendingRefresh = readBillingRefreshPending()
+    if (!pendingRefresh) return
+
+    let cancelled = false
+    let attempts = 0
+    const shouldContinuePolling = pendingRefresh.reason === 'credit-topup'
+
+    const pollBillingState = async () => {
+      if (cancelled) return
+
+      await Promise.all([
+        loadProfile({ silent: true }),
+        loadUsageSummary(),
+        loadCreditUsage(),
+        loadUsageHistory(),
+        loadStorageUsage(),
+      ])
+
+      attempts += 1
+      if (cancelled) return
+
+      if (!shouldContinuePolling || attempts >= BILLING_REFRESH_MAX_ATTEMPTS) {
+        clearBillingRefreshPending()
+        return
+      }
+
+      window.setTimeout(() => {
+        void pollBillingState()
+      }, BILLING_REFRESH_INTERVAL_MS)
+    }
+
+    void pollBillingState()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadCreditUsage, loadProfile, loadStorageUsage, loadUsageHistory, loadUsageSummary, user?.id, userReady])
 
   const refreshUsage = useCallback(() => {
-    void Promise.all([loadUsageSummary(), loadCreditUsage(), loadUsageHistory()])
-  }, [loadCreditUsage, loadUsageHistory, loadUsageSummary])
+    void Promise.all([loadProfile({ silent: true }), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage()])
+  }, [loadCreditUsage, loadProfile, loadStorageUsage, loadUsageHistory, loadUsageSummary])
 
   const handleAddCredits = async () => {
     if (!user?.email) return
@@ -204,6 +254,7 @@ export default function UsagePage() {
       if (!response.ok || !data.checkoutUrl) {
         throw new Error(data.error || 'Failed to create checkout')
       }
+      markBillingRefreshPending('credit-topup')
       window.location.href = data.checkoutUrl
     } catch (error) {
       console.error('Error opening credit pack checkout:', error)
@@ -228,7 +279,10 @@ export default function UsagePage() {
       })
       if (!response.ok) throw new Error('Failed to create portal session')
       const { portalUrl } = await response.json()
-      if (portalUrl) window.location.href = portalUrl
+      if (portalUrl) {
+        markBillingRefreshPending('portal')
+        window.location.href = portalUrl
+      }
     } catch {
       alert('Failed to load billing portal.')
     } finally {
@@ -238,6 +292,10 @@ export default function UsagePage() {
 
   const handleSaveAutoTopup = async () => {
     if (!user) return
+    if (!hasPaymentMethod) {
+      setPaymentModalOpen(true)
+      return
+    }
     setAutoTopupSaving(true)
     try {
       const response = await fetch('/api/user/settings', {
@@ -257,20 +315,26 @@ export default function UsagePage() {
   }
 
   const usageCardsLoading = usageLoading || creditsLoading
-  const creditMetric = creditUsage
-    ? buildUsageMetricSummary(creditUsage.used, creditUsage.total, creditUsage.resetDate ? new Date(creditUsage.resetDate) : null)
-    : null
 
   const weeklyTotal = usageHistory.reduce((sum, day) => sum + day.used, 0)
   const topupAmount = Number(topupAmountUsd)
   const estimatedTopupCredits = Number.isFinite(topupAmount) && topupAmount >= 1 ? Math.max(1, Math.floor(topupAmount * CREDITS_PER_USD)) : null
+  const hasPaymentMethod = !!profile?.lemonSqueezyCustomerId
+  const planCreditCap = profile ? getPlanCreditCap(profile.subscriptionPlan) : 0
+  const purchasedCreditsRemaining = creditUsage ? Math.max(0, creditUsage.purchasedCredits) : 0
+  const planCreditsRemaining = creditUsage ? Math.max(0, creditUsage.remaining - purchasedCreditsRemaining) : 0
+  const availableCreditsLabel = creditUsage ? creditUsage.remaining.toLocaleString() : '—'
   const purchasedCredits = creditUsage?.purchasedCredits ?? 0
 
-  if (loading) {
+  if (authLoading || loading) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Loading usage data...</div>
   }
 
-  if (!profile || !user) {
+  if (!user) {
+    return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Sign in to view usage data.</div>
+  }
+
+  if (!profile) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Unable to load usage data.</div>
   }
 
@@ -319,12 +383,20 @@ export default function UsagePage() {
                   <div>
                     <p className="text-sm font-medium text-tera-secondary">AI computational credits</p>
                     <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-tera-primary">
-                      {creditUsage ? creditUsage.remaining.toLocaleString() : '—'}
+                      {availableCreditsLabel}
                     </p>
                     <p className="mt-3 text-sm text-tera-secondary">
                       Used: <span className="text-tera-primary">{creditUsage?.used.toLocaleString() || '0'}</span>
                       {' '}of <span className="text-tera-primary">{creditUsage?.total.toLocaleString() || '0'}</span>
                       <span className="ml-2 text-xs text-tera-secondary">(~5,000 tokens = 1 credit)</span>
+                    </p>
+                    <p className="mt-3 text-sm text-tera-secondary">
+                      Purchased credits left: <span className="text-tera-primary">{purchasedCreditsRemaining.toLocaleString()}</span>
+                      <span className="mx-2 text-tera-secondary/50">·</span>
+                      Plan credits left: <span className="text-tera-primary">{planCreditsRemaining.toLocaleString()}</span>
+                    </p>
+                    <p className="mt-2 text-xs text-tera-secondary">
+                      Plan cap: {planCreditCap.toLocaleString()} credits
                     </p>
                   </div>
                   <div>
@@ -472,13 +544,18 @@ export default function UsagePage() {
                 disabled={creditPackLoading}
                 className="tera-button-primary disabled:opacity-60"
               >
-                {creditPackLoading ? 'Loading...' : hasPaymentMethod ? 'Add credits' : 'Add payment method first'}
+                {creditPackLoading ? 'Loading...' : hasPaymentMethod ? 'Add credits' : 'Add payment method'}
               </button>
             </div>
             <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">
               {CREDITS_PER_USD} credits per $1
               {estimatedTopupCredits ? ` · ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
             </p>
+            {hasPaymentMethod && (
+              <p className="mt-2 text-xs text-emerald-300/80">
+                Saved payment method detected. Add credits directly without reopening checkout.
+              </p>
+            )}
           </div>
 
           <div className="tera-surface p-6 md:p-8">
@@ -492,12 +569,23 @@ export default function UsagePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-tera-primary">Enable auto top-up</p>
-                  <p className="mt-1 text-xs text-tera-secondary">Triggers when credits drop below 10% of your cap.</p>
+                  <p className="mt-1 text-xs text-tera-secondary">
+                    {hasPaymentMethod
+                      ? 'Triggers when credits drop below 10% of your cap.'
+                      : 'Add a payment method before enabling auto top-up.'}
+                  </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setAutoTopupEnabled(!autoTopupEnabled)}
-                  className={`relative h-7 w-12 shrink-0 rounded-full border transition ${autoTopupEnabled ? 'border-emerald-400/40 bg-emerald-500/20' : 'border-tera-border bg-tera-muted'}`}
+                  onClick={() => {
+                    if (!hasPaymentMethod) {
+                      setPaymentModalOpen(true)
+                      return
+                    }
+                    setAutoTopupEnabled(!autoTopupEnabled)
+                  }}
+                  disabled={!hasPaymentMethod}
+                  className={`relative h-7 w-12 shrink-0 rounded-full border transition ${autoTopupEnabled ? 'border-emerald-400/40 bg-emerald-500/20' : 'border-tera-border bg-tera-muted'} disabled:cursor-not-allowed disabled:opacity-50`}
                   aria-pressed={autoTopupEnabled}
                 >
                   <span className={`absolute top-1 h-5 w-5 rounded-full transition ${autoTopupEnabled ? 'left-6 bg-emerald-400' : 'left-1 bg-zinc-400'}`} />
@@ -525,7 +613,28 @@ export default function UsagePage() {
               <div className="rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
                 <p className="text-xs font-medium text-tera-secondary">Payment method</p>
                 {hasPaymentMethod ? (
-                  <p className="mt-1 text-sm text-tera-primary">Card on file</p>
+                  <div className="mt-2 space-y-3">
+                    <p className="text-sm text-tera-primary">Saved payment method on file.</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleManageSubscription()}
+                        disabled={portalLoading}
+                        className="tera-button-secondary flex-1 justify-center text-xs disabled:opacity-60"
+                      >
+                        {portalLoading ? 'Opening...' : 'Change card'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleManageSubscription()}
+                        disabled={portalLoading}
+                        className="tera-button-secondary flex-1 justify-center text-xs disabled:opacity-60"
+                      >
+                        {portalLoading ? 'Opening...' : 'Remove card'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-tera-secondary">Both actions open the Lemon Squeezy customer portal.</p>
+                  </div>
                 ) : (
                   <div className="mt-2">
                     <p className="text-sm text-tera-secondary">No payment method saved.</p>
@@ -539,10 +648,10 @@ export default function UsagePage() {
               <button
                 type="button"
                 onClick={() => void handleSaveAutoTopup()}
-                disabled={autoTopupSaving}
+                disabled={autoTopupSaving || !hasPaymentMethod}
                 className="tera-button-secondary w-full justify-center disabled:opacity-60"
               >
-                {autoTopupSaving ? 'Saving...' : 'Save auto top-up settings'}
+                {autoTopupSaving ? 'Saving...' : hasPaymentMethod ? 'Save auto top-up settings' : 'Add payment method first'}
               </button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { recordUsageLedgerEvent } from '@/lib/usage-ledger'
 import { normalizeChatMode } from '@/lib/ai/chat-modes'
 import { buildResearchCitations, formatTavilyResearchContext, searchTavily } from '@/lib/tavily'
 import { searchContextDev, formatContextDevSearchContext, buildContextDevCitations } from '@/lib/context-dev'
+import { shouldRecommendDeepResearch, shouldUseRealTimeWeb } from '@/lib/smart-query-detector'
 
 function isMissingColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== 'object') {
@@ -73,6 +74,9 @@ export async function generateAnswerForPrompt({
   }
 
   const profile = userProfile!
+  const canUseResearch = profile.subscriptionPlan === 'pro' || profile.subscriptionPlan === 'plus'
+  const autoResearchRequested = shouldRecommendDeepResearch(prompt) || shouldUseRealTimeWeb(prompt)
+  const effectiveResearchMode = researchMode || (canUseResearch && autoResearchRequested)
 
   if (attachments.length > 0 && !canUploadFile(profile.subscriptionPlan, profile.monthlyFileUploads)) {
     const planConfig = getPlanConfig(profile.subscriptionPlan)
@@ -144,7 +148,7 @@ export async function generateAnswerForPrompt({
     }
   }
 
-  if (researchMode && !(profile.subscriptionPlan === 'pro' || profile.subscriptionPlan === 'plus')) {
+  if (researchMode && !canUseResearch) {
     const errorMessage = 'Deep Research mode is available on Pro and Plus plans.'
     return {
       answer: errorMessage,
@@ -187,7 +191,7 @@ export async function generateAnswerForPrompt({
 
   let researchContext = ''
   let researchCitations: NonNullable<GenerateAnswerResult['citations']> = []
-  if (researchMode) {
+  if (effectiveResearchMode) {
     const planConfig = getPlanConfig(profile.subscriptionPlan)
     const monthlyWebSearchLimit = planConfig.limits.webSearchesPerMonth
     const monthlyWebSearches = profile.monthlyWebSearches || 0
@@ -311,7 +315,7 @@ export async function generateAnswerForPrompt({
     attachments,
     history,
     userId: authorId,
-    researchMode,
+    researchMode: effectiveResearchMode,
     chatMode: normalizedChatMode,
     researchContext,
   })
@@ -323,7 +327,7 @@ export async function generateAnswerForPrompt({
 
   const creditsToCharge = calculateCreditsForTokens(tokenCost)
   const currentSessionId = sessionId || crypto.randomUUID()
-  const persistedChatMode = chatMode ?? (researchMode ? 'research' : 'ask')
+  const persistedChatMode = chatMode ?? 'ask'
   const metadata = {
     chatMode: persistedChatMode,
     citations: researchCitations.length > 0 ? researchCitations : undefined,
@@ -467,7 +471,7 @@ export async function generateAnswerForPrompt({
     chatSessionId: savedChatId ?? null,
     sessionId: currentSessionId,
       metadata: {
-        researchMode,
+        researchMode: effectiveResearchMode,
         chatMode: normalizedChatMode,
         persistenceWarning: persistenceWarning ?? null,
         usageAccountingSucceeded,
