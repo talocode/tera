@@ -15,7 +15,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: 'Tera Browser',
-    icon: path.join(__dirname, '..', 'branding', 'tera-icon.png'),
+    icon: path.join(__dirname, '..', 'public', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -23,7 +23,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, '..', 'companion', 'ui', 'search.html'));
+  mainWindow.loadFile(path.join(__dirname, 'newtab.html'));
 
   const template = [
     {
@@ -34,7 +34,7 @@ function createWindow() {
           accelerator: 'CmdOrCtrl+T',
           click: () => {
             mainWindow.webContents.executeJavaScript(`
-              window.location.href = '/search';
+              window.location.href = 'newtab.html';
             `);
           }
         },
@@ -111,7 +111,7 @@ function createWindow() {
         {
           label: 'Tera Search',
           click: () => {
-            mainWindow.loadFile(path.join(__dirname, '..', 'companion', 'ui', 'search.html'));
+            mainWindow.loadFile(path.join(__dirname, 'newtab.html'));
           }
         }
       ]

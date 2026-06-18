@@ -4,6 +4,15 @@
 
 Tera Browser brings Tera AI into the browsing workflow so users can search, summarize pages, understand topics, and continue research from one place.
 
+## Important Notice
+
+Tera Browser v0.1.0 is an **original Electron implementation** built from scratch by Talocode. 
+
+- **No Xplorer code or assets are included**
+- Xplorer (https://github.com/daniel-farina/xplorer) was inspected only for product inspiration
+- The upstream Xplorer repository has no explicit license, so no code/assets were copied
+- All UI, icons, and implementation files are original Talocode/Tera work
+
 ## Features
 
 - **Tera as default search layer** — Address bar searches route to Tera
@@ -12,10 +21,6 @@ Tera Browser brings Tera AI into the browsing workflow so users can search, summ
 - **Ask Tera about this page** — Get explanations for any page
 - **Summarize current page with Tera** — Quick page summaries
 - **Learn from current page with Tera** — Extract key ideas and learn
-
-## Upstream Attribution
-
-Tera Browser is adapted from [Xplorer](https://github.com/daniel-farina/xplorer) by Daniel Farina. Xplorer is an AI-native Chromium fork with Grok integration. We have rebranded and adapted the UI layer for Tera's mission of learning, research, and deep work.
 
 ## Why Tera Browser?
 
@@ -26,7 +31,7 @@ Most people open a browser before they open an AI app. Tera Browser should bring
 ### Prerequisites
 
 - Node.js 18+
-- npm or pnpm
+- npm
 
 ### Install
 
@@ -41,17 +46,20 @@ npm install
 npm start
 ```
 
+### Validate
+
+```bash
+npm run validate
+```
+
 ### Build Desktop App
 
 ```bash
-# macOS
-npm run build:mac
+# Package for current platform
+npm run pack
 
-# Windows
-npm run build:win
-
-# Linux
-npm run build:linux
+# Build distributable
+npm run dist
 ```
 
 ## Development
@@ -63,14 +71,14 @@ apps/browser/
   src/
     main.js          # Electron main process
     preload.js       # Secure IPC bridge
-  companion/
-    ui/              # Browser UI (adapted from Xplorer)
-      search.html    # Search page
-      search.js      # Search logic
-      toolbar.html   # Toolbar
-      toolbar.js     # Toolbar logic
-      ...
-  branding/          # Icons and branding assets
+    newtab.html      # New tab page
+    newtab.css       # New tab styles
+    newtab.js        # New tab logic
+    browser.css      # Browser shell styles
+  public/
+    icon.png         # App icon
+  scripts/
+    validate.js      # Validation script
   package.json
   README.md
   CHANGELOG.md
@@ -82,7 +90,7 @@ Tera Browser is built with Electron, which provides a Chromium-based browsing ex
 
 - **Main Process** (`src/main.js`): Handles window management, menus, and Tera integrations
 - **Preload Script** (`src/preload.js`): Secure bridge between web content and Electron
-- **Companion UI** (`companion/ui/`): Browser interface adapted from Xplorer
+- **New Tab** (`src/newtab.html`): Tera-first search experience
 
 ## Tera Integration
 
@@ -101,14 +109,21 @@ https://teraai.chat/?q=<encoded query>
 - **Summarize with Tera** — Sends page to Tera for summarization
 - **Learn with Tera** — Extracts key ideas from the page
 
+## Security
+
+- Context isolation enabled
+- No direct Node API exposure to web content
+- Preload script for safe IPC communication
+- No remote module usage
+- No unsafe eval
+
 ## Links
 
 - [Tera AI](https://teraai.chat)
 - [GitHub](https://github.com/talocode/tera)
-- [Xplorer (Upstream)](https://github.com/daniel-farina/xplorer)
 
 ## License
 
 MIT © Talocode
 
-Adapted from Xplorer by Daniel Farina.
+This is an original implementation. No third-party code is included.
