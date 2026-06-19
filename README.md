@@ -240,3 +240,4 @@ Tera includes specialized tools for different use cases:
 ## 📄 License
 
 © 2025 Tera. All rights reserved. Built with care for curious minds everywhere.
+
