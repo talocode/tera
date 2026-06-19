@@ -23,6 +23,7 @@ export type ResearchCitation = {
   url: string
   snippet?: string | null
   publishedDate?: string | null
+  provider?: string | null
 }
 
 export type TavilySearchInput = {
