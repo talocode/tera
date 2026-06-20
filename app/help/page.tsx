@@ -148,6 +148,27 @@ export default function HelpPage() {
             </div>
           ))}
         </div>
+
+        <section className="mt-8 tera-card-subtle px-6 py-6">
+          <p className="tera-eyebrow">Support open-source Talocode</p>
+          <p className="mt-4 text-sm leading-7 text-tera-secondary">
+            Talocode builds open-source workflow layers for builders: coding agents, learning tools, trading intelligence, video workflows, and local-first automation.
+          </p>
+          <div className="mt-4 flex items-center gap-4">
+            <a
+              href="https://github.com/sponsors/Abdulmuiz44"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block"
+            >
+              <img
+                src="https://img.shields.io/badge/Sponsor-Abdulmuiz44-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white"
+                alt="Sponsor Abdulmuiz44"
+                height="32"
+              />
+            </a>
+          </div>
+        </section>
       </div>
     </div>
   )
