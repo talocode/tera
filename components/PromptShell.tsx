@@ -984,15 +984,6 @@ export default function PromptShell({
                 }
             })
     }, [user?.id, sessionId, tool.name])
-            }
-            setHistoryLoading(false)
-        }).catch(err => {
-            if (cancelled) return
-            console.error('Failed to load chat history:', err)
-            setHistoryLoading(false)
-        })
-        return () => { cancelled = true }
-    }, [user?.id, userReady, sessionId])
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null)
     useEffect(() => { if (conversationActive || status === 'loading') setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100) }, [conversations, conversationActive, status])
