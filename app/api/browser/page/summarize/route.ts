@@ -1,36 +1,34 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { browserApiOk, browserApiUnauthorized, browserApiValidationError, browserApiError } from '@/lib/browser-api/response';
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
     
     if (!session?.user) {
-      return NextResponse.json({
-        ok: false,
-        error: 'Authentication required'
-      }, { status: 401 });
+      return browserApiUnauthorized();
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return browserApiValidationError('Invalid JSON');
+    }
+
     const { url, title, text, mode } = body;
 
     if (!url || !text) {
-      return NextResponse.json({
-        ok: false,
-        error: 'URL and text are required'
-      }, { status: 400 });
+      return browserApiValidationError('URL and text are required');
     }
 
     // Truncate long text
     const truncatedText = text.substring(0, 10000);
 
     // In v0.1, we return a simple summary structure
-    // Full AI integration would call Tera's LLM here
     const summary = truncatedText.substring(0, 200) + '...';
 
-    return NextResponse.json({
-      ok: true,
+    return browserApiOk({
       action: 'summarize',
       result: {
         summary: summary,
@@ -43,9 +41,6 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    return NextResponse.json({
-      ok: false,
-      error: 'Summarize failed'
-    }, { status: 500 });
+    return browserApiError('Summarize failed');
   }
 }

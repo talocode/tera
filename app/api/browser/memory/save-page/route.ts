@@ -1,26 +1,26 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
+import { browserApiOk, browserApiUnauthorized, browserApiValidationError, browserApiError } from '@/lib/browser-api/response';
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
     
     if (!session?.user) {
-      return NextResponse.json({
-        ok: false,
-        error: 'Authentication required'
-      }, { status: 401 });
+      return browserApiUnauthorized();
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return browserApiValidationError('Invalid JSON');
+    }
+
     const { url, title, summary, keyPoints } = body;
 
     if (!url || !title) {
-      return NextResponse.json({
-        ok: false,
-        error: 'URL and title are required'
-      }, { status: 400 });
+      return browserApiValidationError('URL and title are required');
     }
 
     // Save to browser_saved_pages table
@@ -38,14 +38,10 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({
-        ok: false,
-        error: error.message
-      }, { status: 500 });
+      return browserApiError('Save page failed');
     }
 
-    return NextResponse.json({
-      ok: true,
+    return browserApiOk({
       action: 'save-page',
       result: {
         id: data.id,
@@ -55,9 +51,6 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    return NextResponse.json({
-      ok: false,
-      error: 'Save page failed'
-    }, { status: 500 });
+    return browserApiError('Save page failed');
   }
 }

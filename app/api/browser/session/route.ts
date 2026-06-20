@@ -1,19 +1,15 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { browserApiOk, browserApiUnauthorized, browserApiError } from '@/lib/browser-api/response';
 
 export async function GET() {
   try {
     const session = await auth();
     
     if (!session?.user) {
-      return NextResponse.json({
-        ok: false,
-        error: 'Not authenticated'
-      }, { status: 401 });
+      return browserApiUnauthorized();
     }
 
-    return NextResponse.json({
-      ok: true,
+    return browserApiOk({
       user: {
         id: session.user.id,
         email: session.user.email,
@@ -21,9 +17,6 @@ export async function GET() {
       }
     });
   } catch (error) {
-    return NextResponse.json({
-      ok: false,
-      error: 'Session check failed'
-    }, { status: 500 });
+    return browserApiError('Session check failed');
   }
 }

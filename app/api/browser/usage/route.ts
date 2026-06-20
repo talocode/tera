@@ -1,16 +1,13 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
+import { browserApiOk, browserApiUnauthorized, browserApiError } from '@/lib/browser-api/response';
 
 export async function GET() {
   try {
     const session = await auth();
     
     if (!session?.user) {
-      return NextResponse.json({
-        ok: false,
-        error: 'Authentication required'
-      }, { status: 401 });
+      return browserApiUnauthorized();
     }
 
     // Get user's usage data
@@ -21,14 +18,10 @@ export async function GET() {
       .single();
 
     if (error) {
-      return NextResponse.json({
-        ok: false,
-        error: error.message
-      }, { status: 500 });
+      return browserApiError('Usage check failed');
     }
 
-    return NextResponse.json({
-      ok: true,
+    return browserApiOk({
       plan: userData.subscription_plan,
       usage: {
         dailyChats: userData.daily_chats,
@@ -38,9 +31,6 @@ export async function GET() {
       }
     });
   } catch (error) {
-    return NextResponse.json({
-      ok: false,
-      error: 'Usage check failed'
-    }, { status: 500 });
+    return browserApiError('Usage check failed');
   }
 }
