@@ -1,8 +1,20 @@
-const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, nativeImage } = require('electron');
 const path = require('path');
+const url = require('url');
 
 const TERA_URL = 'https://teraai.chat';
 const TERA_SEARCH_URL = 'https://teraai.chat/?q=';
+
+const MAX_CAPTURE_SIZE_BYTES = 10 * 1024 * 1024;
+const PRIVATE_IP_PATTERNS = [
+  /^https?:\/\/localhost/,
+  /^https?:\/\/127\./,
+  /^https?:\/\/10\./,
+  /^https?:\/\/172\.(1[6-9]|2[0-9]|3[01])\./,
+  /^https?:\/\/192\.168\./,
+  /^https?:\/\/0\./,
+  /^file:\/\//,
+];
 
 let mainWindow;
 
@@ -109,6 +121,15 @@ function createWindow() {
         },
         { type: 'separator' },
         {
+          label: 'Visual Explain (Capture Viewport)',
+          accelerator: 'CmdOrCtrl+Shift+V',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('show-visual-context');
+            }
+          }
+        },
+        {
           label: 'Tera Search',
           click: () => {
             mainWindow.loadFile(path.join(__dirname, 'newtab.html'));
@@ -145,6 +166,64 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+function isPrivateUrl(pageUrl) {
+  return PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(pageUrl));
+}
+
+ipcMain.handle('capture-viewport', async (event) => {
+  const webContents = event.sender;
+  const browserWindow = BrowserWindow.fromWebContents(webContents);
+  if (!browserWindow || browserWindow.isDestroyed()) {
+    return { ok: false, error: 'no_active_window' };
+  }
+
+  const pageUrl = webContents.getURL();
+  const pageTitle = webContents.getTitle() || 'Unknown Page';
+
+  if (isPrivateUrl(pageUrl)) {
+    return { ok: false, error: 'private_url', url: pageUrl, title: pageTitle };
+  }
+
+  try {
+    const bounds = webContents.getOwnerBrowserWindow().getBounds();
+    const imageSize = { width: bounds.width, height: bounds.height };
+    const image = await webContents.capturePage(imageSize);
+
+    if (image.isEmpty()) {
+      return { ok: false, error: 'empty_capture', url: pageUrl, title: pageTitle };
+    }
+
+    const pngBuffer = image.toPNG();
+    if (pngBuffer.length > MAX_CAPTURE_SIZE_BYTES) {
+      return {
+        ok: false,
+        error: 'capture_too_large',
+        sizeBytes: pngBuffer.length,
+        url: pageUrl,
+        title: pageTitle,
+      };
+    }
+
+    const base64Data = pngBuffer.toString('base64');
+
+    return {
+      ok: true,
+      screenshot: {
+        mimeType: 'image/png',
+        data: base64Data,
+        width: imageSize.width,
+        height: imageSize.height,
+        viewportOnly: true,
+      },
+      url: pageUrl,
+      title: pageTitle,
+      capturedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    return { ok: false, error: 'capture_failed', message: err.message, url: pageUrl, title: pageTitle };
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();

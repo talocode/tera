@@ -27,6 +27,7 @@ Tera Browser is an AI-native browser for learning, research, and agent-assisted 
 - Generate lesson from page
 - Translate page
 - Extract key points
+- **Visual Explain** (capture viewport + visual analysis) — user-triggered, preview before send
 
 ### Research Mode
 
@@ -120,7 +121,7 @@ Page Actions / Research / Learning
 - Multi-tab research
 - Data extraction
 - Form filling (with approval)
-- Screenshot capture
+- Screenshot capture — implemented as user-triggered viewport capture with preview
 - Page monitoring
 
 ## Privacy/Security Model
@@ -178,6 +179,15 @@ Page Actions / Research / Learning
 - Automated page actions
 - Multi-tab research
 - Data extraction
+- Form filling
+
+### v0.1 Visual Context Capture (Implemented)
+
+- User-triggered viewport capture via menu or keyboard shortcut
+- Privacy-first: blocks private URLs, requires user confirmation
+- Preview panel with thumbnail, metadata, discard/confirm flow
+- No screenshot storage by default
+- VLM analysis pending provider integration
 
 ## Notes
 

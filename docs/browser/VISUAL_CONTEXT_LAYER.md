@@ -168,10 +168,43 @@ Provider abstraction:
 ### Not Yet Implemented
 
 - Actual VLM provider integration
-- Browser-side viewport capture (requires browser extension or Electron API)
 - Screenshot storage and retrieval
 - Visual search/indexing
 - Multi-screenshot page understanding
+
+### v0.1 Implementation Notes (Viewport Capture Foundation)
+
+The viewport capture foundation is implemented in the Electron browser app (`apps/browser/`):
+
+**IPC handler** (`src/main.js`):
+- `capture-viewport` channel handles viewport capture via `webContents.capturePage()`
+- Returns base64 PNG with metadata (url, title, dimensions, timestamp)
+- Blocks private/local URLs (localhost, 10.x, 172.16-31.x, 192.168.x, file://)
+- Rejects oversized captures (>10MB)
+- Returns structured error for empty captures
+
+**Preload bridge** (`src/preload.js`):
+- Exposes `window.teraBrowser.captureViewport()` to renderer
+- Exposes `window.teraBrowser.onShowVisualContext(callback)` for menu trigger
+- Uses `contextBridge` with `contextIsolation: true`
+
+**UI** (`src/newtab.html`, `src/visual-context.js`, `src/visual-context.css`):
+- "Visual Explain" button on new tab page
+- Tera menu item with `Cmd/Ctrl+Shift+V` shortcut
+- Preview panel shows thumbnail, page metadata, dimensions, timestamp
+- Privacy warning for private URLs
+- Provider-not-configured warning (VLM not integrated yet)
+- "Use for Visual Explanation" opens Tera with visual query
+- "Discard" closes panel without saving
+- Escape key closes panel
+
+**Privacy guardrails**:
+- User-triggered only (button click or keyboard shortcut)
+- No hidden capture, no background capture
+- Private URL detection and blocking
+- No screenshot storage by default
+- Preview before any action
+- Confirmation required before sending to Tera
 
 ## Future Roadmap
 

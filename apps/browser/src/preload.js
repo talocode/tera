@@ -5,5 +5,7 @@ contextBridge.exposeInMainWorld('teraBrowser', {
   openTera: () => ipcRenderer.invoke('openTera'),
   askTeraAboutPage: (title, url) => ipcRenderer.invoke('askTeraAboutPage', title, url),
   summarizeWithTera: (title, url) => ipcRenderer.invoke('summarizeWithTera', title, url),
-  learnWithTera: (title, url) => ipcRenderer.invoke('learnWithTera', title, url)
+  learnWithTera: (title, url) => ipcRenderer.invoke('learnWithTera', title, url),
+  captureViewport: () => ipcRenderer.invoke('capture-viewport'),
+  onShowVisualContext: (callback) => ipcRenderer.on('show-visual-context', callback),
 });
