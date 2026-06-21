@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth';
 import { browserApiOk, browserApiUnauthorized, browserApiValidationError, browserApiError } from '@/lib/browser-api/response';
+import { validatePageContextInput, normalizePageContext, redactSecrets, formatAnswer } from '@/lib/browser-api/web-context';
 
 export async function POST(request: Request) {
   try {
@@ -16,24 +17,34 @@ export async function POST(request: Request) {
       return browserApiValidationError('Invalid JSON');
     }
 
-    const { url, title, text, question, mode } = body;
-
-    if (!url || !text || !question) {
-      return browserApiValidationError('URL, text, and question are required');
+    if (!body.question) {
+      return browserApiValidationError('Question is required');
     }
 
-    // Truncate long text
-    const truncatedText = text.substring(0, 10000);
+    const validation = validatePageContextInput(body);
+    if (!validation.valid) {
+      return browserApiValidationError(validation.error!);
+    }
 
-    // In v0.1, we return a simple response
-    const answer = `Based on the page content, here is a response to your question: "${question}"\n\nThe page contains information about: ${truncatedText.substring(0, 100)}...`;
+    const redacted = redactSecrets(body.text);
+    const context = normalizePageContext({ ...body, text: redacted.text });
+    const { answer, confidence } = formatAnswer(context, body.question);
 
     return browserApiOk({
       action: 'ask',
       result: {
-        answer: answer,
+        answer,
+        confidence,
         sources: [],
         suggestedFollowUp: []
+      },
+      context: {
+        sourceType: context.sourceType,
+        mode: context.mode,
+        textLength: context.textLength,
+        truncated: context.truncated,
+        textHash: context.textHash,
+        redactedSecrets: redacted.redactedCount
       },
       usage: {
         creditsUsed: 1,

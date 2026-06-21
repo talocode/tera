@@ -1,6 +1,8 @@
 import { auth } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { browserApiOk, browserApiUnauthorized, browserApiValidationError, browserApiError } from '@/lib/browser-api/response';
+import { validatePageContextInput, normalizePageContext, redactSecrets } from '@/lib/browser-api/web-context';
+import { createHash } from 'crypto';
 
 export async function POST(request: Request) {
   try {
@@ -17,22 +19,27 @@ export async function POST(request: Request) {
       return browserApiValidationError('Invalid JSON');
     }
 
-    const { url, title, summary, keyPoints } = body;
-
-    if (!url || !title) {
-      return browserApiValidationError('URL and title are required');
+    if (body.approved !== true) {
+      return browserApiValidationError('Page saving requires explicit user approval (approved: true)');
     }
 
-    // Save to browser_saved_pages table
+    const validation = validatePageContextInput(body);
+    if (!validation.valid) {
+      return browserApiValidationError(validation.error!);
+    }
+
+    const redacted = redactSecrets(body.text);
+    const context = normalizePageContext({ ...body, text: redacted.text });
+
     const { data, error } = await supabaseServer
       .from('browser_saved_pages')
       .insert({
         user_id: session.user.id,
-        url: url,
-        title: title,
-        summary: summary || '',
-        key_points: keyPoints || [],
-        source_text_hash: crypto.createHash('sha256').update(url).digest('hex')
+        url: context.url,
+        title: context.title,
+        summary: context.excerpt,
+        key_points: [],
+        source_text_hash: context.textHash
       })
       .select()
       .single();
@@ -48,6 +55,14 @@ export async function POST(request: Request) {
         url: data.url,
         title: data.title,
         savedAt: data.created_at
+      },
+      context: {
+        sourceType: context.sourceType,
+        mode: context.mode,
+        textLength: context.textLength,
+        truncated: context.truncated,
+        textHash: context.textHash,
+        redactedSecrets: redacted.redactedCount
       }
     });
   } catch (error) {

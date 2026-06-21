@@ -292,3 +292,50 @@ Tera Browser handles extraction locally. No web content is sent to external serv
 - Memory storage is local (SQLite/JSON)
 - No telemetry on what pages were extracted
 - No cloud processing of web content
+
+## v0.1 Implementation Notes
+
+### Web Context Module (`lib/browser-api/web-context/`)
+
+The v0.1 implementation adds a normalization layer for browser API routes that processes page content before AI operations.
+
+**Core Components:**
+
+- **types.ts**: Defines `PageContext` and `PageContextInput` interfaces with sourceType, mode, and metadata fields
+- **validate.ts**: URL validation rejecting private IPs (10.x, 172.16-31.x, 192.168.x), localhost, file://, and internal hosts. Input validation for required fields and enum values
+- **normalize.ts**: Text normalization with whitespace collapse, newline cleanup, and SHA-256 hashing. Enforces 40K input limit, 20K output limit, and extracts 2-3 sentence excerpts
+- **redact.ts**: Regex-based secret redaction for bearer tokens, API keys, passwords, private keys, and other credentials
+- **format.ts**: Deterministic placeholder response formatting using text analysis (sentence extraction, line filtering, keyword matching)
+
+**Updated Routes:**
+
+- `POST /api/browser/page/summarize` - Validates input, normalizes context, redacts secrets, returns structured summary with metadata
+- `POST /api/browser/page/ask` - Requires `question` field, provides confidence score based on keyword matching
+- `POST /api/browser/page/explain` - Extracts concepts and explanations from page content
+- `POST /api/browser/memory/save-page` - Requires `approved: true` in body, saves user-approved content with source metadata
+
+**Response Format:**
+
+All routes now include `context` metadata:
+```json
+{
+  "ok": true,
+  "action": "summarize",
+  "result": { ... },
+  "context": {
+    "sourceType": "page",
+    "mode": "general",
+    "textLength": 1234,
+    "truncated": false,
+    "textHash": "abc123...",
+    "redactedSecrets": 0
+  }
+}
+```
+
+**Security:**
+
+- All URLs validated against private/internal address patterns
+- Content secrets automatically redacted before processing
+- User approval required for memory saves (`approved: true`)
+- JSON-only responses, no HTML rendering

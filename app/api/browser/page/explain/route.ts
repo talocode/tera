@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth';
 import { browserApiOk, browserApiUnauthorized, browserApiValidationError, browserApiError } from '@/lib/browser-api/response';
+import { validatePageContextInput, normalizePageContext, redactSecrets, formatExplanation } from '@/lib/browser-api/web-context';
 
 export async function POST(request: Request) {
   try {
@@ -16,24 +17,29 @@ export async function POST(request: Request) {
       return browserApiValidationError('Invalid JSON');
     }
 
-    const { url, title, text, mode } = body;
-
-    if (!url || !text) {
-      return browserApiValidationError('URL and text are required');
+    const validation = validatePageContextInput(body);
+    if (!validation.valid) {
+      return browserApiValidationError(validation.error!);
     }
 
-    // Truncate long text
-    const truncatedText = text.substring(0, 10000);
-
-    // In v0.1, we return a simple explanation structure
-    const explanation = `This page covers: ${truncatedText.substring(0, 150)}...\n\nKey concepts are explained in the content above.`;
+    const redacted = redactSecrets(body.text);
+    const context = normalizePageContext({ ...body, text: redacted.text });
+    const { explanation, concepts } = formatExplanation(context);
 
     return browserApiOk({
       action: 'explain',
       result: {
-        explanation: explanation,
-        concepts: [],
+        explanation,
+        concepts,
         prerequisites: []
+      },
+      context: {
+        sourceType: context.sourceType,
+        mode: context.mode,
+        textLength: context.textLength,
+        truncated: context.truncated,
+        textHash: context.textHash,
+        redactedSecrets: redacted.redactedCount
       },
       usage: {
         creditsUsed: 1,
