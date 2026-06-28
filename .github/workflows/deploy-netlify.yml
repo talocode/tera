@@ -69,6 +69,6 @@ jobs:
         run: npm install -g netlify-cli
 
       - name: Deploy to Netlify
-        run: npx netlify-cli deploy --cwd . --dir=.next --prod --site=$NETLIFY_SITE_ID
+        run: npx netlify-cli deploy --filter tera --dir=.next --prod --site=$NETLIFY_SITE_ID
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
