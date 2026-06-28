@@ -3,6 +3,7 @@ import { getCheckoutUrlForPlan, getCheckoutUrlForCreditPack, getCustomerPortalUr
 import { supabaseServer } from '@/lib/supabase-server'
 import { auth } from '@/lib/auth'
 import { calculateCreditsFromTopup, isValidTopupAmount } from '@/lib/credit-topup'
+import { isTestEmail } from '@/lib/billing/planAuthority'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
     const { slug } = await params
@@ -77,6 +78,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             if (!plan || !['pro', 'plus'].includes(plan) || !email) {
                 console.log(`[Billing API] Missing required fields`, { plan, email, userId })
                 return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+            }
+
+            // Block test/dev emails from creating paid subscriptions
+            if (isTestEmail(email)) {
+                console.log(`[Billing API] Blocked test email from creating subscription: ${email}`)
+                return NextResponse.json({ error: 'Test accounts cannot create paid subscriptions' }, { status: 403 })
             }
             console.log(`[Billing API] Creating checkout for plan: ${plan}`)
             const checkoutUrl = await getCheckoutUrlForPlan(plan, email, userId, returnUrl, currencyCode)
