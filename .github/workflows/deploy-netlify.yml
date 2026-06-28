@@ -69,6 +69,6 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Netlify
-        run: npx netlify-cli@17.36.2 deploy --filter . --no-build --dir=.next --prod --site=$NETLIFY_SITE_ID
+        run: npx netlify-cli@17.36.2 deploy --dir=.next --prod --site=$NETLIFY_SITE_ID
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
