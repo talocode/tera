@@ -69,9 +69,4 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Netlify
-        run: |
-          cd /tmp && npx netlify-cli@17.0.0 deploy --dir=${{ github.workspace }}/.next --prod --site=$NETLIFY_SITE_ID
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: node scripts/deploy-netlify.mjs

@@ -30,7 +30,7 @@ if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
     echo "2. Select your project"
     echo "3. Go to SQL Editor"
     echo "4. Paste and run the SQL from:"
-    echo "   migrations/20260619000000_create_codra_device_auth_sessions.sql"
+    echo "   supabase/migrations/20260619000000_create_codra_device_auth_sessions.sql"
     echo ""
 fi
 
