@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -32,11 +32,11 @@ const HELP_SECTIONS = [
     articles: [
       {
         title: 'What is included in the Free plan?',
-        content: `The Free plan includes unlimited AI conversations, 3 file uploads per day, 5 web searches per month, and access to the core Tera tools.`,
+        content: `The Free plan includes unlimited AI conversations, 90 file uploads per month, 5 Tavily-backed web research requests per month, and access to the core Tera tools.`,
       },
       {
         title: 'What is the difference between Pro and Plus?',
-        content: `Pro increases upload and search limits, adds Deep Research, and unlocks exports. Plus adds the highest usage limits, analytics, and priority support.`,
+        content: `Pro increases upload and research limits, adds Deep Research, and unlocks exports. Plus adds the highest usage limits, analytics, and priority support.`,
       },
       {
         title: 'Can I switch plans anytime?',
@@ -82,10 +82,10 @@ export default function HelpPage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-12">
           <p className="tera-eyebrow">Help center</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Support for plans, billing, and product questions.</h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl lg:text-5xl">Support for plans, billing, and product questions.</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-tera-secondary">
             Browse the most common account and pricing questions, or contact support directly if you need help with a specific issue.
           </p>
@@ -101,7 +101,7 @@ export default function HelpPage() {
               key={section.id}
               type="button"
               onClick={() => toggleSection(section.id)}
-              className="tera-card text-left transition hover:border-white/16 hover:bg-tera-elevated/80"
+              className="tera-card-subtle text-left transition hover:-translate-y-px hover:bg-tera-highlight"
             >
               <p className="tera-eyebrow">Section</p>
               <h2 className="mt-3 text-xl font-semibold text-tera-primary">{section.title}</h2>
@@ -130,7 +130,7 @@ export default function HelpPage() {
                     const isExpanded = expandedArticles.includes(articleId)
 
                     return (
-                      <div key={articleId} className="rounded-[22px] border border-tera-border bg-white/[0.04] px-5 py-4">
+                      <div key={articleId} className="tera-card-subtle px-5 py-4">
                         <button type="button" onClick={() => toggleArticle(articleId)} className="flex w-full items-center justify-between gap-4 text-left">
                           <h3 className="text-base font-medium text-tera-primary">{article.title}</h3>
                           <svg className={`h-4 w-4 shrink-0 text-tera-secondary transition ${isExpanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -148,6 +148,27 @@ export default function HelpPage() {
             </div>
           ))}
         </div>
+
+        <section className="mt-8 tera-card-subtle px-6 py-6">
+          <p className="tera-eyebrow">Support open-source Talocode</p>
+          <p className="mt-4 text-sm leading-7 text-tera-secondary">
+            Talocode builds open-source workflow layers for builders: coding agents, learning tools, trading intelligence, video workflows, and local-first automation.
+          </p>
+          <div className="mt-4 flex items-center gap-4">
+            <a
+              href="https://github.com/sponsors/Abdulmuiz44"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block"
+            >
+              <img
+                src="https://img.shields.io/badge/Sponsor-Abdulmuiz44-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white"
+                alt="Sponsor Abdulmuiz44"
+                height="32"
+              />
+            </a>
+          </div>
+        </section>
       </div>
     </div>
   )

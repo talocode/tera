@@ -23,9 +23,9 @@ export default function SignInPage() {
 
   return (
     <div className="tera-page flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-[32px] border border-tera-border bg-tera-panel/82 p-8 shadow-panel backdrop-blur-2xl md:p-10">
+      <div className="w-full max-w-md rounded-[32px] border border-tera-border bg-tera-panel/82 p-6 shadow-soft-lg backdrop-blur-2xl md:p-8 lg:p-10">
         <div className="flex justify-center">
-          <div className="relative h-16 w-16 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
+          <div className="relative h-14 w-14 rounded-[22px] border border-tera-border bg-white/[0.04] p-2.5 md:h-16 md:w-16 md:rounded-[24px] md:p-3">
             <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="hidden object-contain p-3 dark:block" />
             <Image src="/images/TERA_LOGO_ONLY1.png" alt="Tera" fill className="object-contain p-3 dark:hidden" />
           </div>
@@ -33,8 +33,8 @@ export default function SignInPage() {
 
         <div className="mt-8 text-center">
           <p className="tera-eyebrow">Welcome back</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-tera-primary">Sign in to Tera</h1>
-          <p className="mt-4 text-sm leading-7 text-tera-secondary">
+          <h1 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-tera-primary md:text-3xl">Sign in to Tera</h1>
+          <p className="mt-3 text-sm leading-7 text-tera-secondary md:mt-4">
             Continue into the unified dark workspace for chat, tools, research, and notes.
           </p>
         </div>
@@ -49,7 +49,7 @@ export default function SignInPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="mt-8 flex w-full items-center justify-center gap-3 rounded-[20px] border border-white/10 bg-white px-4 py-3 font-medium text-[#111827] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-tera-border dark:bg-tera-muted dark:text-white dark:hover:bg-tera-panel"
+          className="mt-7 flex w-full items-center justify-center gap-3 rounded-[20px] border border-tera-border bg-white px-4 py-3 font-medium text-[#111827] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-tera-muted dark:text-white dark:hover:bg-tera-panel md:mt-8"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -60,7 +60,7 @@ export default function SignInPage() {
           {loading ? 'Signing in...' : 'Continue with Google'}
         </button>
 
-        <div className="mt-8 space-y-3 rounded-[24px] border border-tera-border bg-white/[0.03] p-5">
+          <div className="tera-card-subtle mt-7 space-y-3 p-4 md:mt-8 md:p-5">
           <div className="flex items-start gap-3 text-sm leading-7 text-tera-secondary">
             <span className="mt-2 h-2.5 w-2.5 rounded-full bg-tera-neon" />
             <span>Unlimited AI conversations on the free plan.</span>

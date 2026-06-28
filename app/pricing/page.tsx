@@ -1,8 +1,9 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { PLAN_CONFIGS } from '@/lib/plan-config'
 
 type CurrencyConfig = {
@@ -61,7 +62,6 @@ const comparisonRows = [
   { feature: 'Monthly Credits', free: '150', pro: '1,500', plus: '5,000' },
   { feature: 'File Uploads per Day', free: '3', pro: '25', plus: 'Unlimited' },
   { feature: 'Max File Size', free: '10 MB', pro: '500 MB', plus: '2 GB' },
-  { feature: 'Monthly Web Searches', free: '5', pro: '100', plus: 'Unlimited' },
   { feature: 'Deep Research Mode', free: '-', pro: 'Yes', plus: 'Yes' },
   { feature: 'Export to PDF and Word', free: '-', pro: 'Yes', plus: 'Yes' },
   { feature: 'Priority Support', free: '-', pro: 'Yes', plus: '24/7' },
@@ -85,6 +85,7 @@ export default function PricingPage() {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [topupAmountUsd, setTopupAmountUsd] = useState('1')
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
   const [currency, setCurrency] = useState<CurrencyConfig>(CURRENCY_CODES.USD)
   const [countryCode, setCountryCode] = useState('')
@@ -163,6 +164,55 @@ export default function PricingPage() {
     }
   }
 
+  const handleCreditPackCheckout = async () => {
+    if (!user?.email) {
+      router.push('/auth/signin')
+      return
+    }
+
+    const amountUsd = Number(topupAmountUsd)
+    if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+      alert('Minimum top-up is $1.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/billing/create-credit-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountUsd,
+          email: user.email,
+          returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/profile`,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.checkoutUrl) throw new Error(data.details || data.error || 'Failed to create checkout session')
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(
+          'tera_credit_topup_checkout',
+          JSON.stringify({
+            amountUsd,
+            credits: Number(data.credits || 0),
+            rate: CREDITS_PER_USD,
+          }),
+        )
+      }
+      window.location.href = data.checkoutUrl
+    } catch (error) {
+      console.error('Credit pack checkout error:', error)
+      alert('Failed to start credit pack checkout. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const topupAmount = Number(topupAmountUsd)
+  const estimatedTopupCredits =
+    Number.isFinite(topupAmount) && topupAmount >= 1 ? Math.max(1, Math.floor(topupAmount * CREDITS_PER_USD)) : null
+
   const plans = [
     {
       ...PLAN_CONFIGS.free,
@@ -189,12 +239,12 @@ export default function PricingPage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-12">
           <p className="tera-eyebrow">Pricing</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl">Choose the level of Tera that fits your work.</h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl lg:text-5xl">Choose the level of Tera that fits your work.</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-tera-secondary">
-            Conversations stay free. Upgrade when you need more monthly credits, larger file limits, more web search volume, deeper research, or analytics.
+            Conversations stay free. Upgrade when you need more computational credits, larger file limits, Tavily-backed deep research, or analytics.
           </p>
         </section>
 
@@ -202,12 +252,12 @@ export default function PricingPage() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-[30px] border p-7 backdrop-blur-2xl ${plan.highlighted ? 'border-white/16 bg-tera-elevated/92 shadow-panel' : 'border-tera-border bg-tera-panel/78 shadow-soft-lg'}`}
+              className={`tera-card p-7 transition-transform duration-200 hover:-translate-y-px ${plan.highlighted ? 'ring-1 ring-white/5' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="tera-eyebrow">Plan</p>
-                  <h2 className="mt-3 text-2xl font-semibold text-tera-primary">{plan.displayName}</h2>
+                  <h2 className="mt-3 text-xl font-semibold text-tera-primary md:text-2xl">{plan.displayName}</h2>
                   <p className="mt-3 text-sm leading-7 text-tera-secondary">{plan.description}</p>
                 </div>
                 {plan.highlighted && <span className="tera-badge border-tera-neon/20 bg-tera-highlight text-tera-neon">Popular</span>}
@@ -215,7 +265,7 @@ export default function PricingPage() {
 
               <div className="mt-8 border-t border-tera-border pt-6">
                 <div className="flex items-end gap-2">
-                  <span className="text-4xl font-semibold tracking-[-0.04em] text-tera-primary">{currency.symbol}{plan.displayPrice.toFixed(2)}</span>
+                  <span className="text-3xl font-semibold tracking-[-0.04em] text-tera-primary md:text-4xl">{currency.symbol}{plan.displayPrice.toFixed(2)}</span>
                   <span className="pb-1 text-sm text-tera-secondary">{plan.period}</span>
                 </div>
                 {currency.code !== 'USD' && (
@@ -250,11 +300,35 @@ export default function PricingPage() {
           ))}
         </section>
 
+        <section id="credit-packs" className="tera-surface mt-8 p-6 md:p-8">
+          <p className="tera-eyebrow">Credit packs</p>
+          <h2 className="mt-3 text-xl font-semibold text-tera-primary md:text-2xl">Need more usage without upgrading?</h2>
+          <p className="mt-3 text-sm leading-7 text-tera-secondary">Top up from $1 and above without changing your subscription plan.</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={topupAmountUsd}
+              onChange={(event) => setTopupAmountUsd(event.target.value)}
+              className="tera-input h-11 w-[180px]"
+              aria-label="Top-up amount in USD"
+            />
+            <button type="button" onClick={() => void handleCreditPackCheckout()} disabled={loading} className="tera-button-secondary justify-center disabled:opacity-60">
+              {loading ? 'Processing...' : 'Buy credits ($1+)'}
+            </button>
+          </div>
+          <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+            {CREDITS_PER_USD.toLocaleString()} credits per $1
+            {estimatedTopupCredits ? ` · ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
+          </p>
+        </section>
+
         <section className="tera-surface mt-8 overflow-hidden p-6 md:p-8">
-          <div className="flex items-center justify-between gap-4 border-b border-tera-border pb-5">
+          <div className="flex items-center justify-between gap-4 pb-5">
             <div>
               <p className="tera-eyebrow">Comparison</p>
-              <h2 className="mt-2 text-2xl font-semibold text-tera-primary">Plan breakdown</h2>
+              <h2 className="mt-2 text-xl font-semibold text-tera-primary md:text-2xl">Plan breakdown</h2>
             </div>
           </div>
           <div className="custom-scrollbar mt-6 overflow-x-auto">
@@ -269,7 +343,7 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {comparisonRows.map((row) => (
-                  <tr key={row.feature} className="border-b border-tera-border/70 last:border-0">
+                  <tr key={row.feature} className="border-b border-tera-border last:border-0">
                     <td className="px-4 py-4 text-tera-primary">{row.feature}</td>
                     <td className="px-4 py-4 text-tera-secondary">{row.free}</td>
                     <td className="px-4 py-4 text-tera-secondary">{row.pro}</td>
@@ -286,7 +360,7 @@ export default function PricingPage() {
             <p className="tera-eyebrow">FAQ</p>
             <div className="mt-4 space-y-4">
               {faqs.map((faq) => (
-                <div key={faq.q} className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4">
+                <div key={faq.q} className="tera-card-subtle px-5 py-4">
                   <h3 className="text-base font-medium text-tera-primary">{faq.q}</h3>
                   <p className="mt-2 text-sm leading-7 text-tera-secondary">{faq.a}</p>
                 </div>

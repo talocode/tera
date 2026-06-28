@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { supabaseServer } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 const DEEP_RESEARCH_PROMPT = 'Run a deep research brief on [TOPIC]. Include: objective, key questions, trustworthy sources with links, opposing viewpoints, evidence quality notes, and a final recommendation.'
 
 export default async function DeepResearchEntryPage() {

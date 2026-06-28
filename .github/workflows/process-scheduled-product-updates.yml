@@ -1,0 +1,22 @@
+name: Process Scheduled Product Updates
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    env:
+      WEB_URL: ${{ secrets.WEB_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Process due broadcasts
+        run: |
+          curl -fsS -X POST \
+            -H "x-cron-secret: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            "${WEB_URL}/api/admin/product-updates/process-scheduled"

@@ -15,7 +15,8 @@ export async function extractTextFromFile(url: string, filename: string): Promis
             const arrayBuffer = await response.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
 
-            const pdfParse = require('pdf-parse')
+            const pdfParseModule = await import('pdf-parse')
+            const pdfParse = (pdfParseModule as any).default || (pdfParseModule as any)
             const data = await pdfParse(buffer)
             return data.text || ''
         } else if (ext === 'docx') {
@@ -23,7 +24,7 @@ export async function extractTextFromFile(url: string, filename: string): Promis
             const arrayBuffer = await response.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
 
-            const mammoth = require('mammoth')
+            const mammoth = await import('mammoth')
             const result = await mammoth.extractRawText({ buffer })
             return result.value || ''
         } else if (ext === 'txt' || ext === 'md') {

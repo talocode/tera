@@ -1,10 +1,23 @@
-﻿'use client'
+'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import UsageMetricCard from '@/components/UsageMetricCard'
-import { fetchCreditUsage, fetchUserProfile, fetchUserSessions, fetchUserUsageSummary, updateUserProfile } from '@/app/actions/user'
+import UsageHistoryChart from '@/components/UsageHistoryChart'
+import {
+  addUserMemory,
+  fetchCreditUsage,
+  fetchUserMemories,
+  fetchUserProfile,
+  fetchUserSessions,
+  fetchUserUsageSummary,
+  fetchWeeklyUsageHistory,
+  deleteUserMemory,
+  updateUserProfile,
+} from '@/app/actions/user'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
+import { createSavedWorkflow, loadSavedWorkflows, persistSavedWorkflows, type SavedWorkflow } from '@/lib/saved-workflows'
 import { buildUsageMetricSummary, type ProfileUsageSummary } from '@/lib/profile-usage'
 import { TERA_USAGE_REFRESH_EVENT } from '@/lib/usage-events'
 import type { UserProfile } from '@/lib/usage-tracking'
@@ -16,8 +29,39 @@ type CreditUsageState = {
   resetDate: string | null
 } | null
 
+type UsageHistoryData = {
+  date: string
+  used: number
+}
+
+type TopupCheckoutNotice = {
+  amountUsd: number
+  credits: number
+  rate: number
+}
+
+type UserMemory = {
+  id: string
+  memory_text: string
+  created_at: string
+}
+
 function formatMemberSince(createdAt: Date) {
   return createdAt.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+function formatResetLabel(resetAt: string | null) {
+  if (!resetAt) return 'Not scheduled'
+
+  const resetDate = new Date(resetAt)
+  if (Number.isNaN(resetDate.getTime())) return 'Not scheduled'
+
+  return resetDate.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 export default function ProfilePage() {
@@ -25,15 +69,60 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
   const [creditUsage, setCreditUsage] = useState<CreditUsageState>(null)
+  const [usageHistory, setUsageHistory] = useState<UsageHistoryData[]>([])
   const [loading, setLoading] = useState(true)
   const [usageLoading, setUsageLoading] = useState(true)
   const [creditsLoading, setCreditsLoading] = useState(true)
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [usageError, setUsageError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({ fullName: '', school: '', gradeLevels: [] as string[] })
   const [recentSessions, setRecentSessions] = useState<any[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [topupAmountUsd, setTopupAmountUsd] = useState('1')
+  const [creditPackLoading, setCreditPackLoading] = useState(false)
+  const [topupCheckoutNotice, setTopupCheckoutNotice] = useState<TopupCheckoutNotice | null>(null)
+  const [memories, setMemories] = useState<UserMemory[]>([])
+  const [memoriesLoading, setMemoriesLoading] = useState(true)
+  const [memoryDraft, setMemoryDraft] = useState('')
+  const [memorySaving, setMemorySaving] = useState(false)
+  const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([])
+  const [workflowName, setWorkflowName] = useState('')
+  const [workflowPrompt, setWorkflowPrompt] = useState('')
+  const [memorySearch, setMemorySearch] = useState('')
+  const [workflowSearch, setWorkflowSearch] = useState('')
+  const [savedWorkflowsLoaded, setSavedWorkflowsLoaded] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const storedNotice = window.sessionStorage.getItem('tera_credit_topup_checkout')
+    if (!storedNotice) return
+
+    try {
+      const parsed = JSON.parse(storedNotice) as TopupCheckoutNotice
+      if (Number.isFinite(parsed.amountUsd) && Number.isFinite(parsed.credits) && Number.isFinite(parsed.rate)) {
+        setTopupCheckoutNotice(parsed)
+      }
+    } catch (error) {
+      console.error('Error reading top-up checkout notice:', error)
+    } finally {
+      window.sessionStorage.removeItem('tera_credit_topup_checkout')
+    }
+  }, [])
+
+  useEffect(() => {
+    setSavedWorkflows(loadSavedWorkflows())
+    setSavedWorkflowsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!savedWorkflowsLoaded) return
+    persistSavedWorkflows(savedWorkflows)
+  }, [savedWorkflows, savedWorkflowsLoaded])
 
   const loadUsageSummary = useCallback(async () => {
     if (!user) return
@@ -41,10 +130,14 @@ export default function ProfilePage() {
     setUsageLoading(true)
     try {
       const summary = await fetchUserUsageSummary(user.id)
+      if (!summary) throw new Error('Usage summary unavailable')
       setUsageSummary(summary)
+      setUsageError(null)
+      setLastUpdated(new Date())
     } catch (error) {
       console.error('Error loading usage summary:', error)
       setUsageSummary(null)
+      setUsageError('Usage counters could not be loaded. Try refreshing in a moment.')
     } finally {
       setUsageLoading(false)
     }
@@ -56,30 +149,67 @@ export default function ProfilePage() {
     setCreditsLoading(true)
     try {
       const usage = await fetchCreditUsage(user.id)
+      if (!usage) throw new Error('Credit usage unavailable')
       setCreditUsage(usage)
+      setUsageError(null)
+      setLastUpdated(new Date())
     } catch (error) {
       console.error('Error loading credit usage:', error)
       setCreditUsage(null)
+      setUsageError('AI credit usage could not be loaded. Try refreshing in a moment.')
     } finally {
       setCreditsLoading(false)
     }
   }, [user])
 
+  const loadUsageHistory = useCallback(async () => {
+    if (!user) return
+
+    setHistoryLoading(true)
+    try {
+      const history = await fetchWeeklyUsageHistory(user.id)
+      setUsageHistory(history)
+    } catch (error) {
+      console.error('Error loading usage history:', error)
+      setUsageHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [user])
+
   const loadRecentSessions = useCallback(async () => {
     if (!user) return
+
     setSessionsLoading(true)
     try {
       const sessions = await fetchUserSessions(user.id)
       setRecentSessions(sessions)
     } catch (error) {
       console.error('Error loading sessions:', error)
+      setRecentSessions([])
     } finally {
       setSessionsLoading(false)
     }
   }, [user])
 
+  const loadMemories = useCallback(async () => {
+    if (!user) return
+
+    setMemoriesLoading(true)
+    try {
+      const items = await fetchUserMemories(user.id)
+      setMemories(items as UserMemory[])
+    } catch (error) {
+      console.error('Error loading memories:', error)
+      setMemories([])
+    } finally {
+      setMemoriesLoading(false)
+    }
+  }, [user])
+
   const loadProfile = useCallback(async () => {
     if (!user) return
+
     setLoading(true)
     try {
       const data = await fetchUserProfile(user.id)
@@ -96,6 +226,10 @@ export default function ProfilePage() {
     }
   }, [user])
 
+  const refreshUsage = useCallback(() => {
+    void Promise.all([loadUsageSummary(), loadCreditUsage(), loadUsageHistory()])
+  }, [loadCreditUsage, loadUsageHistory, loadUsageSummary])
+
   useEffect(() => {
     if (!user) return
 
@@ -103,21 +237,20 @@ export default function ProfilePage() {
       loadProfile(),
       loadUsageSummary(),
       loadCreditUsage(),
+      loadUsageHistory(),
       loadRecentSessions(),
+      loadMemories(),
     ])
-  }, [loadCreditUsage, loadProfile, loadRecentSessions, loadUsageSummary, user])
+  }, [loadCreditUsage, loadMemories, loadProfile, loadRecentSessions, loadUsageSummary, loadUsageHistory, user])
 
   useEffect(() => {
-    const handleUsageRefresh = () => {
-      void Promise.all([loadUsageSummary(), loadCreditUsage()])
-    }
-
-    window.addEventListener(TERA_USAGE_REFRESH_EVENT, handleUsageRefresh)
-    return () => window.removeEventListener(TERA_USAGE_REFRESH_EVENT, handleUsageRefresh)
-  }, [loadCreditUsage, loadUsageSummary])
+    window.addEventListener(TERA_USAGE_REFRESH_EVENT, refreshUsage)
+    return () => window.removeEventListener(TERA_USAGE_REFRESH_EVENT, refreshUsage)
+  }, [refreshUsage])
 
   const handleSave = async () => {
     if (!user || !profile) return
+
     setSaving(true)
     try {
       await updateUserProfile(user.id, { ...profile, ...formData })
@@ -132,6 +265,7 @@ export default function ProfilePage() {
 
   const handleManageSubscription = async () => {
     if (!user) return
+
     setPortalLoading(true)
     try {
       const response = await fetch('/api/billing/create-portal-session', {
@@ -149,6 +283,118 @@ export default function ProfilePage() {
       setPortalLoading(false)
     }
   }
+
+  const handleAddCredits = async () => {
+    if (!user?.email) return
+    setCreditPackLoading(true)
+    try {
+      const amountUsd = Number(topupAmountUsd)
+      if (!Number.isFinite(amountUsd) || amountUsd < 1) {
+        alert('Minimum top-up is $1.')
+        return
+      }
+
+      const response = await fetch('/api/billing/create-credit-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountUsd,
+          email: user.email,
+          returnUrl: `${window.location.origin}/profile`,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.checkoutUrl) throw new Error(data.error || 'Failed to create checkout session')
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(
+          'tera_credit_topup_checkout',
+          JSON.stringify({
+            amountUsd,
+            credits: Number(data.credits || 0),
+            rate: CREDITS_PER_USD,
+          }),
+        )
+      }
+      window.location.href = data.checkoutUrl
+    } catch (error) {
+      console.error('Error opening credit pack checkout:', error)
+      alert('Failed to load credit checkout. Please try again.')
+    } finally {
+      setCreditPackLoading(false)
+    }
+  }
+
+  const handleSaveMemory = async () => {
+    if (!user?.id) return
+
+    const cleaned = memoryDraft.trim()
+    if (!cleaned) return
+
+    setMemorySaving(true)
+    try {
+      const created = await addUserMemory(user.id, cleaned)
+      if (created) {
+        setMemories((current) => [{ id: created.id, memory_text: created.memory_text, created_at: created.created_at }, ...current])
+        setMemoryDraft('')
+      }
+    } catch (error) {
+      console.error('Error saving memory:', error)
+    } finally {
+      setMemorySaving(false)
+    }
+  }
+
+  const handleDeleteMemory = async (memoryId: string) => {
+    if (!user?.id) return
+
+    const removed = await deleteUserMemory(user.id, memoryId)
+    if (removed) {
+      setMemories((current) => current.filter((memory) => memory.id !== memoryId))
+    }
+  }
+
+  const handleSaveWorkflow = () => {
+    const name = workflowName.trim()
+    const prompt = workflowPrompt.trim()
+
+    if (!name || !prompt) return
+
+    setSavedWorkflows((current) => [createSavedWorkflow(name, prompt), ...current])
+    setWorkflowName('')
+    setWorkflowPrompt('')
+  }
+
+  const handleDeleteWorkflow = (workflowId: string) => {
+    setSavedWorkflows((current) => current.filter((workflow) => workflow.id !== workflowId))
+  }
+
+  const exportJson = (filename: string, payload: unknown) => {
+    if (typeof window === 'undefined') return
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }
+
+  const filteredMemories = useMemo(
+    () => memories.filter((memory) => memory.memory_text.toLowerCase().includes(memorySearch.toLowerCase())),
+    [memorySearch, memories],
+  )
+
+  const filteredWorkflows = useMemo(
+    () => savedWorkflows.filter((workflow) => `${workflow.name} ${workflow.prompt}`.toLowerCase().includes(workflowSearch.toLowerCase())),
+    [savedWorkflows, workflowSearch],
+  )
+
+  const topupAmount = Number(topupAmountUsd)
+  const estimatedTopupCredits =
+    Number.isFinite(topupAmount) && topupAmount >= 1 ? Math.max(1, Math.floor(topupAmount * CREDITS_PER_USD)) : null
 
   if (loading) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Loading profile...</div>
@@ -176,28 +422,34 @@ export default function ProfilePage() {
     : null
 
   const usageCardsLoading = usageLoading || creditsLoading
+  const usageCardsUnavailable = !usageCardsLoading && (!usageSummary || !creditMetric)
+  const weeklyTotal = usageHistory.reduce((sum, day) => sum + day.used, 0)
+  const sessionCount = Math.max(1, recentSessions.length)
+  const creditWarningThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
+  const uploadWarningThreshold = usageSummary ? Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25)) : 0
+  const hasCreditWarning = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= creditWarningThreshold
+  const hasUploadWarning = !!usageSummary && !usageSummary.uploads.isUnlimited && (usageSummary.uploads.remaining as number) > 0 && (usageSummary.uploads.remaining as number) <= uploadWarningThreshold
 
   const activeLimitNotice = (() => {
     if (!usageSummary || !creditUsage) return null
 
-    if (creditUsage.remaining <= 0) {
+    if (creditUsage.remaining <= creditWarningThreshold) {
       return {
-        title: 'Monthly credits reached',
-        message: 'Tera blocks new prompts when monthly credits are exhausted. This is the main limit for AI usage.',
+        title: creditUsage.remaining <= 0 ? 'Computational credits reached' : 'Computational credits running low',
+        message:
+          creditUsage.remaining <= 0
+            ? 'Tera blocks new prompts when AI computational credits are exhausted.'
+            : `${creditUsage.remaining.toLocaleString()} credits remain before you hit zero.`,
       }
     }
 
-    if (!usageSummary.webSearch.isUnlimited && usageSummary.webSearch.remaining === 0) {
+    if (!usageSummary.uploads.isUnlimited && (usageSummary.uploads.remaining as number) <= uploadWarningThreshold) {
       return {
-        title: 'Web search limit reached',
-        message: 'Tera can still chat, but web-backed answers are blocked until your web search allowance resets or you upgrade.',
-      }
-    }
-
-    if (!usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining === 0) {
-      return {
-        title: 'File upload limit reached',
-        message: 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.',
+        title: (usageSummary.uploads.remaining as number) <= 0 ? 'File upload limit reached' : 'File uploads running low',
+        message:
+          (usageSummary.uploads.remaining as number) <= 0
+            ? 'Tera can still chat, but new file uploads are blocked until your upload allowance resets or you upgrade.'
+            : `${usageSummary.uploads.remaining.toLocaleString()} file uploads remain before your monthly limit resets.`,
       }
     }
 
@@ -206,7 +458,15 @@ export default function ProfilePage() {
 
   return (
     <div className="tera-page">
-      <div className="tera-page-shell pt-24 md:pt-10">
+      <div className="tera-page-shell pt-20 md:pt-10">
+        {topupCheckoutNotice && (
+          <section className="tera-surface mb-8 border border-emerald-400/20 bg-emerald-500/10 px-6 py-4">
+            <p className="tera-eyebrow">Checkout confirmation</p>
+            <p className="mt-2 text-sm leading-7 text-tera-primary">
+              Your top-up checkout was created for ${topupCheckoutNotice.amountUsd.toFixed(2)} and will add {topupCheckoutNotice.credits.toLocaleString()} credits at {topupCheckoutNotice.rate.toLocaleString()} credits per $1 once payment completes.
+            </p>
+          </section>
+        )}
         <div className="tera-page-header">
           <div>
             <p className="tera-eyebrow">Workspace</p>
@@ -225,11 +485,187 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <Link href="/search" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
+            <p className="tera-eyebrow">Search</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Workspace search</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Find chats, notes, memories, and workflows from one page.</p>
+          </Link>
+          <Link href="/queue" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
+            <p className="tera-eyebrow">Queue</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Continue later</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Resume unfinished work from a single queue.</p>
+          </Link>
+          <Link href="/history" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
+            <p className="tera-eyebrow">History</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Chat history</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Search past sessions and reopen them instantly.</p>
+          </Link>
+          <Link href="/notes" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
+            <p className="tera-eyebrow">Notes</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Saved notes</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Review extracted ideas and working context.</p>
+          </Link>
+          <Link href="/images" className="tera-surface block p-5 transition hover:border-tera-primary hover:bg-tera-highlight">
+            <p className="tera-eyebrow">Uploads</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">File and image archive</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Review uploaded assets in one place.</p>
+          </Link>
+          <button
+            type="button"
+            onClick={() => exportJson('tera-profile-data.json', { memories, workflows: savedWorkflows, profile, usageSummary, creditUsage })}
+            className="tera-surface p-5 text-left transition hover:border-tera-primary hover:bg-tera-highlight"
+          >
+            <p className="tera-eyebrow">Export</p>
+            <h2 className="mt-3 text-lg font-semibold text-tera-primary">Profile data</h2>
+            <p className="mt-2 text-sm leading-7 text-tera-secondary">Download memories, workflows, and profile data as JSON.</p>
+          </button>
+        </section>
+
+        <section id="project-memory" className="tera-surface mt-8 p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="tera-eyebrow">Project memory</p>
+              <h2 className="mt-3 text-2xl font-semibold text-tera-primary">What Tera should remember about you</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-tera-secondary">
+                Add persistent facts, preferences, or project context. Tera already learns from conversations automatically, and these entries give you direct control over the most important memory signals.
+              </p>
+            </div>
+            <div className="w-full max-w-2xl">
+              <div className="flex flex-col gap-3 md:flex-row">
+                <input
+                  value={memoryDraft}
+                  onChange={(event) => setMemoryDraft(event.target.value)}
+                  className="tera-input flex-1"
+                  placeholder="Example: Prefer concise answers with code examples."
+                />
+                <button type="button" onClick={handleSaveMemory} disabled={memorySaving || !memoryDraft.trim()} className="tera-button-secondary justify-center disabled:opacity-60">
+                  {memorySaving ? 'Saving...' : 'Save memory'}
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <input
+                  value={memorySearch}
+                  onChange={(event) => setMemorySearch(event.target.value)}
+                  className="tera-input h-11 flex-1 min-w-[14rem]"
+                  placeholder="Search memories"
+                />
+                <button
+                  type="button"
+                  onClick={() => exportJson('tera-memories.json', memories)}
+                  className="tera-button-secondary justify-center"
+                >
+                  Export memories
+                </button>
+              </div>
+              <p className="mt-3 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+                {filteredMemories.length.toLocaleString()} visible memory{filteredMemories.length === 1 ? '' : 'ies'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {memoriesLoading ? (
+              <p className="text-sm text-tera-secondary">Loading memories...</p>
+            ) : filteredMemories.length === 0 ? (
+              <p className="text-sm text-tera-secondary">{memories.length === 0 ? 'No saved memories yet.' : 'No memories match that search.'}</p>
+            ) : (
+              filteredMemories.map((memory) => (
+                <div key={memory.id} className="tera-card-subtle px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm leading-7 text-tera-primary">{memory.memory_text}</p>
+                    <button type="button" onClick={() => void handleDeleteMemory(memory.id)} className="text-xs uppercase tracking-[0.22em] text-tera-secondary transition hover:text-tera-primary">
+                      Remove
+                    </button>
+                  </div>
+                  <p className="mt-3 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
+                    {new Date(memory.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section id="saved-workflows" className="tera-surface mt-8 p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="tera-eyebrow">Saved workflows</p>
+              <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Reusable prompts you can launch again</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-tera-secondary">
+                Save a prompt once, then open it back in chat with one click. This uses the existing `initialPrompt` path and keeps repetitive work out of your head.
+              </p>
+            </div>
+            <div className="w-full max-w-2xl space-y-3">
+              <input
+                value={workflowName}
+                onChange={(event) => setWorkflowName(event.target.value)}
+                className="tera-input w-full"
+                placeholder="Workflow name"
+              />
+              <textarea
+                value={workflowPrompt}
+                onChange={(event) => setWorkflowPrompt(event.target.value)}
+                className="tera-input min-h-[120px] w-full resize-y"
+                placeholder="Prompt text to reuse"
+              />
+              <div className="flex justify-end">
+                <button type="button" onClick={handleSaveWorkflow} disabled={!workflowName.trim() || !workflowPrompt.trim()} className="tera-button-secondary justify-center disabled:opacity-60">
+                  Save workflow
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  value={workflowSearch}
+                  onChange={(event) => setWorkflowSearch(event.target.value)}
+                  className="tera-input h-11 flex-1 min-w-[14rem]"
+                  placeholder="Search workflows"
+                />
+                <button
+                  type="button"
+                  onClick={() => exportJson('tera-workflows.json', savedWorkflows)}
+                  className="tera-button-secondary justify-center"
+                >
+                  Export workflows
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {filteredWorkflows.length === 0 ? (
+              <p className="text-sm text-tera-secondary">{savedWorkflows.length === 0 ? 'No saved workflows yet.' : 'No workflows match that search.'}</p>
+            ) : (
+              filteredWorkflows.map((workflow) => (
+                <div key={workflow.id} className="tera-card-subtle px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-tera-primary">{workflow.name}</p>
+                      <p className="mt-2 text-sm leading-7 text-tera-secondary line-clamp-3">{workflow.prompt}</p>
+                    </div>
+                    <button type="button" onClick={() => handleDeleteWorkflow(workflow.id)} className="text-xs uppercase tracking-[0.22em] text-tera-secondary transition hover:text-tera-primary">
+                      Remove
+                    </button>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link href={`/new?prompt=${encodeURIComponent(workflow.prompt)}`} className="tera-button-primary">
+                      Launch in chat
+                    </Link>
+                    <p className="self-center text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
+                      {new Date(workflow.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
         <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="tera-surface p-6 md:p-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-5">
-                <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-br from-tera-neon/20 to-white/[0.04] text-3xl font-semibold text-tera-primary">
+                <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-tera-border bg-gradient-to-br from-tera-neon/20 to-white/[0.04] text-3xl font-semibold text-tera-primary">
                   {initials}
                 </div>
                 <div className="min-w-0">
@@ -245,32 +681,23 @@ export default function ProfilePage() {
                       <h2 className="mt-3 text-3xl font-semibold text-tera-primary">{displayName}</h2>
                       <p className="mt-2 text-sm text-tera-secondary">{email}</p>
                       {formData.school && <p className="mt-2 text-sm text-tera-primary/90">{formData.school}</p>}
-                      {formData.gradeLevels.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {formData.gradeLevels.map((tag) => (
-                            <span key={tag} className="rounded-full border border-tera-border bg-white/[0.04] px-3 py-1.5 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-5 py-4 text-left md:min-w-[220px]">
+              <div className="tera-card-subtle px-5 py-4 text-left md:min-w-[220px]">
                 <p className="tera-eyebrow">Member since</p>
                 <p className="mt-3 text-xl font-semibold text-tera-primary">{formatMemberSince(profile.createdAt)}</p>
-                <p className="mt-2 text-sm text-tera-secondary">Usage cards below refresh from the same tracked counters Tera uses while you work.</p>
+                <p className="mt-2 text-sm text-tera-secondary">Usage cards refresh from the same tracked counters Tera updates while you work.</p>
               </div>
             </div>
           </div>
 
           <div className="tera-surface p-6 md:p-8">
             <p className="tera-eyebrow">Subscription</p>
-            <h2 className="mt-3 text-3xl font-semibold text-tera-primary">{usageSummary?.planDisplayName || 'Current plan'}</h2>
-            <p className="mt-3 text-sm leading-7 text-tera-secondary">Manage billing details, review your monthly credits, and keep subscription details close to the rest of the workspace.</p>
+            <h2 className="mt-3 text-3xl font-semibold text-tera-primary">{usageSummary?.planDisplayName || profile.subscriptionPlan}</h2>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">Manage billing details and review your computational credits.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               {profile.subscriptionPlan === 'free' ? (
                 <Link href="/pricing" className="tera-button-primary">Upgrade</Link>
@@ -279,21 +706,51 @@ export default function ProfilePage() {
                   {portalLoading ? 'Loading...' : 'Manage'}
                 </button>
               )}
-              <button type="button" onClick={() => void Promise.all([loadUsageSummary(), loadCreditUsage()])} disabled={usageLoading || creditsLoading} className="tera-button-secondary disabled:opacity-60">
-                {usageLoading || creditsLoading ? 'Refreshing...' : 'Refresh usage'}
+              <button type="button" onClick={refreshUsage} disabled={usageCardsLoading} className="tera-button-secondary disabled:opacity-60">
+                {usageCardsLoading ? 'Refreshing...' : 'Refresh usage'}
               </button>
             </div>
+            <div id="credit-packs" className="mt-4 flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={topupAmountUsd}
+                onChange={(event) => setTopupAmountUsd(event.target.value)}
+                className="tera-input h-11 w-[150px]"
+                aria-label="Top-up amount in USD"
+              />
+              <button type="button" onClick={() => void handleAddCredits()} disabled={creditPackLoading} className="tera-button-secondary justify-center disabled:opacity-60">
+                {creditPackLoading ? 'Loading...' : 'Add credits ($1+)'}
+              </button>
+            </div>
+            <p className="mt-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">
+              {CREDITS_PER_USD.toLocaleString()} credits per $1
+              {estimatedTopupCredits ? ` Â· ${estimatedTopupCredits.toLocaleString()} credits for $${topupAmount.toFixed(2)}` : ''}
+            </p>
           </div>
         </div>
 
         <div className="mt-10">
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="tera-eyebrow">Balance</p>
               <h2 className="mt-3 text-3xl font-semibold text-tera-primary">Usage dashboard</h2>
-              <p className="mt-3 text-sm leading-7 text-tera-secondary">A live view of the counters Tera updates when you upload files, run web search, or spend monthly credits. AI conversations themselves are not capped by message count.</p>
+              <p className="mt-3 text-sm leading-7 text-tera-secondary">A live view of uploads and computational credits. AI conversations are not capped by message count.</p>
             </div>
+            {lastUpdated && (
+              <p className="pb-1 text-[10px] uppercase tracking-widest text-tera-secondary">
+                Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
+
+          {usageError && (
+            <div className="mt-6 rounded-[22px] border border-red-400/30 bg-red-500/10 px-5 py-4">
+              <p className="text-sm font-semibold text-red-100">Usage unavailable</p>
+              <p className="mt-2 text-sm leading-7 text-red-50/90">{usageError}</p>
+            </div>
+          )}
 
           {activeLimitNotice && (
             <div className="mt-6 rounded-[22px] border border-amber-400/30 bg-amber-500/10 px-5 py-4">
@@ -303,9 +760,14 @@ export default function ProfilePage() {
           )}
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            {usageCardsLoading || !usageSummary || !creditMetric ? (
+            {usageCardsLoading ? (
               <div className="tera-card lg:col-span-2">
                 <p className="text-sm text-tera-secondary">Loading usage summary...</p>
+              </div>
+            ) : usageCardsUnavailable ? (
+              <div className="tera-card lg:col-span-2">
+                <p className="text-sm font-medium text-tera-primary">Usage data is temporarily unavailable.</p>
+                <p className="mt-2 text-sm text-tera-secondary">Refresh again after a moment. If this persists, the server logs will show the failed usage read.</p>
               </div>
             ) : (
               <>
@@ -314,7 +776,7 @@ export default function ProfilePage() {
                     <div>
                       <p className="text-sm font-medium text-tera-secondary">AI conversations</p>
                       <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">Unlimited</p>
-                      <p className="mt-3 text-sm text-tera-secondary">Tera does not block you based on a message-count quota. If prompts stop, the active blocker is usually monthly credits, web search, or file uploads.</p>
+                      <p className="mt-3 text-sm text-tera-secondary">Tera does not block you based on a message-count quota. Computational credits are the active AI usage meter.</p>
                     </div>
                     <div>
                       <div className="h-4 overflow-hidden rounded-full bg-white/[0.08]">
@@ -327,33 +789,133 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                <UsageMetricCard title="Web search" metric={usageSummary.webSearch} />
-                <UsageMetricCard title="File uploads" metric={usageSummary.uploads} />
                 <UsageMetricCard
-                  title="Monthly credits"
-                  metric={creditMetric}
-                  description="This is the usage meter that blocks new AI prompts when it reaches zero."
+                  title="AI computational credits"
+                  metric={creditMetric!}
+                  description="Credits are usage units. Roughly 5,000 AI tokens consume 1 credit."
+                />
+                <UsageMetricCard title="File uploads" metric={usageSummary!.uploads} />
+                <UsageMetricCard
+                  title="Web searches"
+                  metric={usageSummary!.webSearches}
+                  description="Deep Research uses Tavily and is capped monthly by plan."
                 />
               </>
             )}
           </div>
+
+          {!usageCardsLoading && usageSummary && creditUsage && (
+            <div className="mt-6 tera-surface p-6 md:p-8">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="tera-eyebrow">Forecast</p>
+                  <h2 className="mt-3 text-2xl font-semibold text-tera-primary">When usage resets</h2>
+                  <p className="mt-3 text-sm leading-7 text-tera-secondary">
+                    A clearer view of your next reset dates and current headroom.
+                  </p>
+                </div>
+                {hasCreditWarning && (
+                  <Link href="#credit-packs" className="tera-button-secondary self-start">
+                    Add credits
+                  </Link>
+                )}
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="tera-card-subtle px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Chats</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {usageSummary.chats.isUnlimited ? 'Unlimited' : `${usageSummary.chats.remaining} left`}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    Resets {formatResetLabel(usageSummary.chats.resetAt)}
+                  </p>
+                </div>
+                <div className="tera-card-subtle px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Uploads</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {usageSummary.uploads.isUnlimited ? 'Unlimited' : `${usageSummary.uploads.remaining} left`}
+                  </p>
+                  {hasUploadWarning && (
+                    <p className="mt-2 text-[0.62rem] uppercase tracking-[0.22em] text-amber-100">Running low</p>
+                  )}
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    {usageSummary.uploads.isUnlimited ? 'No reset needed.' : 'Usage resets daily.'}
+                  </p>
+                </div>
+                <div className="tera-card-subtle px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Web searches</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {usageSummary.webSearches.isUnlimited ? 'Unlimited' : `${usageSummary.webSearches.remaining} left`}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    Resets {formatResetLabel(usageSummary.webSearches.resetAt)}
+                  </p>
+                </div>
+                <div className="tera-card-subtle px-5 py-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Credits</p>
+                  <p className="mt-3 text-xl font-semibold text-tera-primary">
+                    {creditUsage.remaining.toLocaleString()} remaining
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-tera-secondary">
+                    {creditUsage.resetDate ? `Resets ${formatResetLabel(creditUsage.resetDate)}` : 'No reset date available.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-10 tera-card">
-          <p className="tera-eyebrow">Recent sessions</p>
-          <div className="mt-4 space-y-3">
-            {sessionsLoading ? (
-              <p className="text-sm text-tera-secondary">Loading recent sessions...</p>
-            ) : recentSessions.length > 0 ? (
-              recentSessions.map((session) => (
-                <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-white/[0.03] px-4 py-4 transition hover:border-white/16 hover:bg-white/[0.05]">
-                  <p className="truncate text-sm font-medium text-tera-primary">{session.title || 'Untitled session'}</p>
-                  <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} · {new Date(session.created_at).toLocaleDateString()}</p>
-                </Link>
-              ))
-            ) : (
-              <p className="text-sm text-tera-secondary">No recent sessions yet.</p>
-            )}
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.5fr]">
+          <div className="tera-card">
+            <p className="tera-eyebrow">Weekly trend</p>
+            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Usage history</h2>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track credit consumption over the last 7 days.</p>
+            <div className="mt-8">
+              {historyLoading ? (
+                <div className="flex h-[200px] items-center justify-center text-sm text-tera-secondary">Loading history...</div>
+              ) : usageHistory.length > 0 ? (
+                <div className="space-y-6">
+                  <UsageHistoryChart data={usageHistory} />
+                  <div className="grid grid-cols-2 gap-4 border-t border-tera-border pt-6">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Avg. intensity</p>
+                      <p className="mt-1 text-xl font-semibold text-tera-primary">
+                        {Math.round(weeklyTotal / sessionCount)}
+                        <span className="ml-1 text-xs font-normal text-tera-secondary">pts/session</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-tera-secondary">7D total</p>
+                      <p className="mt-1 text-xl font-semibold text-tera-primary">
+                        {weeklyTotal.toLocaleString()}
+                        <span className="ml-1 text-xs font-normal text-tera-secondary">credits</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-[200px] items-center justify-center text-sm text-tera-secondary">No history data yet.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="tera-card">
+            <p className="tera-eyebrow">Recent sessions</p>
+            <div className="mt-6 space-y-3">
+              {sessionsLoading ? (
+                <p className="text-sm text-tera-secondary">Loading recent sessions...</p>
+              ) : recentSessions.length > 0 ? (
+                recentSessions.map((session) => (
+                  <Link key={session.session_id} href={`/new/${session.session_id}`} className="block rounded-[20px] border border-tera-border bg-tera-muted px-4 py-4 transition hover:-translate-y-px hover:bg-tera-highlight">
+                    <p className="truncate text-sm font-medium text-tera-primary">{session.title || 'Untitled session'}</p>
+                    <p className="mt-1 text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">{session.tool || 'Universal'} · {new Date(session.created_at).toLocaleDateString()}</p>
+                  </Link>
+                ))
+              ) : (
+                <p className="text-sm text-tera-secondary">No recent sessions yet.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

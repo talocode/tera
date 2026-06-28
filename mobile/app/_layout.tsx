@@ -1,61 +1,32 @@
-import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { StatusBar } from 'react-native';
+import { useMemo } from 'react';
+import { colors } from '@/constants/theme';
+import { useSessionBootstrap } from '@/hooks/useSessionBootstrap';
 
-export default function RootLayout() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+function RootNavigator() {
+  useSessionBootstrap();
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('auth_token');
-      setIsSignedIn(!!token);
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      setIsSignedIn(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
+  return (
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'none',
+          contentStyle: { backgroundColor: colors.background },
         }}
       />
-    );
-  }
+    </>
+  );
+}
+
+export default function RootLayout() {
+  const queryClient = useMemo(() => new QueryClient(), []);
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'default',
-      }}
-    >
-      {isSignedIn ? (
-        <Stack.Screen
-          name="(app)"
-          options={{
-            animation: 'none',
-          }}
-        />
-      ) : (
-        <Stack.Screen
-          name="(auth)"
-          options={{
-            animation: 'none',
-          }}
-        />
-      )}
-    </Stack>
+    <QueryClientProvider client={queryClient}>
+      <RootNavigator />
+    </QueryClientProvider>
   );
 }

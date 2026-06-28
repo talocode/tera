@@ -12,7 +12,7 @@ export default function QuickActionBar() {
         <button
           key={action.label}
           type="button"
-          className="group flex items-start justify-between rounded-[24px] border border-tera-border bg-tera-panel/75 px-5 py-5 text-left transition hover:border-white/16 hover:bg-tera-elevated/80"
+          className="group flex items-start justify-between rounded-[24px] border border-tera-border bg-tera-panel/75 px-5 py-5 text-left transition hover:border-tera-primary hover:bg-tera-elevated/80"
         >
           <div>
             <p className="text-[0.62rem] uppercase tracking-[0.32em] text-tera-secondary">Quick action</p>

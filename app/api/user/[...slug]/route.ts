@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 import { getCurrencyForCountry, EXCHANGE_RATES } from '@/lib/currency-converter'
-import { getWebSearchRemaining } from '@/lib/web-search-usage'
 import { getUserProfileServer, incrementFileUploadsServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
 import { auth } from '@/lib/auth'
@@ -9,6 +8,7 @@ import { auth } from '@/lib/auth'
 const DEFAULT_SETTINGS = (userId: string) => ({
     user_id: userId,
     notifications_enabled: true,
+    reminder_alerts_enabled: true,
     dark_mode: true,
     email_notifications: true,
     marketing_emails: false,
@@ -61,30 +61,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { slug } = await params
     const action = slug[0]
 
-    if (action === 'web-search-status') {
-        try {
-            const { userId } = await request.json()
-            if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
-            const { remaining, total, resetDate, plan } = await getWebSearchRemaining(userId)
-            return NextResponse.json({
-                success: true, remaining, total, resetDate, plan, percentageUsed: total > 0 ? Math.round(((total - remaining) / total) * 100) : 0,
-                isLow: remaining <= Math.ceil(total * 0.2),
-                message: remaining === 0 ? `🔍 Limit Reached (0/${total})` : (remaining <= 2 ? `🔍 Last ${remaining} search(es) remaining` : `🔍 Web Search (${remaining}/${total})`)
-            })
-        } catch (error) { return NextResponse.json({ error: 'Failed' }, { status: 500 }) }
-    }
-
     if (action === 'settings') {
         const session = await auth()
         if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         const userId = session.user.id
+
+        let settings: Record<string, any>
         try {
-            const settings = await request.json()
-            const { data, error } = await supabaseServer.from('user_settings').upsert({ user_id: userId, ...settings, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select().single()
-            if (error && error.message?.includes('relation')) return NextResponse.json({ user_id: userId, ...settings, updated_at: new Date().toISOString() })
+            settings = await request.json()
+        } catch {
+            return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+        }
+
+        try {
+            const { data, error } = await supabaseServer
+                .from('user_settings')
+                .upsert(
+                    { user_id: userId, ...settings, updated_at: new Date().toISOString() },
+                    { onConflict: 'user_id' }
+                )
+                .select()
+                .single()
+
+            if (error && error.message?.includes('relation')) {
+                return NextResponse.json({ user_id: userId, ...settings, updated_at: new Date().toISOString() })
+            }
             if (error) throw error
             return NextResponse.json(data)
-        } catch (err) { return NextResponse.json({ user_id: userId, ...(await request.json().catch(() => ({}))), updated_at: new Date().toISOString() }) }
+        } catch (err) {
+            console.error('Settings save error:', err)
+            return NextResponse.json({ user_id: userId, ...settings, updated_at: new Date().toISOString() })
+        }
     }
 
     if (action === 'attachments') {
@@ -99,9 +106,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
             if (userId) {
                 const userProfile = await getUserProfileServer(userId)
-                if (userProfile && !canUploadFile(userProfile.subscriptionPlan, userProfile.dailyFileUploads)) {
-                    const limit = getPlanConfig(userProfile.subscriptionPlan).limits.fileUploadsPerDay
-                    return NextResponse.json({ error: `Daily upload limit reached (${limit}). Upgrade for more.` }, { status: 403 })
+                if (userProfile && !canUploadFile(userProfile.subscriptionPlan, userProfile.monthlyFileUploads)) {
+                    const limit = getPlanConfig(userProfile.subscriptionPlan).limits.fileUploadsPerMonth
+                    return NextResponse.json({ error: `Monthly upload limit reached (${limit}). Upgrade for more.` }, { status: 403 })
                 }
 
                 if (userProfile) {
@@ -110,6 +117,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                     if (fileSizeMb > maxFileSizeMb) {
                         return NextResponse.json(
                             { error: `File too large (${fileSizeMb.toFixed(1)}MB). Max allowed on ${userProfile.subscriptionPlan} plan is ${maxFileSizeMb}MB.` },
+                            { status: 413 }
+                        )
+                    }
+
+                    // Enforce storage quota before upload
+                    const storageLimit = getPlanConfig(userProfile.subscriptionPlan).limits.storageBytes
+                    const { data: userData } = await supabaseServer
+                        .from('users')
+                        .select('storage_used_bytes')
+                        .eq('id', userId)
+                        .single()
+                    const currentBytes = Number(userData?.storage_used_bytes || 0)
+                    if (currentBytes + file.size > storageLimit) {
+                        const usedMB = (currentBytes / (1024 * 1024)).toFixed(1)
+                        const limitMB = (storageLimit / (1024 * 1024)).toFixed(0)
+                        return NextResponse.json(
+                            { error: `Storage full (${usedMB}MB / ${limitMB}MB used). Upgrade your plan for more storage.` },
                             { status: 413 }
                         )
                     }
@@ -125,10 +149,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 throw new Error(uploadError.message)
             }
 
-            if (userId) await incrementFileUploadsServer(userId)
+            if (userId) {
+                await incrementFileUploadsServer(userId)
+                // Track storage usage
+                const { data: userData } = await supabaseServer
+                    .from('users')
+                    .select('storage_used_bytes')
+                    .eq('id', userId)
+                    .single()
+                const currentBytes = Number(userData?.storage_used_bytes || 0)
+                await supabaseServer
+                    .from('users')
+                    .update({ storage_used_bytes: currentBytes + file.size })
+                    .eq('id', userId)
+            }
 
             const { data: { publicUrl } } = supabaseServer.storage.from('attachments').getPublicUrl(filePath)
-            return NextResponse.json({ name: file.name, url: publicUrl, type })
+            return NextResponse.json({ name: file.name, url: publicUrl, type, size: file.size })
         } catch (error) {
             console.error('Attachment API Error:', error)
             const message = error instanceof Error ? error.message : 'Unknown upload error'

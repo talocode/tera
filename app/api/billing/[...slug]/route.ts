@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCheckoutUrlForPlan, getCustomerPortalUrl } from '@/lib/lemon-squeezy'
+import { getCheckoutUrlForPlan, getCheckoutUrlForCreditPack, getCustomerPortalUrl } from '@/lib/lemon-squeezy'
 import { supabaseServer } from '@/lib/supabase-server'
 import { auth } from '@/lib/auth'
+import { calculateCreditsFromTopup, isValidTopupAmount } from '@/lib/credit-topup'
+import { isTestEmail } from '@/lib/billing/planAuthority'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
     const { slug } = await params
@@ -18,6 +20,54 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             console.log(`[Billing API] Processing action: ${action}`)
         }
 
+        if (action === 'create-credit-session') {
+            const { amountUsd, email, returnUrl } = body
+            const session = await auth()
+            if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            const userId = session.user.id
+
+            const parsedAmount = Number(amountUsd)
+            if (!email || !isValidTopupAmount(parsedAmount)) {
+                return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+            }
+
+            // Check if user has a payment method stored
+            const { data: userData } = await supabaseServer
+                .from('users')
+                .select('lemon_squeezy_customer_id')
+                .eq('id', userId)
+                .single()
+
+            if (!userData?.lemon_squeezy_customer_id) {
+                return NextResponse.json({ error: 'No payment method on file. Please add a payment method first.' }, { status: 400 })
+            }
+
+            const credits = calculateCreditsFromTopup(parsedAmount)
+            const checkoutUrl = await getCheckoutUrlForCreditPack(parsedAmount, credits, email, userId, returnUrl)
+            return NextResponse.json({ success: true, checkoutUrl, credits })
+        }
+
+        if (action === 'create-payment-method-session') {
+            const { email, returnUrl } = body
+            const session = await auth()
+            if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            const userId = session.user.id
+
+            if (!email) {
+                return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+            }
+
+            try {
+                const credits = calculateCreditsFromTopup(1)
+                const checkoutUrl = await getCheckoutUrlForCreditPack(1, credits, email, userId, returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/settings/usage`)
+                return NextResponse.json({ success: true, checkoutUrl })
+            } catch (checkoutError) {
+                const msg = checkoutError instanceof Error ? checkoutError.message : String(checkoutError)
+                console.error('[Billing API] create-payment-method-session failed:', msg)
+                return NextResponse.json({ error: `Failed to create checkout: ${msg}` }, { status: 500 })
+            }
+        }
+
         if (action === 'create-session') {
             const { plan, email, returnUrl, currencyCode } = body
 
@@ -28,6 +78,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             if (!plan || !['pro', 'plus'].includes(plan) || !email) {
                 console.log(`[Billing API] Missing required fields`, { plan, email, userId })
                 return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+            }
+
+            // Block test/dev emails from creating paid subscriptions
+            if (isTestEmail(email)) {
+                console.log(`[Billing API] Blocked test email from creating subscription: ${email}`)
+                return NextResponse.json({ error: 'Test accounts cannot create paid subscriptions' }, { status: 403 })
             }
             console.log(`[Billing API] Creating checkout for plan: ${plan}`)
             const checkoutUrl = await getCheckoutUrlForPlan(plan, email, userId, returnUrl, currencyCode)

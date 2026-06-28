@@ -214,7 +214,7 @@ export const Scene6PricingTiers: React.FC = () => {
       description: 'Perfect for getting started',
       features: [
         'Unlimited conversations',
-        '3 file uploads/day',
+        '90 file uploads/month',
         '5 web searches/month',
         'Basic tools',
       ],
@@ -225,7 +225,7 @@ export const Scene6PricingTiers: React.FC = () => {
       description: 'For serious learners',
       features: [
         'Unlimited conversations',
-        '25 file uploads/day',
+        '750 file uploads/month',
         '100 web searches/month',
         'Deep research mode',
         'PDF/Word export',

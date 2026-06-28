@@ -1,0 +1,62 @@
+{
+  "name": "@talocode/tera-browser",
+  "version": "0.1.0",
+  "description": "A human-first AI browser for learning, research, and deep work",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "validate": "node scripts/validate.js",
+    "build": "npm run validate",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "browser",
+    "electron",
+    "ai",
+    "tera",
+    "learning",
+    "research"
+  ],
+  "author": "Talocode",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^30.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "chat.teraai.browser",
+    "productName": "Tera Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "public/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.browsers",
+      "icon": "public/icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "public/icon.png",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "public/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  }
+}

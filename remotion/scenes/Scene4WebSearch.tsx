@@ -2,22 +2,21 @@ import React from 'react';
 import {
   AbsoluteFill,
   useCurrentFrame,
-  interpolate,
 } from 'remotion';
 import { COLORS } from '../utils/colors';
-import { fadeIn, slideInFromLeft, slideInFromRight, scaleIn } from '../utils/animations';
+import { fadeIn, slideInFromLeft, scaleIn } from '../utils/animations';
 
-interface SearchResult {
+interface KnowledgeCard {
   title: string;
-  url: string;
+  source: string;
   snippet: string;
 }
 
-const SearchResultCard: React.FC<{
-  result: SearchResult;
+const KnowledgeCardComponent: React.FC<{
+  card: KnowledgeCard;
   index: number;
   startFrame: number;
-}> = ({ result, index, startFrame }) => {
+}> = ({ card, index, startFrame }) => {
   const frame = useCurrentFrame();
 
   const opacity = fadeIn(frame, startFrame, 20);
@@ -55,15 +54,16 @@ const SearchResultCard: React.FC<{
               width: '24px',
               height: '24px',
               borderRadius: '4px',
-              background: '#ffffff',
+              background: COLORS.teraNeon,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#000000',
-              fontSize: '14px',
+              fontSize: '12px',
+              fontWeight: 'bold'
             }}
           >
-            🌐
+            📖
           </div>
           <h4
             style={{
@@ -74,7 +74,7 @@ const SearchResultCard: React.FC<{
               fontFamily: '"Inter", system-ui, sans-serif',
             }}
           >
-            {result.title}
+            {card.title}
           </h4>
         </div>
         <p
@@ -86,44 +86,45 @@ const SearchResultCard: React.FC<{
             fontFamily: '"Inter", system-ui, sans-serif',
           }}
         >
-          {result.snippet}
+          {card.snippet}
         </p>
         <p
           style={{
             fontSize: '12px',
-            color: '#a0a0a0',
+            color: COLORS.teraNeon,
             margin: '8px 0 0 0',
             fontFamily: '"Inter", monospace',
+            opacity: 0.8
           }}
         >
-          {result.url}
+          {card.source}
         </p>
       </div>
     </div>
   );
 };
 
-export const Scene4WebSearch: React.FC = () => {
+export const Scene4DeepResearch: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const searchResults: SearchResult[] = [
+  const knowledgeCards: KnowledgeCard[] = [
     {
-      title: 'What is Photosynthesis',
-      url: 'wikipedia.com',
+      title: 'Thermodynamics',
+      source: 'grokipedia.com/Thermodynamics',
       snippet:
-        'Photosynthesis is a biochemical process in which plants, algae, and some bacteria harness energy from sunlight to convert water and carbon dioxide into oxygen...',
+        'The branch of physical science that deals with the relations between heat and other forms of energy.',
     },
     {
-      title: 'Photosynthesis Explained for Kids',
-      url: 'sciencekids.co.nz',
+      title: 'Entropy Laws',
+      source: 'grokipedia.com/Entropy',
       snippet:
-        'Plants make their own food using energy from the sun. This process is called photosynthesis and it is the foundation of the food chain on earth.',
+        'A thermodynamic quantity representing the unavailability of a systems thermal energy for conversion into mechanical work.',
     },
     {
-      title: 'The Stages of Photosynthesis',
-      url: 'britannica.com',
+      title: 'Statistical Mechanics',
+      source: 'grokipedia.com/Statistical_mechanics',
       snippet:
-        'Photosynthesis occurs in two stages: light-dependent reactions in the thylakoid membrane and light-independent reactions in the stroma.',
+        'A mathematical framework that applies statistical methods and probability theory to large assemblies of microscopic entities.',
     },
   ];
 
@@ -145,21 +146,19 @@ export const Scene4WebSearch: React.FC = () => {
         padding: '60px 40px',
       }}
     >
-      {/* Background decoration */}
       <div
         style={{
           position: 'absolute',
           width: '700px',
           height: '700px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%)',
+          background: `radial-gradient(circle, ${COLORS.teraNeon}15 0%, transparent 70%)`,
           bottom: '-15%',
           left: '-10%',
           filter: 'blur(100px)',
         }}
       />
 
-      {/* Main content */}
       <div
         style={{
           position: 'relative',
@@ -170,7 +169,6 @@ export const Scene4WebSearch: React.FC = () => {
           flexDirection: 'column',
         }}
       >
-        {/* Section Title */}
         <div
           style={{
             opacity: headerOpacity,
@@ -188,7 +186,7 @@ export const Scene4WebSearch: React.FC = () => {
               fontFamily: '"Inter", system-ui, sans-serif',
             }}
           >
-            Real-Time Web Search
+            Deep Research
           </h2>
           <p
             style={{
@@ -198,11 +196,10 @@ export const Scene4WebSearch: React.FC = () => {
               fontFamily: '"Inter", system-ui, sans-serif',
             }}
           >
-            Verified answers with live sources from the internet
+            Powered by Grokipedia — the open source of truth
           </p>
         </div>
 
-        {/* Search Results Container */}
         <div
           style={{
             opacity: windowOpacity,
@@ -212,11 +209,10 @@ export const Scene4WebSearch: React.FC = () => {
             borderRadius: '20px',
             padding: '30px',
             border: `1px solid ${COLORS.teraBorder}`,
-            boxShadow: '0 20px 60px rgba(138, 43, 226, 0.3)',
+            boxShadow: `0 20px 60px ${COLORS.teraNeon}15`,
             backdropFilter: 'blur(20px)',
           }}
         >
-          {/* Search Header */}
           <div
             style={{
               display: 'flex',
@@ -226,54 +222,26 @@ export const Scene4WebSearch: React.FC = () => {
               marginBottom: '20px',
             }}
           >
-            <div
-              style={{
-                fontSize: '20px',
-                marginRight: '12px',
-              }}
-            >
-              🔍
+            <div style={{ fontSize: '20px', marginRight: '12px' }}>🕵️</div>
+            <div style={{ flex: 1, color: COLORS.teraPrimary, fontSize: '15px', fontWeight: 500 }}>
+              Analyzing complex concepts through multi-layered research...
             </div>
-            <input
-              type="text"
-              placeholder="Photosynthesis"
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: COLORS.teraBg,
-                color: COLORS.teraPrimary,
-                fontSize: '15px',
-                fontFamily: '"Inter", system-ui, sans-serif',
-                outline: 'none',
-              }}
-              disabled
-            />
-            <div
-              style={{
-                marginLeft: '12px',
-                fontSize: '14px',
-                color: COLORS.teraSecondary,
-              }}
-            >
-              5 results
+            <div style={{ fontSize: '12px', fontWeight: 'bold', color: COLORS.teraNeon, backgroundColor: `${COLORS.teraNeon}20`, padding: '4px 8px', borderRadius: '4px' }}>
+              RESEARCH MODE
             </div>
           </div>
 
-          {/* Results */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {searchResults.map((result, index) => (
-              <SearchResultCard
+            {knowledgeCards.map((card, index) => (
+              <KnowledgeCardComponent
                 key={index}
-                result={result}
+                card={card}
                 index={index}
                 startFrame={80 + index * 60}
               />
             ))}
           </div>
 
-          {/* Search Badge */}
           <div
             style={{
               marginTop: '20px',
@@ -287,15 +255,8 @@ export const Scene4WebSearch: React.FC = () => {
               opacity: fadeIn(frame, 150, 25),
             }}
           >
-            <div
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#00d084',
-              }}
-            />
-            Powered by real-time web search
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: COLORS.teraNeon }} />
+            Connected to Grokipedia canonical reference layer
           </div>
         </div>
       </div>

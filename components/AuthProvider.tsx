@@ -9,6 +9,7 @@ type AuthContextType = {
     email: string
     name?: string | null
     image?: string | null
+    subscriptionPlan?: string
   } | null
   loading: boolean
   signOut: () => Promise<void>
@@ -27,6 +28,7 @@ function AuthContextProvider({ children }: { children: React.ReactNode }) {
     email: session.user.email as string,
     name: session.user.name,
     image: session.user.image,
+    subscriptionPlan: session.user.subscriptionPlan ?? undefined,
   } : null
 
   const signOut = async () => {

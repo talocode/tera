@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Tab - Tera Browser</title>
+  <link rel="stylesheet" href="newtab.css">
+  <link rel="stylesheet" href="visual-context.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="logo">Tera Browser</h1>
+    <p class="tagline">A human-first AI browser for learning, research, and deep work.</p>
+
+    <div class="search-container">
+      <form id="searchForm" class="search-box">
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="search-input" 
+          placeholder="Ask Tera or search the web..."
+          autofocus
+        >
+        <button type="submit" class="search-button">Ask Tera</button>
+      </form>
+    </div>
+
+    <div class="actions">
+      <button id="openTera" class="action-button">Open Tera</button>
+      <button id="captureViewport" class="action-button action-capture">Visual Explain</button>
+    </div>
+
+    <p class="footer">
+      Powered by <a href="https://teraai.chat" target="_blank">Tera AI</a>
+    </p>
+  </div>
+
+  <script src="newtab.js"></script>
+  <div id="visualContextPanel" class="vc-panel vc-hidden">
+    <div class="vc-header">
+      <span class="vc-title">Visual Context Capture</span>
+      <button id="vcClose" class="vc-close" aria-label="Close">&times;</button>
+    </div>
+
+    <div id="vcLoading" class="vc-loading vc-hidden">
+      <div class="vc-spinner"></div>
+      <span>Capturing viewport...</span>
+    </div>
+
+    <div id="vcPrivateWarning" class="vc-warning vc-hidden">
+      <div class="vc-warning-icon">&#9888;</div>
+      <div class="vc-warning-text">
+        <strong>Private page detected</strong>
+        <p>This page appears to be on a local or private network. Visual capture is blocked for private URLs.</p>
+      </div>
+    </div>
+
+    <div id="vcError" class="vc-error vc-hidden">
+      <div class="vc-error-text"></div>
+    </div>
+
+    <div id="vcPreview" class="vc-preview vc-hidden">
+      <div class="vc-preview-image-wrap">
+        <img id="vcThumbnail" class="vc-thumbnail" alt="Viewport capture preview">
+      </div>
+
+      <div class="vc-metadata">
+        <div class="vc-meta-row">
+          <span class="vc-meta-label">Page</span>
+          <span id="vcTitle" class="vc-meta-value"></span>
+        </div>
+        <div class="vc-meta-row">
+          <span class="vc-meta-label">URL</span>
+          <span id="vcUrl" class="vc-meta-value vc-url"></span>
+        </div>
+        <div class="vc-meta-row">
+          <span class="vc-meta-label">Captured</span>
+          <span id="vcTimestamp" class="vc-meta-value"></span>
+        </div>
+        <div class="vc-meta-row">
+          <span class="vc-meta-label">Dimensions</span>
+          <span id="vcDimensions" class="vc-meta-value"></span>
+        </div>
+      </div>
+
+      <div class="vc-notice">
+        <p>This captures only the visible viewport. Review before sending.</p>
+      </div>
+
+      <div id="vcProviderWarning" class="vc-provider-warning vc-hidden">
+        <p>Visual analysis provider is not configured yet. Capture will be stored locally only.</p>
+      </div>
+
+      <div class="vc-actions">
+        <button id="vcUse" class="vc-btn vc-btn-primary">Use for Visual Explanation</button>
+        <button id="vcDiscard" class="vc-btn vc-btn-secondary">Discard</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="newtab.js"></script>
+  <script src="visual-context.js"></script>
+</body>
+</html>

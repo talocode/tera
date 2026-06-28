@@ -1,7 +1,8 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { useTheme } from '@/components/ThemeProvider'
 import { fetchUserProfile } from '@/app/actions/user'
@@ -9,6 +10,7 @@ import { type UserProfile } from '@/lib/usage-tracking'
 
 type UserSettings = {
   notifications_enabled: boolean
+  reminder_alerts_enabled: boolean
   dark_mode: boolean
   email_notifications: boolean
   marketing_emails: boolean
@@ -27,7 +29,7 @@ function SettingToggle({
   onChange: () => void
 }) {
   return (
-    <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+    <div className="tera-card-subtle px-4 py-4 sm:px-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 pr-2">
           <p className="text-sm font-medium text-tera-primary">{label}</p>
@@ -36,7 +38,7 @@ function SettingToggle({
         <button
           type="button"
           onClick={onChange}
-          className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${checked ? 'border-tera-border bg-tera-highlight' : 'border-tera-border bg-white/[0.06]'}`}
+          className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${checked ? 'border-tera-border bg-tera-highlight' : 'border-tera-border bg-tera-muted'}`}
           aria-pressed={checked}
         >
           <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${checked ? 'left-6' : 'left-1'}`} />
@@ -49,12 +51,14 @@ function SettingToggle({
 export default function SettingsPage() {
   const { user, signOut } = useAuth()
   const { setTheme } = useTheme()
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'preferences' | 'privacy' | 'account'>('preferences')
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const [settings, setSettings] = useState<UserSettings>({
     notifications_enabled: true,
+    reminder_alerts_enabled: true,
     dark_mode: true,
     email_notifications: true,
     marketing_emails: false,
@@ -75,7 +79,6 @@ export default function SettingsPage() {
       setLoading(true)
       const response = await fetch('/api/user/settings', {
         method: 'GET',
-        headers: { 'x-user-id': user?.id || '' },
       })
 
       if (user) {
@@ -88,6 +91,7 @@ export default function SettingsPage() {
       const data = await response.json()
       setSettings({
         notifications_enabled: data.notifications_enabled ?? true,
+        reminder_alerts_enabled: data.reminder_alerts_enabled ?? true,
         dark_mode: data.dark_mode ?? true,
         email_notifications: data.email_notifications ?? true,
         marketing_emails: data.marketing_emails ?? false,
@@ -104,8 +108,8 @@ export default function SettingsPage() {
     }
   }
 
-  const saveSettingsAsync = async (settingsToSave: UserSettings) => {
-    if (!user) return
+  const saveSettingsAsync = async (settingsToSave: UserSettings): Promise<boolean> => {
+    if (!user) return false
 
     try {
       setAutoSaving(true)
@@ -113,16 +117,14 @@ export default function SettingsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user.id,
         },
         body: JSON.stringify(settingsToSave),
       })
 
-      if (!response.ok) {
-        console.warn('Failed to auto-save settings')
-      }
+      return response.ok
     } catch (error) {
       console.error('Error auto-saving settings:', error)
+      return false
     } finally {
       setAutoSaving(false)
     }
@@ -137,15 +139,43 @@ export default function SettingsPage() {
         setTheme(nextValue ? 'dark' : 'light')
       }
 
-      void saveSettingsAsync(updated)
+      void saveSettingsAsync(updated).then((ok) => {
+        if (ok) {
+          setMessageType('success')
+          setMessage('Settings saved.')
+          setTimeout(() => setMessage(''), 2000)
+        } else {
+          setMessageType('error')
+          setMessage('Failed to save settings.')
+          setTimeout(() => setMessage(''), 3000)
+        }
+      })
       return updated
     })
+  }
+
+  const handleTabClick = (tabId: string) => {
+    if (tabId === 'usage') {
+      router.push('/settings/usage')
+      return
+    }
+    setActiveTab(tabId as typeof activeTab)
   }
 
   const updateSetting = (key: keyof UserSettings, value: number) => {
     setSettings((current) => {
       const updated = { ...current, [key]: value }
-      void saveSettingsAsync(updated)
+      void saveSettingsAsync(updated).then((ok) => {
+        if (ok) {
+          setMessageType('success')
+          setMessage('Settings saved.')
+          setTimeout(() => setMessage(''), 2000)
+        } else {
+          setMessageType('error')
+          setMessage('Failed to save settings.')
+          setTimeout(() => setMessage(''), 3000)
+        }
+      })
       return updated
     })
   }
@@ -174,6 +204,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'preferences', label: 'Preferences' },
+    { id: 'usage', label: 'Usage & Credits' },
     { id: 'privacy', label: 'Privacy' },
     { id: 'account', label: 'Account' },
   ] as const
@@ -201,8 +232,8 @@ export default function SettingsPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`min-w-fit rounded-full px-4 py-2.5 text-sm transition xl:flex xl:w-full xl:items-center xl:justify-between xl:rounded-[18px] xl:px-4 xl:py-3 xl:text-left ${activeTab === item.id ? 'bg-white/[0.08] text-tera-primary' : 'text-tera-secondary hover:bg-white/[0.04] hover:text-tera-primary'}`}
+                  onClick={() => handleTabClick(item.id)}
+                  className={`min-w-fit rounded-full px-4 py-2.5 text-sm transition xl:flex xl:w-full xl:items-center xl:justify-between xl:rounded-[18px] xl:px-4 xl:py-3 xl:text-left ${activeTab === item.id ? 'bg-white/[0.08] text-tera-primary dark:bg-white/[0.08] light:bg-black/[0.04]' : 'text-tera-secondary hover:bg-white/[0.04] hover:text-tera-primary dark:hover:bg-white/[0.04] light:hover:bg-black/[0.02]'}`}
                 >
                   <span>{item.label}</span>
                   <span className={`hidden h-2.5 w-2.5 rounded-full xl:block ${activeTab === item.id ? 'bg-tera-accent' : 'bg-transparent'}`} />
@@ -213,7 +244,7 @@ export default function SettingsPage() {
 
           <section className="tera-surface p-5 sm:p-6 lg:p-8">
             {message && (
-              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm ${messageType === 'success' ? 'border-tera-border bg-tera-highlight text-tera-primary' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>
+              <div className={`mb-6 rounded-[20px] border px-4 py-3 text-sm ${messageType === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-tera-border dark:bg-tera-highlight dark:text-tera-primary' : 'border-red-200 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200'}`}>
                 {message}
               </div>
             )}
@@ -231,6 +262,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="grid gap-4">
                       <SettingToggle label="Push notifications" description="Receive updates about your activities and account events." checked={settings.notifications_enabled} onChange={() => toggleSetting('notifications_enabled')} />
+                      <SettingToggle label="Reminder alerts" description="Show reminder banners and browser alerts when follow-ups are due." checked={settings.reminder_alerts_enabled} onChange={() => toggleSetting('reminder_alerts_enabled')} />
                       <SettingToggle label="Email notifications" description="Receive important product and account updates by email." checked={settings.email_notifications} onChange={() => toggleSetting('email_notifications')} />
                       <SettingToggle label="Marketing emails" description="Allow occasional feature announcements and product tips." checked={settings.marketing_emails} onChange={() => toggleSetting('marketing_emails')} />
                       <SettingToggle label="Dark mode" description="Use the calmer dark workspace across the entire app." checked={settings.dark_mode} onChange={() => toggleSetting('dark_mode')} />
@@ -247,7 +279,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-sm font-medium text-tera-primary">Data retention</p>
                         <p className="mt-1 text-sm leading-6 text-tera-secondary">Choose how long deleted data remains in our systems before cleanup.</p>
                         <select
@@ -263,7 +295,7 @@ export default function SettingsPage() {
                         </select>
                       </div>
 
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-sm font-medium text-tera-primary">Privacy policy</p>
                         <p className="mt-1 text-sm leading-6 text-tera-secondary">Review how Tera handles account data, uploads, and third-party providers.</p>
                         <Link href="/privacy" className="tera-button-secondary mt-4 w-full justify-center sm:w-auto">
@@ -283,12 +315,12 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">Email</p>
                         <p className="mt-2 break-all text-sm font-medium text-tera-primary">{user?.email || 'Unavailable'}</p>
                       </div>
 
-                      <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                      <div className="tera-card-subtle px-4 py-4 sm:px-5">
                         <p className="text-[0.68rem] uppercase tracking-[0.22em] text-tera-secondary">Plan</p>
                         <p className="mt-2 text-sm font-medium text-tera-primary">
                           {userProfile?.subscriptionPlan === 'free' ? 'Free plan' : userProfile?.subscriptionPlan ?? 'Unknown'}
@@ -299,7 +331,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-[22px] border border-tera-border bg-white/[0.03] px-4 py-4 sm:px-5">
+                    <div className="tera-card-subtle px-4 py-4 sm:px-5">
                       <p className="text-sm font-medium text-tera-primary">Billing and access</p>
                       <p className="mt-1 text-sm leading-6 text-tera-secondary">Open upgrade or billing management without leaving the settings flow.</p>
                       <div className="mt-4 flex flex-col gap-3 sm:flex-row">

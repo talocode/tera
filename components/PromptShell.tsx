@@ -1,26 +1,38 @@
-﻿"use client"
+"use client"
 
 import React, { ChangeEvent, useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
-import { generateAnswer } from '@/app/actions/generate'
+import { useRouter } from 'next/navigation'
+import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
+import { CHAT_MODES, getChatModeConfig, isChatMode, type ChatMode } from '@/lib/ai/chat-modes'
 import type { TeacherTool } from './ToolCard'
-// Replaced Supabase User with compatible NextAuth interface
+import { fetchCreditUsage, fetchUserUsageSummary } from '@/app/actions/user'
+import { saveBookmark } from '@/app/actions/search'
+import { CREDITS_PER_USD } from '@/lib/credit-topup'
+import type { ProfileUsageSummary } from '@/lib/profile-usage'
+import { shouldRecommendDeepResearch, shouldUseRealTimeWeb } from '@/lib/smart-query-detector'
+
 type User = {
     id: string
     email?: string | null
     name?: string | null
     image?: string | null
+    subscriptionPlan?: string
 }
 import type { AttachmentReference, AttachmentType } from '@/lib/attachment'
 import { fetchChatHistory } from '@/app/actions/user'
-import { dispatchUsageRefresh } from '@/lib/usage-events'
+import { addNote } from '@/app/actions/notes'
+import { dispatchUsageRefresh, TERA_USAGE_REFRESH_EVENT } from '@/lib/usage-events'
 import { compressImage } from '@/lib/image-compression'
 import UpgradePrompt from './UpgradePrompt'
 import VoiceControls from './VoiceControls'
-import WebSearchStatus from './WebSearchStatus'
 import LimitModal from './LimitModal'
-import SourcesPanel from './search/SourcesPanel'
-import { saveSearchQuery, saveBookmark, isBookmarked, deleteBookmark } from '@/lib/search-history'
+import PromptStarterTemplates from './PromptStarterTemplates'
+import ThinkingProcess from './ThinkingProcess'
+import { useTheme } from './ThemeProvider'
+type SurfaceMode = 'chat' | 'research' | 'image'
+type ResponseModeKey = ChatMode | 'research'
 
 type Message = {
     id: string
@@ -28,6 +40,24 @@ type Message = {
     content: string
     attachments?: AttachmentReference[]
     timestamp?: number
+    chatMode?: ChatMode
+    citations?: Array<{
+        title: string
+        url: string
+        snippet?: string | null
+        publishedDate?: string | null
+        provider?: string | null
+    }>
+}
+
+type NoteSaveStatus = {
+    type: 'success' | 'error'
+    message: string
+}
+
+type BookmarkSaveStatus = {
+    type: 'success' | 'error' | 'saving'
+    message: string
 }
 
 type ConversationEntry = {
@@ -40,9 +70,124 @@ type ConversationEntry = {
 type QueuedMessage = {
     prompt: string
     attachments: AttachmentReference[]
+    chatMode: ChatMode
 }
 
+type DraftMessage = QueuedMessage & {
+    updatedAt: string
+}
+
+const PROMPT_DRAFT_STORAGE_PREFIX = 'tera_prompt_draft'
+
 const createId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()))
+
+const getPromptDraftStorageKey = (sessionId: string | null) => `${PROMPT_DRAFT_STORAGE_PREFIX}:${sessionId || 'new'}`
+
+const loadPromptDraft = (sessionId: string | null): DraftMessage | null => {
+    if (typeof window === 'undefined') return null
+
+    const stored = window.localStorage.getItem(getPromptDraftStorageKey(sessionId))
+    if (!stored) return null
+
+    try {
+        const parsed = JSON.parse(stored) as Partial<DraftMessage>
+        return {
+            prompt: parsed.prompt ?? '',
+            attachments: Array.isArray(parsed.attachments) ? parsed.attachments : [],
+            chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'ask',
+            updatedAt: parsed.updatedAt || new Date().toISOString(),
+        }
+    } catch (error) {
+        console.error('Failed to load prompt draft:', error)
+        return null
+    }
+}
+
+const savePromptDraft = (sessionId: string | null, draft: QueuedMessage) => {
+    if (typeof window === 'undefined') return
+
+    const payload: DraftMessage = {
+        ...draft,
+        updatedAt: new Date().toISOString(),
+    }
+
+    window.localStorage.setItem(getPromptDraftStorageKey(sessionId), JSON.stringify(payload))
+}
+
+const clearPromptDraft = (sessionId: string | null) => {
+    if (typeof window === 'undefined') return
+    window.localStorage.removeItem(getPromptDraftStorageKey(sessionId))
+}
+
+const inferChatMode = (tool: TeacherTool, researchMode: boolean) => {
+    if (researchMode) return 'research'
+
+    const searchable = `${tool.name} ${tool.description} ${tool.tags.join(' ')}`.toLowerCase()
+
+    if (/(research|deep dive|analysis|citation|data|reading|resource|investigation|web)/.test(searchable)) {
+        return 'research'
+    }
+
+    if (/(build|builder|plan|planner|generator|creator|project|resume|rubric|lesson|worksheet|materials|spreadsheet)/.test(searchable)) {
+        return 'build'
+    }
+
+    if (/(learn|study|homework|concept|explain|clarifier|quiz|practice|language|math|skill)/.test(searchable)) {
+        return 'learn'
+    }
+
+    return 'general'
+}
+
+const getChatModeForTool = (toolName: string): ChatMode => {
+    const normalized = toolName.toLowerCase()
+
+    if (normalized.includes('image')) return 'image'
+    if (normalized.includes('quiz') || normalized.includes('worksheet')) return 'quiz'
+    if (normalized.includes('summar') || normalized.includes('reading simplifier')) return 'summarize'
+    if (
+        normalized.includes('study') ||
+        normalized.includes('homework') ||
+        normalized.includes('concept') ||
+        normalized.includes('math') ||
+        normalized.includes('language practice')
+    ) return 'study'
+
+    return 'ask'
+}
+
+const isNoteSaveMode = (chatMode?: ChatMode) => chatMode === 'study' || chatMode === 'summarize'
+
+const mapSurfaceModeToChatMode = (surfaceMode: SurfaceMode, currentChatMode: ChatMode): ChatMode => {
+    if (surfaceMode === 'research') {
+        return currentChatMode === 'image' ? 'ask' : currentChatMode
+    }
+
+    if (surfaceMode === 'image') {
+        return 'image'
+    }
+
+    return currentChatMode
+}
+
+const generateAnswer = async (payload: GenerateProps): Promise<GenerateAnswerResult> => {
+    const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'same-origin',
+        cache: 'no-store',
+    })
+
+    const result = await response.json().catch(() => null) as GenerateAnswerResult | null
+    if (result) return result
+
+    const message = response.ok
+        ? 'Unable to generate a reply'
+        : `Unable to generate a reply (${response.status})`
+
+    return { answer: message, sessionId: payload.sessionId ?? null, chatId: payload.chatId, error: message }
+}
 
 import dynamic from 'next/dynamic'
 
@@ -54,12 +199,10 @@ const UniversalVisualRenderer = dynamic(() => import('./visuals/UniversalVisualR
 import { Renderer } from '@json-render/react'
 import { teraRegistry } from '@/lib/tera-registry'
 
-const SourcesPanelRenderer = dynamic(() => import('./search/SourcesPanel'), { ssr: false })
-const ResearchModeToggle = dynamic(() => import('./search/ResearchModeToggle'), { ssr: false })
 const SearchHistoryRenderer = dynamic(() => import('./search/SearchHistory'), { ssr: false })
-const ContentBlockRenderer = dynamic(() => import('./visuals/UniversalVisualRenderer'), { ssr: false })
 const MarkdownRenderer = dynamic(() => import('./MarkdownRenderer'), { ssr: false })
 const QuizRenderer = dynamic(() => import('./visuals/QuizRenderer'), { ssr: false })
+
 type ContentBlock =
     | { type: 'text', content: string, isHeader: boolean }
     | { type: 'chart', config: any }
@@ -67,51 +210,13 @@ type ContentBlock =
     | { type: 'code', language: string, code: string }
     | { type: 'spreadsheet', config: any }
     | { type: 'universal-visual', code: string, language: string, title: string }
-    | { type: 'web-sources', sources: Array<{ title: string; url: string; snippet: string; source: string; favicon?: string }> }
     | { type: 'quiz', config: { action: 'quiz'; topic: string; questions: any[] } }
     | { type: 'tera-ui', spec: any }
 
-
-
-
 const parseContent = (content: string): ContentBlock[] => {
     const blocks: ContentBlock[] = []
-
-    // Extract web sources section if present
-    const webSourcesMatch = content.match(/--- SOURCES FROM WEB ---\n([\s\S]*?)$/i)
     let contentToProcess = content
-    let webSources: Array<{ title: string; url: string; snippet: string; source: string; favicon?: string }> = []
 
-    if (webSourcesMatch) {
-        contentToProcess = content.substring(0, webSourcesMatch.index || 0)
-        const sourcesText = webSourcesMatch[1]
-
-        // Parse web search results format
-        const sourceRegex = /(\d+)\.\s+(.+?)\nSource:\s+(.+?)\n(.+?)(?=\n\n\d+\.|$)/gs
-        let match
-        while ((match = sourceRegex.exec(sourcesText)) !== null) {
-            webSources.push({
-                title: match[2],
-                source: match[3],
-                snippet: match[4],
-                url: `https://${match[3]}` // Construct URL from source
-            })
-        }
-
-        // Add web sources block if we found any
-        if (webSources.length > 0) {
-            blocks.push({
-                type: 'web-sources',
-                sources: webSources.map(s => ({
-                    ...s,
-                    // Try to generate a favicon URL if not present
-                    favicon: `https://www.google.com/s2/favicons?domain=${s.source}&sz=32`
-                }))
-            })
-        }
-    }
-
-    // Split by code blocks
     const parts = contentToProcess.split(/(```[\s\S]*?```)/g)
 
     parts.forEach(part => {
@@ -123,7 +228,6 @@ const parseContent = (content: string): ContentBlock[] => {
                 const [, lang, type, code] = match
                 const cleanCode = code ? code.trim() : ''
 
-                // === NEW: json-render tera-ui spec detection (highest priority) ===
                 if (type === 'tera-ui' || (lang === 'json' && type === 'tera-ui')) {
                     try {
                         const spec = JSON.parse(cleanCode)
@@ -136,18 +240,13 @@ const parseContent = (content: string): ContentBlock[] => {
                     }
                 }
 
-                // Check if code contains chart keys (relaxed check)
                 const isChart = (c: string) => (c.includes('"data"') && c.includes('"type"')) || (c.includes('"series"'))
                 const isSpreadsheet = (c: string) => c.includes('"action"') && (c.includes('"data"') || c.includes('"title"')) && !c.includes('"questions"')
                 const isQuiz = (c: string) => c.includes('"action"') && c.includes('"quiz"') && c.includes('"questions"')
                 const isHTML = (c: string) => c.includes('<!DOCTYPE') || c.includes('<html') || c.includes('<body')
                 const isVisualization = (c: string) => c.includes('THREE.') || c.includes('requestAnimationFrame') || c.includes('canvas.getContext')
 
-                // PRIORITY ORDER: HTML/Visuals > Mermaid > JSON Charts/Spreadsheets > Code
-
-                // Check for HTML/Three.js/Canvas visualizations FIRST
                 if (type === 'visual' || isHTML(cleanCode) || isVisualization(cleanCode) || ['html', 'svg', 'canvas', 'jsx', 'javascript', 'js'].includes(lang || '')) {
-                    // Universal visual rendering for HTML, SVG, Canvas, Three.js, etc.
                     blocks.push({
                         type: 'universal-visual',
                         code: cleanCode,
@@ -155,13 +254,10 @@ const parseContent = (content: string): ContentBlock[] => {
                         title: `${lang?.toUpperCase() || 'Visual'} Visualization`
                     })
                 } else if (lang === 'mermaid' || /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|journey|gitGraph|pie|mindmap|timeline)/.test(cleanCode.trim())) {
-                    // Only treat as Mermaid if explicitly marked as mermaid language OR content looks like mermaid
                     blocks.push({ type: 'mermaid', chart: cleanCode })
                 } else if ((lang === 'json' && type === 'quiz') || isQuiz(cleanCode)) {
                     try {
-                        const jsonStr = cleanCode
-                            .replace(/\/\/.*$/gm, '')
-                            .replace(/\/\*[\s\S]*?\*\//g, '')
+                        const jsonStr = cleanCode.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
                         const config = JSON.parse(jsonStr)
                         if (config.action === 'quiz' && config.questions) {
                             blocks.push({ type: 'quiz', config })
@@ -169,44 +265,29 @@ const parseContent = (content: string): ContentBlock[] => {
                             blocks.push({ type: 'code', language: 'json', code: cleanCode })
                         }
                     } catch (e) {
-                        console.warn('Failed to parse quiz JSON', e)
                         blocks.push({ type: 'code', language: 'json', code: cleanCode })
                     }
                 } else if ((lang === 'json' && type === 'spreadsheet') || isSpreadsheet(cleanCode)) {
                     try {
-                        // Remove comments from JSON (// and /* */)
-                        const jsonStr = cleanCode
-                            .replace(/\/\/.*$/gm, '')
-                            .replace(/\/\*[\s\S]*?\*\//g, '')
-
+                        const jsonStr = cleanCode.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
                         const config = JSON.parse(jsonStr)
                         blocks.push({ type: 'spreadsheet', config })
                     } catch (e) {
-                        console.warn('Failed to parse spreadsheet JSON', e)
                         blocks.push({ type: 'code', language: lang || 'json', code: cleanCode })
                     }
                 } else if ((lang === 'json' && type === 'chart') || isChart(cleanCode)) {
                     try {
-                        // Remove comments from JSON (// and /* */)
-                        const jsonStr = cleanCode
-                            .replace(/\/\/.*$/gm, '')
-                            .replace(/\/\*[\s\S]*?\*\//g, '')
-
+                        const jsonStr = cleanCode.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
                         const config = JSON.parse(jsonStr)
-
-                        // Validate chart config
-                        // Validate chart config - allow either data OR series
                         const hasData = config.data && Array.isArray(config.data) && config.data.length > 0
                         const hasSeries = config.series && Array.isArray(config.series) && config.series.length > 0
 
                         if (!hasData && !hasSeries) {
-                            console.warn('Invalid chart: missing data or series array', config)
                             blocks.push({ type: 'code', language: 'json', code: cleanCode })
                         } else {
                             blocks.push({ type: 'chart', config })
                         }
                     } catch (e) {
-                        console.warn('Failed to parse chart JSON', e)
                         blocks.push({ type: 'code', language: lang || 'json', code: cleanCode })
                     }
                 } else {
@@ -216,21 +297,16 @@ const parseContent = (content: string): ContentBlock[] => {
             }
         }
 
-        // Process regular text content
-        // We no longer split by paragraphs here, we return the full text block 
-        // to let the MarkdownRenderer handle tables, lists, and math properly.
         if (part.trim()) {
-            // Fallback: detect unfenced mermaid content in regular text
             const mermaidKeywords = /^(graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|journey|gitGraph|pie|mindmap|timeline)/m
             const trimmedPart = part.trim()
             if (mermaidKeywords.test(trimmedPart)) {
-                console.log('[parseContent] Detected unfenced mermaid content, routing to MermaidRenderer')
                 blocks.push({ type: 'mermaid', chart: trimmedPart })
             } else {
                 blocks.push({
                     type: 'text',
                     content: part,
-                    isHeader: false // Deprecated but kept for type compatibility
+                    isHeader: false
                 })
             }
         }
@@ -239,54 +315,90 @@ const parseContent = (content: string): ContentBlock[] => {
     return blocks
 }
 
-const AttachmentIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+const AttachmentIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
     </svg>
 )
 
-const MicIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+const HistoryIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 0 3-6.75" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5v4.5h4.5" />
+    </svg>
+)
+
+const MicIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-12 0v1.5a6 6 0 006 6m0 0v3m-3-3h6M12 3.75a3 3 0 00-3 3v6a3 3 0 006 0v-6a3 3 0 00-3-3z" />
     </svg>
 )
 
-const SendIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+const SendIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.77 59.77 0 0121.485 12 59.769 59.769 0 013.27 20.875L6 12Zm0 0h7.5" />
     </svg>
 )
 
-const StopIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+const StopIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
         <rect x="7" y="7" width="10" height="10" rx="2" />
     </svg>
 )
 
-const CameraIcon = ({ className = 'h-[18px] w-[18px]' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
+const CameraIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px]">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.75A2.25 2.25 0 016 7.5h1.628a1.5 1.5 0 001.06-.44l.879-.879a1.5 1.5 0 011.06-.44h2.746a1.5 1.5 0 011.06.44l.879.88a1.5 1.5 0 001.06.439H18a2.25 2.25 0 012.25 2.25v7.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25v-7.5z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 13.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
     </svg>
 )
 
-const ImageIcon = ({ className = 'h-[18px] w-[18px]' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 013.182 0L21.75 15.75m-16.5 4.5h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+const ScanIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px]">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3.75H5.25A1.5 1.5 0 003.75 5.25v1.5M17.25 3.75h1.5a1.5 1.5 0 011.5 1.5v1.5M6.75 20.25H5.25a1.5 1.5 0 01-1.5-1.5v-1.5M17.25 20.25h1.5a1.5 1.5 0 001.5-1.5v-1.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 8.25h.01M8.25 15.75h7.5M15.75 8.25h.01M15.75 15.75h.01" />
     </svg>
 )
 
-const FileIcon = ({ className = 'h-[18px] w-[18px]' }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375H14.25V6.375A2.625 2.625 0 0011.625 3.75h-4.5A2.625 2.625 0 004.5 6.375v11.25a2.625 2.625 0 002.625 2.625h9.75A2.625 2.625 0 0019.5 17.625V14.25z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12h7.5m-7.5 3h4.5" />
+const IconResearch = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 4 8.5 9.5 3 12l5.5 2.5L11 20l2.5-5.5L19 12l-5.5-2.5L11 4Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 4.5 19.5 7l2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1 1-2.5Z" />
     </svg>
 )
+
+
+const AskIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9M7.5 12h6m-9 6 1.5-3.75A2.25 2.25 0 016.75 12h10.5A2.25 2.25 0 0119.5 14.25V17.25A2.25 2.25 0 0117.25 19.5H8.25L4.5 21V19.5A2.25 2.25 0 002.25 17.25V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75V9" />
+    </svg>
+)
+
+const StudyIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 8.25h7.5m-7.5 3h7.5m-7.5 3h4.5" />
+    </svg>
+)
+
+const QuizIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M9.75 9.75a2.25 2.25 0 114.5 0c0 1.5-2.25 1.5-2.25 3.75" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z" />
+    </svg>
+)
+
+const SummarizeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75h15M4.5 12h10.5M4.5 17.25h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 15.75l1.5 1.5 3-3" />
+    </svg>
+)
+
 
 export default function PromptShell({
     tool,
-    onToolChange,
     user,
     userReady,
     onRequireSignIn,
@@ -301,6 +413,8 @@ export default function PromptShell({
     sessionId?: string | null
     initialPrompt?: string
 }) {
+    const router = useRouter()
+    const { theme } = useTheme()
     const [prompt, setPrompt] = useState(initialPrompt || '')
     const [status, setStatus] = useState<'idle' | 'loading'>('idle')
     const [conversations, setConversations] = useState<ConversationEntry[]>([])
@@ -314,97 +428,266 @@ export default function PromptShell({
     const fileInputRef = useRef<HTMLInputElement | null>(null)
     const imageInputRef = useRef<HTMLInputElement | null>(null)
     const cameraInputRef = useRef<HTMLInputElement | null>(null)
-    const [isPending, startTransition] = useTransition()
+    const [, startTransition] = useTransition()
     const conversationRef = useRef<HTMLDivElement | null>(null)
     const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null)
-    const showInitialPrompt = conversations.every((entry) => !entry.userMessage)
+    const [chatMode, setChatMode] = useState<ChatMode>('ask')
+    const showInitialPrompt = !historyLoading && conversations.length === 0
     const [isListening, setIsListening] = useState(false)
     const recognitionRef = useRef<any>(null)
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId || null)
-    const [upgradePromptType, setUpgradePromptType] = useState<'chats' | 'file-uploads' | 'web-search' | 'research-mode' | 'credits' | null>(null)
-    const [limitModalType, setLimitModalType] = useState<'chats' | 'file-uploads' | 'web-search' | 'research-mode' | 'credits' | null>(null)
+    const [upgradePromptType, setUpgradePromptType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
+    const [limitModalType, setLimitModalType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
     const [limitUnlocksAt, setLimitUnlocksAt] = useState<Date | undefined>(undefined)
-    const [currentUserPlan, setCurrentUserPlan] = useState<string>('free')
-    const [webSearchEnabled, setWebSearchEnabled] = useState(false)
-    const [researchMode, setResearchMode] = useState(false)
-    const [webSearchRemaining, setWebSearchRemaining] = useState(100)
-    const [isWebSearching, setIsWebSearching] = useState(false)
-    const [currentSearchQuery, setCurrentSearchQuery] = useState('')
-    const [webSearchStatus, setWebSearchStatus] = useState<'idle' | 'searching' | 'processing' | 'complete'>('idle')
-    const [webSearchResultCount, setWebSearchResultCount] = useState(0)
+    const [selectedMode, setSelectedMode] = useState<SurfaceMode>('chat')
     const [searchHistoryOpen, setSearchHistoryOpen] = useState(false)
+    const researchMode = selectedMode === 'research'
     const [thinkingMessage, setThinkingMessage] = useState('Tera is Thinking...')
+    const [thinkingPhase, setThinkingPhase] = useState(0)
+    const [loadingHasImages, setLoadingHasImages] = useState(false)
+    const [streamingText, setStreamingText] = useState('')
+    const [isStreaming, setIsStreaming] = useState(false)
+    const streamTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const [noteSaveStatuses, setNoteSaveStatuses] = useState<Record<string, NoteSaveStatus>>({})
+    const [savingNoteIds, setSavingNoteIds] = useState<Record<string, boolean>>({})
+    const [bookmarkSaveStatuses, setBookmarkSaveStatuses] = useState<Record<string, BookmarkSaveStatus>>({})
+    const [usageSummary, setUsageSummary] = useState<ProfileUsageSummary | null>(null)
+    const [creditUsage, setCreditUsage] = useState<{ used: number; remaining: number; total: number; resetDate: string | null } | null>(null)
+    const [usageLoading, setUsageLoading] = useState(false)
     const requestIdRef = useRef(0)
+    const historyRequestIdRef = useRef(0)
+    const selectedChatModeConfig = getChatModeConfig(chatMode)
+    const textareaPlaceholder = isListening
+        ? 'Listening...'
+        : showInitialPrompt
+            ? `${selectedMode === 'research'
+                ? 'Ask for current facts, sources, or comparisons...'
+                : selectedChatModeConfig.placeholder} Start with study, research, plan, or summarize.`
+            : selectedMode === 'research'
+                ? 'Ask for current facts, sources, or comparisons...'
+                : selectedChatModeConfig.placeholder
+    const closeComposerMenu = useCallback(() => setAttachmentOpen(false), [])
+    const openSearchHistory = () => {
+        if (!user?.id) {
+            onRequireSignIn?.()
+            return
+        }
+        setSearchHistoryOpen(true)
+    }
+    const refreshUsageSignals = useCallback(async () => {
+        if (!user?.id || !userReady) return
 
-    const getThinkingMessage = (prompt: string, isWebSearch: boolean) => {
-        const p = prompt.toLowerCase()
-        if (isWebSearch) return 'Tera is Searching the Web...'
-        // Visuals / Creation
-        if (p.includes('draw') || p.includes('visual') || p.includes('chart') || p.includes('diagram') || p.includes('image')) return 'Tera is Creating Visuals...'
-        // Coding
-        if (p.includes('code') || p.includes('function') || p.includes('script') || p.includes('debug') || p.includes('api')) return 'Tera is Coding...'
-        // Analysis / Math
-        if (p.includes('analyze') || p.includes('data') || p.includes('trend')) return 'Tera is Analyzing Data...'
-        if (p.includes('solve') || p.includes('calculate') || p.includes('math') || p.includes('equation')) return 'Tera is Solving...'
-        // Writing / Creativity
-        if (p.includes('write') || p.includes('essay') || p.includes('story') || p.includes('poem') || p.includes('draft')) return 'Tera is Writing...'
-        // Learning / Explaining
-        if (p.includes('explain') || p.includes('teach') || p.includes('how to') || p.includes('learn')) return 'Tera is Preparing Lesson...'
+        setUsageLoading(true)
 
+        try {
+            const [summary, credits] = await Promise.all([
+                fetchUserUsageSummary(user.id),
+                fetchCreditUsage(user.id),
+            ])
+
+            setUsageSummary(summary)
+            setCreditUsage(credits)
+        } catch (error) {
+            console.error('Error loading prompt usage signals:', error)
+            setUsageSummary(null)
+            setCreditUsage(null)
+        } finally {
+            setUsageLoading(false)
+        }
+    }, [user?.id, userReady])
+
+    const handleResponseModeSelect = useCallback((mode: ChatMode | 'research') => {
+        if (mode === 'image') {
+            setSelectedMode('image')
+            setChatMode('image')
+        } else if (mode === 'research') {
+            setSelectedMode('research')
+            setChatMode((current) => (current === 'image' ? 'ask' : current))
+        } else {
+            setSelectedMode('chat')
+            setChatMode(mode)
+        }
+
+        setAttachmentOpen(false)
+    }, [])
+
+    const getThinkingMessage = (p: string, isResearchFlow: boolean, hasImages: boolean) => {
+        if (hasImages) return 'Tera is Analyzing your image...'
+        const lp = p.toLowerCase()
+        if (lp.includes('draw') || lp.includes('visual') || lp.includes('chart') || lp.includes('diagram') || lp.includes('image')) return 'Tera is Creating Visuals...'
+        if (isResearchFlow || lp.includes('research') || lp.includes('source') || lp.includes('citation') || lp.includes('web')) return 'Tera is Searching the web...'
+        if (lp.includes('code') || lp.includes('function') || lp.includes('script') || lp.includes('debug') || lp.includes('api')) return 'Tera is Building Code...'
+        if (lp.includes('analyze') || lp.includes('data') || lp.includes('trend')) return 'Tera is Analyzing Data...'
+        if (lp.includes('solve') || lp.includes('calculate') || lp.includes('math') || lp.includes('equation')) return 'Tera is Solving...'
+        if (lp.includes('write') || lp.includes('essay') || lp.includes('story') || lp.includes('poem') || lp.includes('draft')) return 'Tera is Writing...'
+        if (lp.includes('explain') || lp.includes('how') || lp.includes('what') || lp.includes('why')) return 'Tera is Explaining...'
+        if (lp.includes('plan') || lp.includes('strategy') || lp.includes('steps') || lp.includes('guide')) return 'Tera is Planning...'
         return 'Tera is Thinking...'
     }
 
-
-    // Update currentSessionId if prop changes (e.g. new chat from parent)
     useEffect(() => {
         setCurrentSessionId(sessionId || null)
     }, [sessionId])
 
-    // Update prompt if initialPrompt changes
+    const thinkingPhases = [
+        'Reading your message...',
+        'Processing context...',
+        'Generating response...',
+        'Composing answer...',
+    ]
+
+    const imageThinkingPhases = [
+        'Receiving your image...',
+        'Analyzing visual content...',
+        'Extracting details...',
+        'Formulating response...',
+    ]
+
     useEffect(() => {
+        if (status !== 'loading') {
+            setThinkingPhase(0)
+            return
+        }
+        const interval = setInterval(() => {
+            setThinkingPhase((prev) => (prev + 1) % thinkingPhases.length)
+        }, 2200)
+        return () => clearInterval(interval)
+    }, [status])
+
+    const startStreaming = useCallback((fullText: string, onComplete: () => void) => {
+        setIsStreaming(true)
+        setStreamingText('')
+        let index = 0
+        const chunkSize = 3
+        const baseDelay = 18
+
+        const typeNextChunk = () => {
+            if (index >= fullText.length) {
+                setIsStreaming(false)
+                setStreamingText('')
+                streamTimerRef.current = null
+                onComplete()
+                return
+            }
+            const end = Math.min(index + chunkSize, fullText.length)
+            setStreamingText(fullText.slice(0, end))
+            index = end
+            const variance = Math.random() * 12 - 6
+            streamTimerRef.current = setTimeout(typeNextChunk, Math.max(8, baseDelay + variance))
+        }
+        typeNextChunk()
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (streamTimerRef.current) clearTimeout(streamTimerRef.current)
+        }
+    }, [])
+
+    useEffect(() => {
+        setConversations([])
+        setConversationActive(false)
+        setStatus('idle')
+        setEditingMessageId(null)
+        setQueuedMessage(null)
+        setPrompt(initialPrompt || '')
+        setPendingAttachments([])
+        setAttachmentMessage(null)
+        setNoteSaveStatuses({})
+        setSavingNoteIds({})
+        setBookmarkSaveStatuses({})
+        setChatMode('ask')
+        setSelectedMode('chat')
+        setHistoryLoading(false)
+    }, [initialPrompt, sessionId, tool.name])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const draft = loadPromptDraft(sessionId || null)
+        if (draft) {
+            setPrompt(draft.prompt)
+            setPendingAttachments(draft.attachments)
+            setChatMode(draft.chatMode)
+            setSelectedMode(draft.chatMode === 'image' ? 'image' : 'chat')
+            return
+        }
+
         if (initialPrompt) {
             setPrompt(initialPrompt)
         }
-    }, [initialPrompt])
+    }, [initialPrompt, sessionId])
+    useEffect(() => {
+        void refreshUsageSignals()
+    }, [refreshUsageSignals])
+    useEffect(() => {
+        if (!user?.id || !userReady || typeof window === 'undefined') return
+
+        const handleUsageRefresh = () => {
+            void refreshUsageSignals()
+        }
+
+        window.addEventListener(TERA_USAGE_REFRESH_EVENT, handleUsageRefresh)
+        return () => window.removeEventListener(TERA_USAGE_REFRESH_EVENT, handleUsageRefresh)
+    }, [refreshUsageSignals, user?.id, userReady])
+    useEffect(() => {
+        if (!attachmentOpen) return
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setAttachmentOpen(false)
+        }
+
+        window.addEventListener('keydown', handleEscape)
+        return () => window.removeEventListener('keydown', handleEscape)
+    }, [attachmentOpen])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const trimmedPrompt = prompt.trim()
+        const shouldPersist =
+            trimmedPrompt.length > 0 ||
+            pendingAttachments.length > 0 ||
+            chatMode !== 'ask'
+
+        if (!shouldPersist) {
+            clearPromptDraft(currentSessionId)
+            return
+        }
+
+        const timeout = window.setTimeout(() => {
+            savePromptDraft(currentSessionId, {
+                prompt,
+                attachments: pendingAttachments,
+                chatMode,
+            })
+        }, 300)
+
+        return () => window.clearTimeout(timeout)
+    }, [chatMode, currentSessionId, pendingAttachments, prompt])
 
     const uploadAttachment = async (file: File, type: AttachmentType) => {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('type', type)
-        if (user?.id) {
-            formData.append('userId', user.id)
-        }
+        if (user?.id) formData.append('userId', user.id)
 
-        const response = await fetch('/api/user/attachments', {
-            method: 'POST',
-            body: formData
-        })
-
+        const response = await fetch('/api/user/attachments', { method: 'POST', body: formData })
         if (!response.ok) {
-            // Try to parse the error message
-            let errorMessage = 'Unable to upload attachment'
+            let errorMsg = 'Unable to upload attachment'
             try {
-                const errorData = await response.json()
-                if (errorData.error) {
-                    errorMessage = errorData.error
-                }
-            } catch (e) {
-                // Fallback to default error
-            }
-            throw new Error(errorMessage)
+                const data = await response.json()
+                if (data.error) errorMsg = data.error
+            } catch (e) { }
+            throw new Error(errorMsg)
         }
-
         return (await response.json()) as AttachmentReference
     }
 
     const handleFileSelect = (type: 'image' | 'file' | 'camera') => {
-        if (type === 'image') {
-            imageInputRef.current?.click()
-        } else if (type === 'camera') {
-            cameraInputRef.current?.click()
-        } else {
-            fileInputRef.current?.click()
-        }
+        if (type === 'image') imageInputRef.current?.click()
+        else if (type === 'camera') cameraInputRef.current?.click()
+        else fileInputRef.current?.click()
         setAttachmentOpen(false)
     }
 
@@ -414,38 +697,22 @@ export default function PromptShell({
 
         try {
             setAttachmentMessage('Compressing & Uploading...')
-
             let fileToUpload = file
             if (type === 'image') {
-                try {
-                    fileToUpload = await compressImage(file)
-                } catch (err) {
-                    console.warn('Image compression failed, uploading original', err)
-                }
+                try { fileToUpload = await compressImage(file) } catch (err) { }
             }
-
             const attachment = await uploadAttachment(fileToUpload, type)
             setPendingAttachments((prev) => [...prev, attachment])
             dispatchUsageRefresh('uploads')
             setAttachmentMessage(null)
         } catch (error) {
-            console.error('Upload failed', error)
             const message = error instanceof Error ? error.message : 'Upload failed'
-
-            // Check for limit errors and show modal
             if (message.includes('limit') && (message.includes('upload') || message.includes('file'))) {
                 setLimitModalType('file-uploads')
-                // Try to extract unlocksAt from error or calculate it
-                const now = new Date()
-                const unlocksAt = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-                setLimitUnlocksAt(unlocksAt)
+                setLimitUnlocksAt(new Date(Date.now() + 24 * 60 * 60 * 1000))
                 setAttachmentMessage(null)
-            } else {
-                setAttachmentMessage(message)
-            }
-        } finally {
-            event.target.value = ''
-        }
+            } else setAttachmentMessage(message)
+        } finally { event.target.value = '' }
     }
 
     const handleEditMessage = (id: string, message: Message) => {
@@ -456,96 +723,32 @@ export default function PromptShell({
         if (textarea) textarea.focus()
     }
 
-    const buildUserMessage = (id: string, content: string, attachments: AttachmentReference[]): Message => ({
-        id: `${id}-user`,
-        role: 'user',
-        content,
-        attachments: attachments.length > 0 ? attachments : undefined,
-        timestamp: Date.now()
-    })
-
-    // Format timestamp for display
-    const formatTimestamp = (timestamp?: number) => {
-        if (!timestamp) return ''
-        const date = new Date(timestamp)
-        const now = new Date()
-        const diffMs = now.getTime() - date.getTime()
-        const diffMins = Math.floor(diffMs / 60000)
-
-        if (diffMins < 1) return 'Just now'
-        if (diffMins < 60) return `${diffMins}m ago`
-        if (diffMins < 1440) return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    }
-
-    const handleStop = () => {
-        // Increment request ID to invalidate any pending requests
-        requestIdRef.current += 1
-        setStatus('idle')
-    }
-
-    const processMessage = useCallback((messageToSend: string, attachmentsToSend: AttachmentReference[]) => {
+    const processMessage = useCallback((messageToSend: string, attachmentsToSend: AttachmentReference[], mode: ChatMode) => {
         setStatus('loading')
-        // Increment request ID for new request
         const currentRequestId = ++requestIdRef.current
-
         const entryId = editingMessageId ?? createId()
-        const userMessage = buildUserMessage(entryId, messageToSend, attachmentsToSend)
-        setConversations((prev) => {
-            if (editingMessageId) {
-                return prev.map((entry) =>
-                    entry.id === editingMessageId
-                        ? { ...entry, userMessage, assistantMessage: undefined }
-                        : entry
-                )
-            }
-            return [...prev, { id: entryId, userMessage }]
-        })
-        setConversationActive(true)
-        if (!hasBumpedInput) {
-            setHasBumpedInput(true)
+        const hasResearchAccess = user?.subscriptionPlan === 'pro' || user?.subscriptionPlan === 'plus'
+        const useResearchFlow = hasResearchAccess && (
+            selectedMode === 'research' ||
+            shouldRecommendDeepResearch(messageToSend) ||
+            shouldUseRealTimeWeb(messageToSend)
+        )
+
+        if (useResearchFlow && selectedMode !== 'research') {
+            setSelectedMode('research')
         }
+
+        const outgoingChatMode = useResearchFlow ? mapSurfaceModeToChatMode('research', mode) : mode
+        const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode: outgoingChatMode }
+        
+        setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage: undefined } : e) : [...prev, { id: entryId, userMessage }])
+        setConversationActive(true)
+        if (!hasBumpedInput) setHasBumpedInput(true)
+
         startTransition(async () => {
             try {
-                // Check if we should auto-enable web search based on query content
-                // Only if not explicitly toggled by user (we rely on current toggle state if set)
-                let useWebSearch = webSearchEnabled
-
-                // Set dynamic thinking message
-                setThinkingMessage(getThinkingMessage(messageToSend, useWebSearch))
-
-                // Set up web search tracking with visual progress simulation
-                if (useWebSearch) {
-                    setIsWebSearching(true)
-                    setCurrentSearchQuery(messageToSend)
-                    setWebSearchStatus('searching')
-                    setWebSearchResultCount(0)
-
-                    // Cycle status to show "what's going on behind the scenes"
-                    const statusCycle = [
-                        { status: 'searching', delay: 0 },
-                        { status: 'processing', delay: 1500, check: researchMode },
-                        { status: 'searching', delay: 3500 },
-                    ]
-
-                    statusCycle.forEach(({ status, delay, check }) => {
-                        if (check === false) return
-                        setTimeout(() => {
-                            setWebSearchStatus(prev => {
-                                // Don't regress if already complete or errored
-                                if (prev === 'complete' || prev === 'idle') return prev
-                                return status as any
-                            })
-                        }, delay)
-                    })
-
-                    // Track search in history
-                    if (user?.id) {
-                        saveSearchQuery(user.id, messageToSend, 0)
-                            .catch(err => console.error('Failed to save search history', err))
-                    }
-                }
-
+                setThinkingMessage(getThinkingMessage(messageToSend, useResearchFlow, attachmentsToSend.some(a => a.type === 'image')))
+                setLoadingHasImages(attachmentsToSend.some(a => a.type === 'image'))
                 const result = await generateAnswer({
                     prompt: messageToSend,
                     tool: tool.name,
@@ -554,344 +757,236 @@ export default function PromptShell({
                     attachments: attachmentsToSend,
                     sessionId: currentSessionId,
                     chatId: editingMessageId ?? undefined,
-                    enableWebSearch: useWebSearch,
-                    researchMode: researchMode && useWebSearch // Only send researchMode if web search is enabled/active
+                    researchMode: useResearchFlow,
+                    chatMode: outgoingChatMode,
                 })
 
-                const { answer, sessionId: newSessionId, chatId: savedChatId, error: limitError, warning } = result
+                if (currentRequestId !== requestIdRef.current) return
 
-                // Clear web search status
-                if (useWebSearch) {
-                    setIsWebSearching(false)
-                    setWebSearchStatus('complete')
-                    // Auto-reset after 2 seconds
-                    setTimeout(() => {
-                        setWebSearchStatus('idle')
-                        setCurrentSearchQuery('')
-                    }, 2000)
-                }
+                if (result.error) {
+                    if (result.error.toLowerCase().includes('credit cap')) setLimitModalType('credits')
+                    else if (result.error.includes('file uploads')) setLimitModalType('file-uploads')
 
-                // Check if this request is still valid (hasn't been stopped or superseded)
-                if (currentRequestId !== requestIdRef.current) {
-                    console.log('ðŸ›‘ Request cancelled/superseded, ignoring response')
-                    return
-                }
-
-                // Handle limit errors
-                if (limitError) {
-                    const now = new Date()
-                    const unlocksAt = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-
-                    if (limitError.includes('file uploads')) {
-                        setLimitModalType('file-uploads')
-                        setLimitUnlocksAt(unlocksAt)
-                    } else if (limitError.includes('web search')) {
-                        setLimitModalType('web-search')
-                        setLimitUnlocksAt(unlocksAt)
-                    } else if (limitError.toLowerCase().includes('credit cap')) {
-                        setLimitModalType('credits')
-                        setLimitUnlocksAt(undefined)
-                    }
-
-                    setConversations((prev) =>
-                        prev.map((entry) =>
-                            entry.id === entryId
-                                ? {
-                                    ...entry,
-                                    assistantMessage: {
-                                        id: createId(),
-                                        role: 'tera',
-                                        content: limitError
-                                    }
-                                }
-                                : entry
-                        )
-                    )
-                    setAttachmentMessage(limitError)
+                    setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage: { id: createId(), role: 'tera', content: result.error || 'Error' } } : e))
                     setStatus('idle')
                     return
                 }
 
-                if (newSessionId && newSessionId !== currentSessionId) {
-                    setCurrentSessionId(newSessionId)
-                }
-
-                const assistantMessage: Message = {
-                    id: createId(),
-                    role: 'tera',
-                    content: answer,
-                    timestamp: Date.now()
-                }
-                setConversations((prev) =>
-                    prev.map((entry) =>
-                        entry.id === entryId ? {
-                            ...entry,
-                            assistantMessage,
-                            sessionId: newSessionId
-                        } : entry
-                    )
-                )
-
-                if (warning) {
-                    setAttachmentMessage(warning)
-                } else {
-                    setAttachmentMessage(null)
-                }
-
+                if (result.sessionId && result.sessionId !== currentSessionId) setCurrentSessionId(result.sessionId)
+                setAttachmentMessage(result.warning || null)
                 dispatchUsageRefresh('messages')
-                if (useWebSearch) {
-                    dispatchUsageRefresh('web-search')
-                    void refreshWebSearchStatus()
-                }
+                if (editingMessageId && result.chatId) setEditingMessageId(result.chatId)
 
-                // Update editingMessageId to the saved chat ID for future edits
-                if (editingMessageId && savedChatId) {
-                    setEditingMessageId(savedChatId)
-                }
-            } catch (error) {
-                // Check if this request is still valid
-                if (currentRequestId !== requestIdRef.current) {
-                    return
-                }
-
-                const message = error instanceof Error ? error.message : 'Unable to generate a reply'
-                console.error('generateAnswer failed', error)
-
-                // Check for limit errors and show modal instead
-                const now = new Date()
-                const unlocksAt = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-
-                if (message.includes('limit') && message.includes('file uploads')) {
-                    setLimitModalType('file-uploads')
-                    setLimitUnlocksAt(unlocksAt)
-                } else if (message.includes('limit') && message.includes('web-search')) {
-                    setLimitModalType('web-search')
-                    setLimitUnlocksAt(unlocksAt)
-                } else if (message === 'limit web-search') {
-                    setLimitModalType('web-search')
-                    setLimitUnlocksAt(unlocksAt)
-                } else if (message.toLowerCase().includes('credit cap')) {
-                    setLimitModalType('credits')
-                    setLimitUnlocksAt(undefined)
-                }
-
-                setConversations((prev) =>
-                    prev.map((entry) =>
-                        entry.id === entryId
-                            ? {
-                                ...entry,
-                                assistantMessage: {
-                                    id: createId(),
-                                    role: 'tera',
-                                    content: message
-                                }
-                            }
-                            : entry
-                    )
-                )
-                setAttachmentMessage(message)
-            } finally {
-                // Only reset status if this is still the active request
-                if (currentRequestId === requestIdRef.current) {
+                startStreaming(result.answer, () => {
+                    const assistantMessage: Message = {
+                        id: createId(),
+                        role: 'tera',
+                        content: result.answer,
+                        timestamp: Date.now(),
+                        chatMode: outgoingChatMode,
+                        citations: result.citations,
+                    }
+                    setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage, sessionId: result.sessionId } : e))
                     setStatus('idle')
-                }
-            }
-            // Removed setPrompt('') and setPendingAttachments([]) from here to clear immediately
+                })
+            } catch (error) {
+                if (currentRequestId !== requestIdRef.current) return
+                const msg = error instanceof Error ? error.message : 'Unable to generate a reply'
+                setConversations(prev => prev.map(e => e.id === entryId ? { ...e, assistantMessage: { id: createId(), role: 'tera', content: msg } } : e))
+            } finally { if (currentRequestId === requestIdRef.current) setStatus('idle') }
             setEditingMessageId(null)
             setQueuedMessage(null)
         })
-    }, [editingMessageId, hasBumpedInput, tool.name, user?.id, currentSessionId])
+    }, [editingMessageId, hasBumpedInput, selectedMode, tool, user?.id, user?.email, user?.subscriptionPlan, currentSessionId])
+
+    const handleSaveNote = async (assistantMessage: Message) => {
+        if (!user?.id) {
+            setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'error', message: 'Sign in to save notes.' } }))
+            onRequireSignIn?.()
+            return
+        }
+
+        setSavingNoteIds((prev) => ({ ...prev, [assistantMessage.id]: true }))
+        setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'success', message: 'Saving...' } }))
+
+        try {
+            const note = await addNote(user.id, assistantMessage.content)
+            setNoteSaveStatuses((prev) => ({
+                ...prev,
+                [assistantMessage.id]: note
+                    ? { type: 'success', message: 'Saved as note.' }
+                    : { type: 'error', message: 'Could not save note.' },
+            }))
+        } catch (error) {
+            setNoteSaveStatuses((prev) => ({ ...prev, [assistantMessage.id]: { type: 'error', message: 'Could not save note.' } }))
+        } finally {
+            setSavingNoteIds((prev) => ({ ...prev, [assistantMessage.id]: false }))
+        }
+    }
+
+    const handleSaveBookmark = async (citation: NonNullable<Message['citations']>[number]) => {
+        if (!user?.id) {
+            setBookmarkSaveStatuses((prev) => ({ ...prev, [citation.url]: { type: 'error', message: 'Sign in to save bookmarks.' } }))
+            onRequireSignIn?.()
+            return
+        }
+
+        setBookmarkSaveStatuses((prev) => ({ ...prev, [citation.url]: { type: 'saving', message: 'Saving...' } }))
+
+        try {
+            const saved = await saveBookmark(
+                user.id,
+                {
+                    title: citation.title,
+                    url: citation.url,
+                    snippet: citation.snippet || '',
+                    source: 'Tera research',
+                },
+                citation.publishedDate ? `Published: ${citation.publishedDate}` : undefined,
+                ['research', 'citation']
+            )
+
+            setBookmarkSaveStatuses((prev) => ({
+                ...prev,
+                [citation.url]: saved
+                    ? { type: 'success', message: 'Saved bookmark.' }
+                    : { type: 'error', message: 'Could not save bookmark.' },
+            }))
+        } catch (error) {
+            setBookmarkSaveStatuses((prev) => ({ ...prev, [citation.url]: { type: 'error', message: 'Could not save bookmark.' } }))
+        }
+    }
+
+    const handleStop = () => {
+        requestIdRef.current += 1
+        setStatus('idle')
+        setThinkingMessage('Tera is Thinking...')
+    }
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault()
-        if (status === 'loading') return // Prevent submit while loading
-
+        if (status === 'loading') return
         const messageToSend = prompt.trim()
         if (!messageToSend && pendingAttachments.length === 0) return
 
+        if (chatMode === 'image') {
+            const entryId = editingMessageId ?? createId()
+            const atts = [...pendingAttachments]
+            const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: atts.length > 0 ? atts : undefined, timestamp: Date.now() }
+            const assistantMessage: Message = { id: createId(), role: 'tera', content: 'Image creation is coming soon.', timestamp: Date.now() }
+            setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage } : e) : [...prev, { id: entryId, userMessage, assistantMessage }])
+            setConversationActive(true)
+            if (!hasBumpedInput) setHasBumpedInput(true)
+            setPrompt('')
+            setPendingAttachments([])
+            setEditingMessageId(null)
+            clearPromptDraft(currentSessionId)
+            return
+        }
+
         if (!user) {
-            setQueuedMessage({
-                prompt: messageToSend,
-                attachments: [...pendingAttachments]
-            })
-            // Save to localStorage for persistence across redirects (e.g. Google Sign In)
-            if (typeof window !== 'undefined') {
-                const messageData = {
-                    prompt: messageToSend,
-                    attachments: [...pendingAttachments]
-                }
-                console.log('ðŸ”´ SAVING to localStorage:', messageData)
-                localStorage.setItem('tera_queued_message', JSON.stringify(messageData))
-            }
-            setAttachmentMessage('Sign in to send your message. It will be posted automatically once you authenticate.')
+            const data: QueuedMessage = { prompt: messageToSend, attachments: [...pendingAttachments], chatMode }
+            localStorage.setItem('tera_queued_message', JSON.stringify(data))
             onRequireSignIn?.()
             return
         }
         if (!userReady) {
-            setQueuedMessage({
-                prompt: messageToSend,
-                attachments: [...pendingAttachments]
-            })
-            setAttachmentMessage('Hang tightâ€”finalizing your account before sending.')
+            setQueuedMessage({ prompt: messageToSend, attachments: [...pendingAttachments], chatMode })
             return
         }
 
-        // Clear UI immediately
-        const attachmentsToSend = [...pendingAttachments]
+        const atts = [...pendingAttachments]
         setPrompt('')
         setPendingAttachments([])
-
-        processMessage(messageToSend, attachmentsToSend)
+        processMessage(messageToSend, atts, chatMode)
+        clearPromptDraft(currentSessionId)
     }
 
     useEffect(() => {
-        // Always check for persisted message on mount
-        console.log('ðŸŸ¢ MOUNT EFFECT: Checking localStorage...')
-        if (typeof window !== 'undefined' && !queuedMessage) {
-            const savedMessage = localStorage.getItem('tera_queued_message')
-            console.log('ðŸŸ¢ localStorage value:', savedMessage)
-            if (savedMessage) {
-                try {
-                    console.log('ðŸŸ¢ Found queued message, parsing...')
-                    const parsed = JSON.parse(savedMessage)
-                    console.log('ðŸŸ¢ Parsed message:', parsed)
-                    setQueuedMessage(parsed)
-                    console.log('ðŸŸ¢ Set queuedMessage state')
-                } catch (e) {
-                    console.error('ðŸ”´ Failed to parse queued message', e)
-                    localStorage.removeItem('tera_queued_message')
-                }
-            } else {
-                console.log('ðŸŸ¢ No saved message found in localStorage')
-            }
-        } else {
-            console.log('ðŸŸ¢ Skipping restore (window undefined or queuedMessage already set)')
+        const saved = localStorage.getItem('tera_queued_message')
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved) as Partial<QueuedMessage>
+                setQueuedMessage({
+                    prompt: parsed.prompt ?? '',
+                    attachments: parsed.attachments ?? [],
+                    chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'ask',
+                })
+            } catch (e) { localStorage.removeItem('tera_queued_message') }
         }
-    }, []) // Run once on mount
+    }, [])
 
     useEffect(() => {
-        console.log('ðŸ”µ PROCESS EFFECT: userReady=', userReady, 'queuedMessage=', queuedMessage)
         if (userReady && queuedMessage) {
-            console.log('ðŸ”µ Processing queued message:', queuedMessage)
-            processMessage(queuedMessage.prompt, queuedMessage.attachments)
-
-            // Clean up
-            console.log('ðŸ”µ Cleaning up localStorage and queuedMessage state')
+            processMessage(queuedMessage.prompt, queuedMessage.attachments, queuedMessage.chatMode)
             localStorage.removeItem('tera_queued_message')
             setQueuedMessage(null)
+            clearPromptDraft(currentSessionId)
         }
     }, [userReady, queuedMessage, processMessage])
 
     useEffect(() => {
-        if (!user?.id) {
-            return
-        }
+        if (!user?.id || !sessionId) return
 
-        let isMounted = true
-        const userId = user.id
+        const historyRequestId = ++historyRequestIdRef.current
+        if (!user?.id || !userReady || !sessionId) return
+        let cancelled = false
+        setHistoryLoading(true)
 
-        async function loadChatHistory() {
-            // If no sessionId is provided (New Chat), don't load history
-            if (!sessionId) {
-                if (isMounted) {
-                    setHistoryLoading(false)
-                }
-                return
-            }
+        void fetchChatHistory(user.id, sessionId)
+            .then((data) => {
+                if (historyRequestId !== historyRequestIdRef.current) return
 
-            setHistoryLoading(true)
-            try {
-                const data = await fetchChatHistory(userId, sessionId)
+                if (data && data.length > 0) {
+                    const loaded: ConversationEntry[] = data.map((s) => {
+                        const mode = getChatModeForTool(s.tool ?? tool.name)
+                        const citations = Array.isArray((s as any).metadata?.citations) ? (s as any).metadata.citations : undefined
 
-                if (isMounted && data) {
-                    const loadedConversations: ConversationEntry[] = data.map((session) => ({
-                        id: session.id,
-                        sessionId: session.id, // This is actually the row ID, but we use it as entry ID. The real session ID is passed in prop.
-                        userMessage: {
-                            id: `${session.id}-user`,
-                            role: 'user' as const,
-                            content: session.prompt,
-                            attachments: session.attachments as AttachmentReference[] | undefined,
-                            timestamp: new Date(session.created_at).getTime()
-                        },
-                        assistantMessage: {
-                            id: `${session.id}-assistant`,
-                            role: 'tera' as const,
-                            content: session.response,
-                            timestamp: new Date(session.created_at).getTime() + 1000 // Slight offset
+                        return {
+                            id: s.id,
+                            sessionId: s.session_id || s.id,
+                            userMessage: {
+                                id: `${s.id}-user`,
+                                role: 'user',
+                                content: s.prompt,
+                                attachments: (s.attachments as AttachmentReference[]) || [],
+                                timestamp: new Date(s.created_at).getTime(),
+                                chatMode: mode,
+                            },
+                            assistantMessage: s.response
+                                ? {
+                                    id: `${s.id}-assistant`,
+                                    role: 'tera',
+                                    content: s.response,
+                                    timestamp: new Date(s.created_at).getTime() + 1000,
+                                    chatMode: mode,
+                                    citations,
+                                }
+                                : undefined,
                         }
-                    }))
-                    setConversations((prev) => {
-                        // Never wipe in-memory replies with an empty history payload.
-                        // This protects optimistic/new-session replies from briefly disappearing
-                        // when backend history is not yet available.
-                        if (loadedConversations.length === 0 && prev.length > 0) {
-                            return prev
-                        }
-                        return loadedConversations
                     })
-                    setConversationActive((prev) => prev || loadedConversations.length > 0)
+                    setConversations(loaded)
+                    setConversationActive(true)
+                } else {
+                    setConversations([])
+                    setConversationActive(false)
                 }
-            } catch (error) {
-                console.error('Failed to load chat history', error)
-            } finally {
-                if (isMounted) {
+            })
+            .catch((err) => {
+                if (historyRequestId !== historyRequestIdRef.current) return
+                console.error('Failed to load chat history:', err)
+                setConversations([])
+                setConversationActive(false)
+            })
+            .finally(() => {
+                if (historyRequestId === historyRequestIdRef.current) {
                     setHistoryLoading(false)
                 }
-            }
-        }
-
-        loadChatHistory()
-
-        return () => {
-            isMounted = false
-        }
-    }, [user?.id, sessionId])
+            })
+    }, [user?.id, sessionId, tool.name])
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null)
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-
-    useEffect(() => {
-        if (conversationActive || status === 'loading') {
-            // Small timeout to ensure DOM is updated
-            setTimeout(scrollToBottom, 100)
-        }
-    }, [conversations, conversationActive, status])
-
-    const refreshWebSearchStatus = useCallback(async () => {
-        if (!user?.id) return
-
-        try {
-            const response = await fetch('/api/user/web-search-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id })
-            })
-
-            if (!response.ok) {
-                console.warn('Failed to fetch web search status:', response.status)
-                return
-            }
-
-            const data = await response.json()
-            if (data.success && data.remaining !== undefined) {
-                setWebSearchRemaining(data.remaining)
-                if (data.plan) {
-                    setCurrentUserPlan(data.plan)
-                }
-                console.log(`ðŸ” Web Search Status: ${data.remaining}/${data.total} (${data.plan?.toUpperCase()})`)
-            }
-        } catch (err) {
-            console.warn('Failed to fetch web search status:', err)
-        }
-    }, [user?.id])
-
-    useEffect(() => {
-        void refreshWebSearchStatus()
-    }, [refreshWebSearchStatus])
+    useEffect(() => { if (conversationActive || status === 'loading') setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100) }, [conversations, conversationActive, status])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
@@ -899,538 +994,487 @@ export default function PromptShell({
             recognitionRef.current = new SpeechRecognition()
             recognitionRef.current.continuous = true
             recognitionRef.current.interimResults = true
-
             recognitionRef.current.onresult = (event: any) => {
-                let interimTranscript = ''
-                let finalTranscript = ''
-
+                let final = ''
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript
-                    } else {
-                        interimTranscript += event.results[i][0].transcript
-                    }
+                    if (event.results[i].isFinal) final += event.results[i][0].transcript
                 }
-
-                if (finalTranscript) {
-                    setPrompt((prev) => prev + (prev ? ' ' : '') + finalTranscript)
-                }
+                if (final) setPrompt(p => p + (p ? ' ' : '') + final)
             }
-
-            recognitionRef.current.onerror = (event: any) => {
-                // Ignore expected errors like permission denied or no speech
-                if (event.error !== 'not-allowed' && event.error !== 'no-speech' && event.error !== 'aborted') {
-                    console.error('Speech recognition error', event.error)
-                }
-                setIsListening(false)
-            }
-
-            recognitionRef.current.onend = () => {
-                setIsListening(false)
-            }
+            recognitionRef.current.onend = () => setIsListening(false)
         }
     }, [])
 
     const toggleListening = () => {
-        if (isListening) {
-            recognitionRef.current?.stop()
-            setIsListening(false)
-        } else {
-            recognitionRef.current?.start()
-            setIsListening(true)
-        }
+        if (isListening) { recognitionRef.current?.stop(); setIsListening(false) }
+        else { recognitionRef.current?.start(); setIsListening(true) }
     }
 
-    const showSendButton = (prompt.trim().length > 0 || pendingAttachments.length > 0) && status !== 'loading'
-    const showStopButton = status === 'loading'
-    const showMicButton = !showSendButton && !showStopButton
+    const showSend = (prompt.trim().length > 0 || pendingAttachments.length > 0) && status !== 'loading'
+    const showStop = status === 'loading'
+    const showMic = !showSend && !showStop
+    const backgroundDimClass = attachmentOpen ? 'opacity-20 saturate-0 blur-[0.75px]' : 'opacity-100'
+    const composerDimClass = attachmentOpen ? 'opacity-25' : 'opacity-100'
+    const lowCreditThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
+    const lowCredits = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= lowCreditThreshold
+    const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
+    const loadingSteps = (() => {
+        const promptText = prompt.trim().toLowerCase()
+        const requestSummary = prompt.trim()
+            ? `Working on: ${prompt.trim().slice(0, 90)}${prompt.trim().length > 90 ? '…' : ''}`
+            : 'Working on your request'
+
+        if (researchMode || promptText.includes('research') || promptText.includes('source') || promptText.includes('citation') || promptText.includes('web')) {
+            return [requestSummary, 'Searching web sources', 'Checking citations', 'Writing the response']
+        }
+
+        if (promptText.includes('image') || promptText.includes('visual') || promptText.includes('chart') || promptText.includes('diagram') || promptText.includes('draw')) {
+            return [requestSummary, 'Planning the visual', 'Generating the output', 'Polishing the result']
+        }
+
+        if (promptText.includes('code') || promptText.includes('function') || promptText.includes('script') || promptText.includes('debug') || promptText.includes('api')) {
+            return [requestSummary, 'Inspecting the request', 'Reasoning through the implementation', 'Preparing the answer']
+        }
+
+        if (promptText.includes('summar') || promptText.includes('write') || promptText.includes('essay') || promptText.includes('draft')) {
+            return [requestSummary, 'Reading your request', 'Drafting the response', 'Refining the wording']
+        }
+
+        if (promptText.includes('solve') || promptText.includes('calculate') || promptText.includes('math') || promptText.includes('equation')) {
+            return [requestSummary, 'Parsing the problem', 'Working through the steps', 'Checking the result']
+        }
+
+        return [requestSummary, 'Reading your request', 'Calling the model', 'Saving the response']
+    })()
+
+    const imageLoadingSteps = ['Receiving your image', 'Analyzing visual content', 'Extracting details', 'Writing response']
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
-            <div className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-24 md:px-10 md:pb-10 md:pt-10" ref={conversationRef}>
-                <div className="mx-auto min-h-full max-w-4xl space-y-8">
-                    {showInitialPrompt ? (
-                        <div className="absolute inset-x-0 top-0 bottom-0 flex items-center justify-center px-4 text-center pointer-events-none -mt-16">
-                            <div className="pointer-events-auto flex max-w-3xl flex-col items-center">
-                                <div className="mx-auto mb-8 w-fit p-7">
-                                    <span className="flex items-center justify-center w-32 h-32">
-                                        <div className="relative w-[120px] h-[120px]">
-                                            <Image
-                                                src="/images/TERA_LOGO_ONLY1.png"
-                                                alt="Tera"
-                                                fill
-                                                className="object-contain block dark:hidden opacity-80"
-                                                priority={false}
-                                            />
-                                            <Image
-                                                src="/images/TERA_LOGO_ONLY.png"
-                                                alt="Tera"
-                                                fill
-                                                className="object-contain hidden dark:block opacity-80"
-                                                priority={false}
-                                            />
-                                        </div>
-                                    </span>
+            <div className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-20 md:px-10 md:pb-10 md:pt-10 transition-all duration-200 ${backgroundDimClass}`} ref={conversationRef}>
+                <div className="mx-auto min-h-full max-w-4xl space-y-6 md:space-y-8">
+                    {(usageLoading ? false : (lowCredits || lowUploads)) && (
+                        <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-500/10 md:px-5 md:py-4">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <p className="text-[0.62rem] uppercase tracking-[0.3em] text-amber-100/90">Usage alert</p>
+                                    <p className="mt-2 text-sm leading-7 text-amber-50">
+                                        {lowCredits
+                                            ? `${creditUsage?.remaining.toLocaleString()} computational credits remain before your balance hits zero.`
+                                            : `${usageSummary?.uploads.remaining} file uploads remain before your monthly limit resets.`}
+                                    </p>
                                 </div>
-                                <h2 className="text-4xl font-semibold tracking-[-0.03em] text-tera-primary md:text-5xl">How can Tera help you today?</h2>
+                                <Link href="/profile#credit-packs" className="tera-button-secondary self-start">
+                                    Add credits
+                                </Link>
                             </div>
+                            <p className="mt-3 text-xs uppercase tracking-[0.22em] text-amber-50/80">
+                                {lowCredits
+                                    ? `${CREDITS_PER_USD.toLocaleString()} credits per $1`
+                                    : 'Usage resets are listed in profile'}
+                            </p>
                         </div>
-                    ) : (
-                        conversations.map((entry) => (
-                            <div key={entry.id} className="space-y-6">
-                                {/* User Message */}
+                    )}
+                    {historyLoading && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-tera-secondary border-t-transparent" />
+                            <p className="mt-4 text-sm text-tera-secondary">Loading conversation...</p>
+                        </div>
+                    )}
+                    {!historyLoading && showInitialPrompt && (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="relative h-20 w-20 mb-6 animate-in fade-in zoom-in duration-500">
+                                <Image src="/assets/tera-logo.jpg" alt="Tera" fill className="object-contain rounded-2xl" priority />
+                            </div>
+                            <h2 className="text-xl font-semibold text-tera-primary tracking-tight">What can I help you with?</h2>
+                            <p className="mt-3 max-w-sm text-sm text-tera-secondary leading-relaxed">Type a message below to start a conversation.</p>
+                        </div>
+                    )}
+                    {conversations.map((entry) => (
+                        <div key={entry.id} className="space-y-5 md:space-y-6">
                                 {entry.userMessage && (
                                     <div className="flex justify-end group">
                                         <div className="flex items-end gap-2 max-w-[80%]">
-                                            {/* Edit Button - visible on hover */}
-                                            <button
-                                                onClick={() => handleEditMessage(entry.id, entry.userMessage!)}
-                                                className="opacity-0 group-hover:opacity-100 p-2 text-tera-primary/50 hover:text-tera-primary transition"
-                                                title="Edit message"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                                                    <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
-                                                    <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
-                                                </svg>
+                                            <button onClick={() => handleEditMessage(entry.id, entry.userMessage!)} className="opacity-0 group-hover:opacity-100 p-2 text-tera-primary/50 hover:text-tera-primary transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" /><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" /></svg>
                                             </button>
-
                                             <div className="flex flex-col items-end gap-1 w-full">
-                                                <div className="w-full rounded-[26px] border border-white/10 bg-tera-elevated/90 px-5 py-4 text-tera-primary shadow-soft-lg backdrop-blur-xl">
-                                                    <p className="whitespace-pre-wrap leading-relaxed">{entry.userMessage.content}</p>
+                                                <div className="w-full rounded-[26px] border border-tera-border bg-tera-elevated/90 px-4 py-4 text-tera-primary md:px-5">
+                                                    <p className="whitespace-pre-wrap text-[0.94rem] leading-relaxed md:text-[0.98rem]">{entry.userMessage.content}</p>
                                                     {entry.userMessage.attachments && entry.userMessage.attachments.length > 0 && (
                                                         <div className="mt-3 flex flex-wrap gap-2">
                                                             {entry.userMessage.attachments.map((att, idx) => (
                                                                 <div key={idx} className="flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs">
-                                                                    <span>{att.type === 'image' ? 'ðŸ–¼ï¸' : 'ðŸ“„'}</span>
+                                                                    <span>{att.type === 'image' ? 'Image' : 'File'}</span>
                                                                     <span className="truncate max-w-[150px]">{att.name}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     )}
                                                 </div>
-                                                {/* Timestamp and checkmarks */}
-                                                <div className="flex items-center gap-1.5 px-2 text-xs text-tera-secondary">
-                                                    <span>{formatTimestamp(entry.userMessage.timestamp)}</span>
-                                                    <span className="text-tera-secondary/60">âœ“âœ“</span>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Assistant Message */}
                                 {entry.assistantMessage && (
                                     <div className="flex justify-start w-full">
                                         <div className="w-full">
-                                            <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/82 px-4 py-4 text-tera-primary shadow-panel backdrop-blur-2xl md:px-6 md:py-5">
-                                                <div className="space-y-4 w-full break-words overflow-hidden">
+                                            <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
+                                                <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
                                                     {parseContent(entry.assistantMessage.content).map((block, idx) => {
-                                                        if (block.type === 'tera-ui') {
-                                                            return (
-                                                                <div key={idx} className="w-full my-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                                    <Renderer spec={block.spec} registry={teraRegistry} />
+                                                        if (block.type === 'tera-ui') return <div key={idx} className="w-full my-4 animate-in fade-in slide-in-from-bottom-2 duration-300"><Renderer spec={block.spec} registry={teraRegistry} /></div>
+                                                        if (block.type === 'universal-visual') return <UniversalVisualRenderer key={idx} code={block.code} language={block.language} title={block.title} />
+                                                        if (block.type === 'chart') return <ChartRenderer key={idx} config={block.config} />
+                                                        if (block.type === 'spreadsheet') return <SpreadsheetRenderer key={idx} config={block.config} userId={user?.id} />
+                                                        if (block.type === 'mermaid') return <MermaidRenderer key={idx} chart={block.chart} />
+                                                        if (block.type === 'quiz') return <QuizRenderer key={idx} quiz={block.config} />
+                                                        if (block.type === 'code') return (
+                                                            <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 dark:bg-[#08101a]/90 light:bg-gray-900 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
+                                                                <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
+                                                                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">{block.language || 'code'}</span>
+                                                                    <button onClick={() => navigator.clipboard.writeText(block.code)} className="p-1.5 text-white/40 hover:text-tera-neon transition-colors flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75H19.5A2.25 2.25 0 0121.75 6v10.5A2.25 2.25 0 0119.5 18.75h-2.25m-16.5 0h2.25m0 0v2.25m0-2.25v-8.25m0 0H3.75A2.25 2.25 0 015.25 5.25H7.5" /></svg></button>
                                                                 </div>
-                                                            )
-                                                        }
-                                                        if (block.type === 'universal-visual') {
-                                                            return <UniversalVisualRenderer key={idx} code={block.code} language={block.language} title={block.title} />
-                                                        }
-                                                        if (block.type === 'chart') {
-                                                            return <ChartRenderer key={idx} config={block.config} />
-                                                        }
-                                                        if (block.type === 'spreadsheet') {
-                                                            return <SpreadsheetRenderer key={idx} config={block.config} userId={user?.id} />
-                                                        }
-                                                        if (block.type === 'mermaid') {
-                                                            return <MermaidRenderer key={idx} chart={block.chart} />
-                                                        }
-                                                        if (block.type === 'quiz') {
-                                                            return <QuizRenderer key={idx} quiz={block.config} />
-                                                        }
-                                                        if (block.type === 'web-sources') {
-                                                            return (
-                                                                <div key={idx} className="my-4 animate-in fade-in duration-300">
-                                                                    <SourcesPanelRenderer
-                                                                        sources={block.sources.map(s => ({
-                                                                            ...s,
-                                                                            // Try to generate a favicon URL if not present
-                                                                            favicon: s.favicon || `https://www.google.com/s2/favicons?domain=${s.source}&sz=32`
-                                                                        }))}
-                                                                        collapsible={true}
-                                                                        defaultExpanded={false}
-                                                                    />
-                                                                </div>
-                                                            )
-                                                        }
-                                                        if (block.type === 'code') {
-                                                            return (
-                                                                <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                                    <div className="flex items-center justify-between px-3 md:px-4 py-2 border-b border-tera-border/50 bg-black/10 gap-2">
-                                                                        <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">
-                                                                            {block.language || 'code'}
-                                                                        </span>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                navigator.clipboard.writeText(block.code)
-                                                                            }}
-                                                                            className="p-1.5 text-white/40 hover:text-tera-neon transition-colors flex-shrink-0"
-                                                                            title="Copy code"
-                                                                        >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75H19.5A2.25 2.25 0 0121.75 6v10.5A2.25 2.25 0 0119.5 18.75h-2.25m-16.5 0h2.25m0 0v2.25m0-2.25v-8.25m0 0H3.75A2.25 2.25 0 015.25 5.25H7.5" />
-                                                                            </svg>
-                                                                        </button>
-                                                                    </div>
-                                                                    <pre className="p-3 md:p-4 font-mono text-xs md:text-sm overflow-x-auto text-tera-primary dark:text-tera-neon w-full">
-                                                                        <code>{block.code}</code>
-                                                                    </pre>
-                                                                </div>
-                                                            )
-                                                        }
-                                                        return block.type === 'text' ? (
-                                                            <div key={idx} className="w-full animate-in fade-in duration-300">
-                                                                <MarkdownRenderer content={block.content} />
+                                                                <pre className="p-3 md:p-4 font-mono text-xs md:text-sm overflow-x-auto text-tera-primary dark:text-tera-neon w-full"><code>{block.code}</code></pre>
                                                             </div>
-                                                        ) : null
+                                                        )
+                                                        return block.type === 'text' ? <div key={idx} className="w-full animate-in fade-in duration-300"><MarkdownRenderer content={block.content} /></div> : null
                                                     })}
                                                 </div>
-                                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-tera-border">
-                                                    <span className="text-xs text-tera-secondary/60">{formatTimestamp(entry.assistantMessage.timestamp)}</span>
+                                                {entry.assistantMessage.citations && entry.assistantMessage.citations.length > 0 && (
+                                                    <div className="mt-4 rounded-[22px] border border-tera-border bg-black/10 px-4 py-3 shadow-soft">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Sources</p>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {entry.assistantMessage.citations.some((citation) => citation.provider === 'firecrawl') && (
+                                                                    <span className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                                        Sources fetched with Firecrawl
+                                                                    </span>
+                                                                )}
+                                                                <span className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary">
+                                                                    {entry.assistantMessage.citations.length} source{entry.assistantMessage.citations.length === 1 ? '' : 's'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-3 space-y-3">
+                                                            {entry.assistantMessage.citations.map((citation, index) => (
+                                                                <a
+                                                                    key={`${citation.url}-${index}`}
+                                                                    href={citation.url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="block rounded-xl border border-tera-border bg-tera-muted px-4 py-3 transition hover:-translate-y-px hover:border-tera-neon/25 hover:bg-tera-highlight"
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-3">
+                                                                            <div>
+                                                                                <p className="text-sm font-medium text-tera-primary">{citation.title}</p>
+                                                                                <p className="mt-1 break-all text-xs text-tera-secondary">{citation.url}</p>
+                                                                                {citation.publishedDate && (
+                                                                                    <p className="mt-1 text-[0.65rem] uppercase tracking-[0.2em] text-tera-secondary">
+                                                                                        Published {new Date(citation.publishedDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="text-[0.65rem] uppercase tracking-[0.22em] text-tera-secondary">#{index + 1}</span>
+                                                                        </div>
+                                                                    {citation.snippet && (
+                                                                        <p className="mt-2 text-sm leading-6 text-tera-secondary">{citation.snippet}</p>
+                                                                    )}
+                                                                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(event) => {
+                                                                                event.preventDefault()
+                                                                                event.stopPropagation()
+                                                                                void handleSaveBookmark(citation)
+                                                                            }}
+                                                                            className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-tera-secondary transition hover:-translate-y-px hover:border-tera-primary hover:text-tera-primary"
+                                                                        >
+                                                                            {bookmarkSaveStatuses[citation.url]?.type === 'saving' ? 'Saving...' : 'Save bookmark'}
+                                                                        </button>
+                                                                        {bookmarkSaveStatuses[citation.url] && bookmarkSaveStatuses[citation.url].type !== 'saving' && (
+                                                                            <span className={`text-[0.65rem] ${bookmarkSaveStatuses[citation.url].type === 'success' ? 'text-tera-accent' : 'text-red-400'}`}>
+                                                                                {bookmarkSaveStatuses[citation.url].message}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-tera-border pt-2">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="text-xs text-tera-secondary/60">Tera</span>
+                                                        {isNoteSaveMode(entry.assistantMessage.chatMode) && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSaveNote(entry.assistantMessage!)}
+                                                                    disabled={savingNoteIds[entry.assistantMessage.id]}
+                                                                    className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
+                                                                >
+                                                                    {savingNoteIds[entry.assistantMessage.id] ? 'Saving...' : 'Save as Note'}
+                                                                </button>
+                                                                {noteSaveStatuses[entry.assistantMessage.id] && (
+                                                                    <span className={`text-[0.65rem] ${noteSaveStatuses[entry.assistantMessage.id].type === 'success' ? 'text-tera-accent' : 'text-red-400'}`}>
+                                                                        {noteSaveStatuses[entry.assistantMessage.id].message}
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                     <VoiceControls text={entry.assistantMessage.content} messageId={entry.id} />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 )}
-                            </div>
-                        ))
-                    )}
-                    {/* Web Search Status */}
-                    {(isWebSearching || webSearchStatus !== 'idle') && (
-                        <div className="flex items-center gap-4">
-                            <WebSearchStatus
-                                isSearching={isWebSearching}
-                                query={currentSearchQuery}
-                                status={webSearchStatus}
-                                resultCount={webSearchResultCount}
-                            />
                         </div>
-                    )}
-                    {status === 'loading' && (
-                        <div className="flex justify-start">
-                            <div className="max-w-[85%]">
-                                <div className="flex items-center gap-3 rounded-[24px] border border-tera-border bg-tera-panel/80 px-6 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl">
-                                    <div className="flex gap-1">
-                                        <span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                        <span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                        <span className="w-2 h-2 bg-tera-neon/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                                    </div>
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="relative">
-                                            <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent"></div>
+                    ))}
+                    {isStreaming && streamingText && (
+                        <div className="flex justify-start animate-in fade-in duration-300">
+                            <div className="max-w-[92%] md:max-w-[85%]">
+                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-4 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-tera-border bg-[#08101a]">
+                                            <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain p-2" priority />
                                         </div>
-                                        <span className="font-medium animate-pulse">{thinkingMessage}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="relative">
+                                                    <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent" />
+                                                </div>
+                                                <span className="text-sm font-medium leading-6 animate-pulse md:text-[0.98rem]">{thinkingMessage}</span>
+                                            </div>
+                                            <p className="mt-1 text-xs text-tera-secondary">{loadingSteps[0]}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                                        {loadingSteps.slice(1).map((step, index) => (
+                                            <div
+                                                key={step}
+                                                className="flex items-center gap-2 rounded-[14px] border border-tera-border bg-tera-muted px-3 py-2 text-xs text-tera-secondary"
+                                            >
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-tera-border bg-tera-bg text-[0.62rem] font-semibold text-tera-primary">
+                                                    {String(index + 2).padStart(2, '0')}
+                                                </span>
+                                                <span>{step}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    )}
+                    {!isStreaming && status === 'loading' && (
+                        <ThinkingProcess
+                            message={thinkingMessage}
+                            hasImages={loadingHasImages}
+                            isResearch={researchMode}
+                            isStreaming={isStreaming}
+                        />
                     )}
                     <div ref={messagesEndRef} />
                 </div>
             </div>
 
-            {/* Input Area */}
-            <div className="sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/92 px-2 py-2.5 backdrop-blur-xl md:px-8 md:py-3">
+            <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/90 px-2 py-2 backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
-                    <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors ${conversationActive ? 'focus-within:bg-tera-panel' : 'focus-within:bg-tera-panel-strong'}`}>
+                    <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
+                        <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
+                        <div className="flex items-center gap-1">
+                                <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
+                                    <div className="relative h-5 w-5">
+                                        <Image src={theme === 'light' ? '/images/TERA_LOGO_ONLY1.png' : '/images/TERA_LOGO_ONLY.png'} alt="Tera" fill className="object-contain" />
+                                    </div>
+                                </button>
+                            </div>
 
-                        {/* Active Tools & Attachments Preview */}
-                        <div className="flex flex-wrap items-center gap-2 px-2 pt-2">
-                            {/* Web Search Toggle Badge */}
-                            {webSearchEnabled && (
-                                <div className="flex items-center gap-2 rounded-full border border-tera-neon/20 bg-tera-highlight px-3 py-2 text-xs font-semibold text-tera-neon shadow-soft-lg">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m0 0A7.5 7.5 0 1 0 6.75 6.75a7.5 7.5 0 0 0 9.9 9.9Z" /></svg>
-                                    <span>Web Search ON ({webSearchRemaining})</span>
-                                </div>
-                            )}
+                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e) } }} placeholder={textareaPlaceholder} className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.92rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0 md:text-[0.98rem]" rows={1} style={{ height: 'auto' }} onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight, 120)}px` }} />
 
-                            {/* Attachments Preview */}
                             {pendingAttachments.length > 0 && (
-                                <div className="flex flex-wrap gap-3 p-2">
+                                <div className="flex flex-wrap gap-2 px-1 pb-1">
                                     {pendingAttachments.map((att, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="group relative overflow-hidden rounded-[20px] border border-tera-border bg-tera-elevated/90 shadow-soft-lg"
-                                        >
-                                            {att.type === 'image' ? (
-                                                // Image thumbnail preview
-                                                <div className="relative w-24 h-24 md:w-32 md:h-32">
-                                                    <img
-                                                        src={att.url}
-                                                        alt={att.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                    {/* Hover overlay with filename */}
-                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                                                        <span className="text-xs text-white truncate w-full">{att.name}</span>
-                                                    </div>
-                                                </div>
+                                        <div key={idx} className="group relative flex items-center gap-2 rounded-xl border border-tera-border bg-tera-muted px-2.5 py-1.5 text-xs text-tera-secondary">
+                                            {att.type === 'image' && att.url ? (
+                                                <img src={att.url} alt={att.name} className="h-8 w-8 rounded-lg object-cover" />
                                             ) : (
-                                                // File preview (non-image)
-                                                <div className="flex items-center gap-2 px-4 py-3 min-w-[120px]">
-                                                    <FileIcon className="h-6 w-6 text-tera-secondary" />
-                                                    <span className="text-xs text-tera-primary truncate max-w-[150px]">{att.name}</span>
-                                                </div>
+                                                <svg className="h-4 w-4 shrink-0 text-tera-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                                    <polyline points="14 2 14 8 20 8" />
+                                                </svg>
                                             )}
-                                            {/* Remove button */}
+                                            <span className="max-w-[100px] truncate">{att.name}</span>
                                             <button
-                                                onClick={() => setPendingAttachments(prev => prev.filter((_, i) => i !== idx))}
-                                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/70 text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500"
-                                                title="Remove"
+                                                type="button"
+                                                onClick={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                                                className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-tera-secondary/60 transition hover:bg-red-500/10 hover:text-red-400"
+                                                aria-label={`Remove ${att.name}`}
                                             >
-                                                Ã—
+                                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M18 6 6 18" />
+                                                    <path d="m6 6 12 12" />
+                                                </svg>
                                             </button>
                                         </div>
                                     ))}
                                 </div>
                             )}
-                        </div>
 
-                        <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
-                            {/* Left Actions */}
-                            <div className="flex items-center">
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setAttachmentOpen(!attachmentOpen)}
-                                        className="composer-action-button"
-                                        title="Add attachment"
-                                        aria-label="Add attachment"
-                                    >
-                                        <AttachmentIcon />
-                                    </button>
+                            {attachmentMessage && (
+                                <p className="px-1 pb-1 text-xs text-tera-secondary">{attachmentMessage}</p>
+                            )}
 
-                                    {attachmentOpen && (
-                                        <div className="absolute bottom-full left-0 mb-3 w-64 overflow-hidden rounded-2xl border border-tera-border bg-tera-panel p-2 text-tera-primary shadow-2xl">
-                                            {/* File & Media Section */}
-                                            <button
-                                                onClick={() => handleFileSelect('camera')}
-                                                className="composer-menu-row"
-                                            >
-                                                <CameraIcon className="h-[18px] w-[18px] text-tera-secondary" />
-                                                <span>Open Camera</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleFileSelect('image')}
-                                                className="composer-menu-row"
-                                            >
-                                                <ImageIcon className="h-[18px] w-[18px] text-tera-secondary" />
-                                                <span>Upload image</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleFileSelect('file')}
-                                                className="composer-menu-row border-b border-tera-border/70"
-                                            >
-                                                <FileIcon className="h-[18px] w-[18px] text-tera-secondary" />
-                                                <span>Upload file</span>
-                                            </button>
-
-                                            {/* Web Search Option */}
-                                            <button
-                                                onClick={() => {
-                                                    if (webSearchRemaining > 0) {
-                                                        setWebSearchEnabled(!webSearchEnabled)
-                                                        setAttachmentOpen(false)
-                                                    } else {
-                                                        setUpgradePromptType('web-search')
-                                                        setAttachmentOpen(false)
-                                                    }
-                                                }}
-                                                disabled={webSearchRemaining <= 0}
-                                                className={`composer-menu-row ${webSearchRemaining <= 0
-                                                    ? 'text-red-300/50 cursor-not-allowed opacity-60 hover:bg-red-500/10'
-                                                    : webSearchEnabled
-                                                        ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
-                                                        : 'text-tera-primary'
-                                                    }`}
-                                                title={webSearchRemaining <= 0 ? 'Monthly web search limit reached - Upgrade to continue' : 'Search the web for current information'}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px] shrink-0">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m0 0A7.5 7.5 0 1 0 6.75 6.75a7.5 7.5 0 0 0 9.9 9.9Z" />
-                                                </svg>
-                                                <div className="flex-1">
-                                                    <div>Web Search {webSearchEnabled ? '(ON)' : ''}</div>
-                                                    <div className={`text-xs ${webSearchRemaining <= 0 ? 'text-red-300/50' : 'text-tera-secondary'}`}>
-                                                        {webSearchRemaining <= 0 ? 'Limit reached' : `${webSearchRemaining} remaining`}
-                                                    </div>
-                                                </div>
-                                            </button>
-
-                                            {/* Research Mode Toggle - Moved from main UI */}
-                                            <button
-                                                onClick={() => {
-                                                    const isPro = currentUserPlan === 'pro' || currentUserPlan === 'plus' || currentUserPlan === 'lifetime'
-                                                    if (!isPro) {
-                                                        setAttachmentOpen(false)
-                                                        setUpgradePromptType('research-mode') // Reuse or create a type
-                                                        return
-                                                    }
-                                                    setResearchMode(!researchMode)
-                                                    setAttachmentOpen(false)
-                                                }}
-                                                className={`composer-menu-row border-t border-tera-border/70 ${researchMode ? 'text-tera-neon bg-tera-neon/5' : 'text-tera-primary'
-                                                    }`}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-[18px] w-[18px] shrink-0">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-1.313-3.938a4.5 4.5 0 1 1 5.862-5.862L18.75 9l-2.846.813a4.5 4.5 0 0 1-6.09 6.091Z" />
-                                                </svg>
-                                                <div className="flex-1 flex items-center justify-between">
-                                                    <span>Deep Research</span>
-                                                    {researchMode && <span className="text-[10px] font-bold bg-tera-neon/20 px-1.5 py-0.5 rounded text-tera-neon">ON</span>}
-                                                    {!(currentUserPlan === 'pro' || currentUserPlan === 'plus' || currentUserPlan === 'lifetime') && (
-                                                        <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-black px-1.5 py-0.5 rounded ml-2">PRO</span>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Textarea */}
-                            <textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault()
-                                        handleSubmit(e)
-                                    }
-                                }}
-                                placeholder={isListening ? 'Listening...' : 'Ask Tera Anything...'}
-                                className="m-0 min-h-[50px] max-h-[140px] w-full resize-none border-0 bg-transparent px-1 py-2 text-[0.98rem] leading-relaxed text-tera-primary placeholder:text-tera-secondary/60 focus:outline-none focus:ring-0"
-                                rows={1}
-                                style={{ height: 'auto' }}
-                                onInput={(e) => {
-                                    const target = e.target as HTMLTextAreaElement
-                                    target.style.height = 'auto'
-                                    target.style.height = `${Math.min(target.scrollHeight, 120)}px`
-                                }}
-                            />
-
-                            {/* Dynamic Action Button */}
                             <div className="flex items-end gap-1">
-                                {showStopButton && (
-                                    <button
-                                        onClick={handleStop}
-                                        className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white/[0.92] text-[#08101a] transition hover:bg-white"
-                                        title="Stop generating"
-                                        aria-label="Stop generating"
-                                    >
-                                        <StopIcon />
-                                    </button>
-                                )}
-
-                                {showSendButton && (
-                                    <button
-                                        onClick={handleSubmit}
-                                        className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-accent bg-tera-accent text-[#08101a] transition hover:brightness-95"
-                                        title="Send message"
-                                        aria-label="Send message"
-                                    >
-                                        <SendIcon />
-                                    </button>
-                                )}
-
-                                {showMicButton && (
-                                    <button
-                                        onClick={toggleListening}
-                                        className={`composer-action-button ${isListening ? 'border-red-400/40 bg-red-500/18 text-red-300 animate-pulse' : ''}`}
-                                        title="Voice input"
-                                        aria-label="Voice input"
-                                    >
-                                        <MicIcon />
-                                    </button>
-                                )}
+                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:-translate-y-px hover:bg-white/95"><StopIcon /></button>}
+                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:bg-white/95"><SendIcon /></button>}
+                                {showMic && <button onClick={toggleListening} className={`composer-action-button ${isListening ? 'border-red-400/40 bg-red-500/18 text-red-300 animate-pulse' : ''}`}><MicIcon /></button>}
                             </div>
                         </div>
+
+                        {attachmentOpen && (
+                            <>
+                                <button
+                                    type="button"
+                                    aria-label="Close composer menu"
+                                    onClick={closeComposerMenu}
+                                    className="fixed inset-0 z-[58] bg-black/60 backdrop-blur-sm"
+                                />
+
+                                <div className="absolute left-0 right-0 bottom-full z-[59] mb-3 mx-auto w-full max-w-[380px] px-2 sm:px-0 sm:left-0 sm:right-auto sm:w-[min(380px,calc(100vw-1rem))]">
+                                    <div className="overflow-hidden rounded-[20px] sm:rounded-[24px] border border-tera-border bg-tera-panel/98 text-tera-primary shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+
+                                        <div className="px-2 sm:px-3 pt-3 pb-1">
+                                            <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Response mode</p>
+                                            <div className="space-y-px">
+                                                {([
+                                                    { key: 'ask', label: 'Ask', hint: 'Direct answers and concise guidance.', icon: <AskIcon /> },
+                                                    { key: 'study', label: 'Study', hint: 'Step-by-step explanations with checkpoints.', icon: <StudyIcon /> },
+                                                    { key: 'quiz', label: 'Quiz', hint: 'Practice questions and quick feedback.', icon: <QuizIcon /> },
+                                                    { key: 'summarize', label: 'Summarize', hint: 'Condense long text into clear takeaways.', icon: <SummarizeIcon /> },
+                                                    ...(user?.subscriptionPlan === 'pro' || user?.subscriptionPlan === 'plus'
+                                                        ? [{ key: 'research', label: 'Deep Research', hint: 'Web-backed research with citations.', icon: <IconResearch /> }]
+                                                        : []),
+                                                ] as Array<{ key: ResponseModeKey; label: string; hint: string; icon: React.ReactNode }>).map((item) => {
+                                                    const isActive = item.key === 'research'
+                                                        ? selectedMode === 'research'
+                                                        : selectedMode !== 'research' && chatMode === item.key
+
+                                                    return (
+                                                        <button
+                                                            key={item.key}
+                                                            type="button"
+                                                            onClick={() => handleResponseModeSelect(item.key)}
+                                                            className={[
+                                                                'flex w-full items-center gap-3 rounded-[12px] sm:rounded-[14px] px-3 py-3 sm:py-2.5 text-left transition-all duration-150',
+                                                                isActive
+                                                                    ? 'bg-tera-primary/10 text-tera-primary ring-1 ring-inset ring-tera-primary/20'
+                                                                    : 'text-tera-secondary active:bg-white/[0.06] sm:hover:bg-white/[0.08] sm:hover:text-tera-primary',
+                                                            ].join(' ')}
+                                                        >
+                                                            <span
+                                                                className={[
+                                                                    'flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border transition-colors',
+                                                                    isActive
+                                                                        ? 'border-tera-primary/20 bg-tera-primary text-tera-bg'
+                                                                        : 'border-tera-border bg-tera-bg text-tera-secondary',
+                                                                ].join(' ')}
+                                                            >
+                                                                {item.icon}
+                                                            </span>
+                                                            <span className="min-w-0 flex-1">
+                                                                <span className="block text-[0.94rem] sm:text-[0.88rem] font-medium">{item.label}</span>
+                                                                <span className={[
+                                                                    'mt-px block text-[0.75rem] sm:text-[0.72rem] leading-4',
+                                                                    isActive ? 'text-tera-secondary/80' : 'text-tera-secondary/60',
+                                                                ].join(' ')}>
+                                                                    {item.hint}
+                                                                </span>
+                                                            </span>
+                                                            {isActive && (
+                                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                                                                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-tera-primary"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="mx-3 my-1.5 h-px bg-white/8" />
+
+                                        <div className="px-2 sm:px-3 pb-3">
+                                            <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Attachments</p>
+                                            <div className="space-y-px">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAttachmentOpen(false)
+                                                        openSearchHistory()
+                                                    }}
+                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                >
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <HistoryIcon />
+                                                    </span>
+                                                    History & bookmarks
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleFileSelect('file')}
+                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                >
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <AttachmentIcon />
+                                                    </span>
+                                                    Upload photos & files
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleFileSelect('image')}
+                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                >
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <ScanIcon />
+                                                    </span>
+                                                    Take screenshot
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleFileSelect('camera')}
+                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                >
+                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <CameraIcon />
+                                                    </span>
+                                                    Take photo
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
 
+            <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => handleAttachmentUpload(e, 'file')} />
+            <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => handleAttachmentUpload(e, 'image')} />
+            <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={(e) => handleAttachmentUpload(e, 'image')} />
 
-            {/* Hidden Inputs */}
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={(e) => handleAttachmentUpload(e, 'file')}
-            />
-            {/* ... other inputs ... */}
-
-            {/* Search History Modal */}
-            {
-                searchHistoryOpen && user?.id && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="relative w-full max-w-md">
-                            <button
-                                onClick={() => setSearchHistoryOpen(false)}
-                                className="absolute -top-10 right-0 text-white/80 hover:text-white"
-                            >
-                                Close Ã—
-                            </button>
-                            <SearchHistoryRenderer
-                                userId={user.id}
-                                onSelectQuery={(query) => {
-                                    setPrompt(query)
-                                    setSearchHistoryOpen(false)
-                                    if (!webSearchEnabled) setWebSearchEnabled(true)
-                                }}
-                                onSelectBookmark={(url) => {
-                                    window.open(url, '_blank')
-                                }}
-                            />
-                        </div>
+            {searchHistoryOpen && user?.id && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="relative w-full max-w-md">
+                        <button onClick={() => setSearchHistoryOpen(false)} className="absolute -top-10 right-0 text-white/80 hover:text-white">Close ×</button>
+                        <SearchHistoryRenderer userId={user.id} onSelectQuery={(q: string) => { setPrompt(q); setSearchHistoryOpen(false) }} onSelectBookmark={(u: string) => window.open(u, '_blank')} />
                     </div>
-                )
-            }
+                </div>
+            )}
 
-            <input
-                type="file"
-                ref={imageInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={(e) => handleAttachmentUpload(e, 'image')}
-            />
-            <input
-                type="file"
-                ref={cameraInputRef}
-                className="hidden"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => handleAttachmentUpload(e, 'image')}
-            />
-
-            {
-                upgradePromptType && (
-                    <UpgradePrompt
-                        type={upgradePromptType}
-                        onClose={() => setUpgradePromptType(null)}
-                    />
-                )
-            }
-
-            <LimitModal
-                isOpen={limitModalType !== null}
-                limitType={limitModalType}
-                currentPlan={currentUserPlan}
-                unlocksAt={limitUnlocksAt}
-                onClose={() => {
-                    setLimitModalType(null)
-                    setLimitUnlocksAt(undefined)
-                }}
-            />
+            {upgradePromptType && <UpgradePrompt type={upgradePromptType} onClose={() => setUpgradePromptType(null)} />}
+            <LimitModal isOpen={limitModalType !== null} limitType={limitModalType} currentPlan={'free'} unlocksAt={limitUnlocksAt} onClose={() => { setLimitModalType(null); setLimitUnlocksAt(undefined) }} />
         </div>
     )
 }
-
-
