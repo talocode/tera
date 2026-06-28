@@ -1,0 +1,185 @@
+.research-panel {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  text-align: left;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.research-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #58C4DD;
+}
+
+.research-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.research-action {
+  padding: 10px 18px;
+  background: rgba(88, 196, 221, 0.15);
+  border: 1px solid rgba(88, 196, 221, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.research-action:hover {
+  background: rgba(88, 196, 221, 0.3);
+  border-color: #58C4DD;
+}
+
+.research-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.research-action .icon {
+  font-size: 16px;
+}
+
+.research-status {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: none;
+}
+
+.research-status.visible {
+  display: block;
+}
+
+.research-status.success {
+  border-color: rgba(131, 193, 103, 0.5);
+  color: #83C167;
+}
+
+.research-status.warning {
+  border-color: rgba(255, 193, 7, 0.5);
+  color: #ffc107;
+}
+
+.research-status.error {
+  border-color: rgba(220, 53, 69, 0.5);
+  color: #dc3545;
+}
+
+.research-status.info {
+  border-color: rgba(88, 196, 221, 0.5);
+  color: #58C4DD;
+}
+
+.research-history {
+  margin-top: 16px;
+}
+
+.research-history h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #b0b0b0;
+}
+
+.research-history-list {
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.research-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.research-history-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.research-history-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.research-history-title {
+  color: #ffffff;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.research-history-meta {
+  color: #888888;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.research-history-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.research-history-btn {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #cccccc;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.research-history-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.research-history-empty {
+  color: #666666;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.research-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #58C4DD;
+  border-radius: 50%;
+  animation: research-spin 0.6s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes research-spin {
+  to { transform: rotate(360deg); }
+}

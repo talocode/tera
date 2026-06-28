@@ -6,6 +6,7 @@
   <title>New Tab - Tera Browser</title>
   <link rel="stylesheet" href="newtab.css">
   <link rel="stylesheet" href="visual-context.css">
+  <link rel="stylesheet" href="research-mode.css">
 </head>
 <body>
   <div class="container">
@@ -28,6 +29,40 @@
     <div class="actions">
       <button id="openTera" class="action-button">Open Tera</button>
       <button id="captureViewport" class="action-button action-capture">Visual Explain</button>
+      <button id="researchModeToggle" class="action-button action-research">Research Mode</button>
+    </div>
+
+    <div id="researchPanel" class="research-panel" style="display:none;">
+      <div class="research-title">Research Mode</div>
+      <div class="research-actions">
+        <button id="researchCapturePage" class="research-action" disabled title="Capture the current page text">
+          <span class="icon">&#128196;</span> Capture Page
+        </button>
+        <button id="researchCaptureSelection" class="research-action" disabled title="Capture selected text on the page">
+          <span class="icon">&#128221;</span> Capture Selection
+        </button>
+        <button id="researchSummarize" class="research-action" disabled title="Summarize the captured content">
+          <span class="icon">&#128214;</span> Summarize
+        </button>
+        <button id="researchSendToTera" class="research-action" disabled title="Send captured context to Tera">
+          <span class="icon">&#128640;</span> Send to Tera
+        </button>
+        <button id="researchSaveSource" class="research-action" disabled title="Save source to local history">
+          <span class="icon">&#128190;</span> Save Source
+        </button>
+        <button id="researchClearHistory" class="research-action" title="Clear capture history">
+          <span class="icon">&#128465;</span> Clear History
+        </button>
+      </div>
+
+      <div id="researchStatus" class="research-status"></div>
+
+      <div class="research-history">
+        <h3>Capture History</h3>
+        <ul id="researchHistoryList" class="research-history-list">
+          <li class="research-history-empty">No captures yet. Browse a page and use Research Mode.</li>
+        </ul>
+      </div>
     </div>
 
     <p class="footer">

@@ -263,3 +263,179 @@ ipcMain.handle('learnWithTera', (event, title, url) => {
   const query = `Teach me the key ideas from this page: ${title} ${url}`;
   shell.openExternal(buildTeraSearchUrl(query));
 });
+
+const CAPTURES_DIR = path.join(app.getPath('userData'), 'captures');
+const CAPTURES_FILE = path.join(CAPTURES_DIR, 'captures.json');
+const HISTORIES_FILE = path.join(CAPTURES_DIR, 'histories.json');
+
+function ensureCapturesDir() {
+  if (!require('fs').existsSync(CAPTURES_DIR)) {
+    require('fs').mkdirSync(CAPTURES_DIR, { recursive: true });
+  }
+}
+
+function readCapturesJson(filePath) {
+  try {
+    ensureCapturesDir();
+    if (!require('fs').existsSync(filePath)) return [];
+    const raw = require('fs').readFileSync(filePath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function writeCapturesJson(filePath, data) {
+  try {
+    ensureCapturesDir();
+    require('fs').writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const MAX_CAPTURES = 50;
+const MAX_HISTORY = 100;
+
+ipcMain.handle('capture:save', (event, capture) => {
+  const captures = readCapturesJson(CAPTURES_FILE);
+  captures.unshift(capture);
+  writeCapturesJson(CAPTURES_FILE, captures.slice(0, MAX_CAPTURES));
+
+  const histories = readCapturesJson(HISTORIES_FILE);
+  histories.unshift({
+    id: capture.id,
+    url: capture.url,
+    title: capture.title,
+    capturedAt: capture.capturedAt,
+    source: capture.source,
+    warnings: capture.warnings,
+  });
+  writeCapturesJson(HISTORIES_FILE, histories.slice(0, MAX_HISTORY));
+
+  return true;
+});
+
+ipcMain.handle('capture:get', (event, id) => {
+  const captures = readCapturesJson(CAPTURES_FILE);
+  return captures.find((c) => c.id === id) || null;
+});
+
+ipcMain.handle('capture:history', () => {
+  return readCapturesJson(HISTORIES_FILE);
+});
+
+ipcMain.handle('capture:remove', (event, id) => {
+  let captures = readCapturesJson(CAPTURES_FILE);
+  captures = captures.filter((c) => c.id !== id);
+  writeCapturesJson(CAPTURES_FILE, captures);
+
+  let histories = readCapturesJson(HISTORIES_FILE);
+  histories = histories.filter((h) => h.id !== id);
+  writeCapturesJson(HISTORIES_FILE, histories);
+
+  return true;
+});
+
+ipcMain.handle('capture:clear', () => {
+  writeCapturesJson(CAPTURES_FILE, []);
+  writeCapturesJson(HISTORIES_FILE, []);
+  return true;
+});
+
+ipcMain.handle('capture:getRecent', (event, limit = 10) => {
+  const captures = readCapturesJson(CAPTURES_FILE);
+  return captures.slice(0, limit);
+});
+
+ipcMain.handle('research:capturePageText', async (event) => {
+  const webContents = event.sender;
+  try {
+    const result = await webContents.executeJavaScript(`
+      (function() {
+        const selectors = ['article', '[role="main"]', 'main', '.content', '#content', 'body'];
+        for (const sel of selectors) {
+          const el = document.querySelector(sel);
+          if (el) {
+            const clone = el.cloneNode(true);
+            const removals = clone.querySelectorAll('script, style, nav, header, footer, iframe, .ad, .ads, .advertisement, .sidebar, .comment, .comments, .nav, .footer, .header, noscript');
+            for (const r of removals) r.remove();
+            const text = (clone.textContent || '').trim();
+            if (text.length > 200) return text.substring(0, 50000);
+          }
+        }
+        return (document.body ? document.body.textContent : '').trim().substring(0, 50000);
+      })()
+    `);
+    return { ok: true, text: result || '' };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('research:getPageTitle', async (event) => {
+  const webContents = event.sender;
+  try {
+    const title = await webContents.executeJavaScript('document.title');
+    return { ok: true, title: title || '' };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('research:getPageMeta', async (event) => {
+  const webContents = event.sender;
+  try {
+    const meta = await webContents.executeJavaScript(`
+      (function() {
+        return {
+          title: document.title || '',
+          url: window.location.href || '',
+          description: (document.querySelector('meta[name="description"]') || {}).content || '',
+          headings: Array.from(document.querySelectorAll('h1, h2, h3')).map(function(h) { return h.textContent.trim(); }).filter(Boolean),
+          links: Array.from(document.querySelectorAll('a[href]')).map(function(a) { return { text: (a.textContent || '').trim().substring(0, 200), href: a.href }; }).filter(function(l) { return l.text && l.href && !l.href.startsWith('javascript:') && !l.href.startsWith('file:'); }).slice(0, 200)
+        };
+      })()
+    `);
+    return { ok: true, ...meta };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('research:sendToTera', async (event, { url, title, text, mode, selectedText }) => {
+  try {
+    const response = await fetch('https://teraai.chat/api/browser/context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: 'tera-browser',
+        url: url || '',
+        title: title || '',
+        text: text || '',
+        selectedText: selectedText || '',
+        mode: mode || 'research',
+      }),
+    });
+    const data = await response.json();
+    return { ok: true, response: data };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('research:summarizeWithTera', async (event, { url, title, text, level }) => {
+  const query = level === 'brief'
+    ? `Brief summary: ${title || url}`
+    : level === 'detailed'
+      ? `Detailed summary: ${title || url}`
+      : `Key points: ${title || url}`;
+  shell.openExternal(buildTeraSearchUrl(`${query}\n\n${(text || '').substring(0, 3000)}`));
+  return { ok: true };
+});
+
+ipcMain.handle('research:openTeraSearch', (event, query) => {
+  shell.openExternal(buildTeraSearchUrl(query));
+  return { ok: true };
+});
