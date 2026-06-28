@@ -68,10 +68,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Install legacy Netlify CLI
-        run: npm install -g netlify-cli@17.36.2
-
       - name: Deploy to Netlify
-        run: netlify deploy --dir=.next --prod --site=$NETLIFY_SITE_ID
+        run: npx netlify-cli@17.36.2 deploy --filter . --no-build --dir=.next --prod --site=$NETLIFY_SITE_ID
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
