@@ -109,6 +109,10 @@ body {
   border-color: #58C4DD;
 }
 
+.action-capture {
+  border-color: rgba(88, 196, 221, 0.4);
+}
+
 .footer {
   color: #666666;
   font-size: 12px;
