@@ -8,7 +8,12 @@ Local: `http://localhost:3000/api/v1`
 
 ```bash
 API_KEY="tk_dev_xxxxxxxxxxxx"
-BASE="http://localhost:3000/api/v1"
+
+# Public (when live)
+BASE="https://api.teraai.chat/v1"
+
+# Local development
+# BASE="http://localhost:3000/api/v1"
 ```
 
 ## Rewrite

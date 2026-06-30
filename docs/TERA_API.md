@@ -6,7 +6,9 @@ Tera API is a capability-based API for useful writing and coding workflows. It i
 
 Production: `https://api.teraai.chat/v1`
 
-Local development: `http://localhost:3000/api/v1`
+Local development: `http://localhost:3000/api/v1` (or `/v1` with Next.js rewrites)
+
+> Note: The public API is not yet live. See `TERA_API_RELEASE_CHECKLIST.md` for deployment readiness.
 
 ## Authentication
 
@@ -85,6 +87,19 @@ All errors return JSON:
 ## Rate Limits
 
 Tera API is rate-limited by your Talocode Cloud wallet balance. There are no separate rate limits at the API level in v0.1.
+
+## Domain Routing
+
+The API is served alongside the main teraai.chat app. A rewrite rule maps `/v1/:path*` → `/api/v1/:path*`, so both URLs work:
+
+- `https://api.teraai.chat/v1/writing/rewrite` (via api.teraai.chat)
+- `https://teraai.chat/api/v1/writing/rewrite` (via main app)
+- `http://localhost:3000/v1/writing/rewrite` (local, via rewrite)
+- `http://localhost:3000/api/v1/writing/rewrite` (local, direct)
+
+For local development, use `/api/v1/` directly. The `/v1/` prefix is handled by the rewrite rule at runtime.
+
+See `TERA_API_DOMAIN_ROUTING.md` for the full routing and DNS plan.
 
 ## Notes
 
