@@ -38,8 +38,10 @@ Prices are configured in the Tera API pricing config and will later sync with Ta
 Tera API charges credits by calling:
 
 ```
-POST ${STACKLANE_API_BASE_URL}/api/v1/cloud/usage/charge
+POST ${TALOCODE_BASE_URL}/api/v1/cloud/usage/charge
 ```
+
+Falls back to `STACKLANE_API_BASE_URL` if `TALOCODE_BASE_URL` is not set.
 
 Payload:
 
@@ -61,7 +63,8 @@ Payload:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| STACKLANE_API_BASE_URL | http://localhost:4000 | Talocode Cloud API base URL |
+| TALOCODE_BASE_URL | http://localhost:4000 | Canonical Talocode Cloud API base URL |
+| STACKLANE_API_BASE_URL | http://localhost:4000 | Legacy alias for `TALOCODE_BASE_URL` |
 
 ## Insufficient Credits Response
 

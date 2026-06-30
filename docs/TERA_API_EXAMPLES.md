@@ -1,18 +1,25 @@
 # Tera API Examples
 
-Base URL: `https://api.teraai.chat/v1`
-
-Local: `http://localhost:3000/api/v1`
+Canonical base: `https://api.talocode.xyz/v1/tera` (set via `TALOCODE_BASE_URL`)
+Alias: `https://api.teraai.chat/v1`
+Local: `http://localhost:3000/api/v1` or `http://localhost:3000/v1/tera`
 
 ## Authentication
 
 ```bash
-API_KEY="tk_dev_xxxxxxxxxxxx"
+export TALOCODE_API_KEY="tk_dev_xxxxxxxxxxxx"
+export TALOCODE_BASE_URL="https://api.talocode.xyz"
 
-# Public (when live)
-BASE="https://api.teraai.chat/v1"
+# Public (canonical)
+BASE="${TALOCODE_BASE_URL}/v1/tera"
 
-# Local development
+# Public (alias)
+# BASE="https://api.teraai.chat/v1"
+
+# Local development (via tera namespace)
+# BASE="http://localhost:3000/v1/tera"
+
+# Local development (legacy)
 # BASE="http://localhost:3000/api/v1"
 ```
 

@@ -3,14 +3,21 @@
 /**
  * Tera API Smoke Test v0.1
  *
- * Tests the full API surface: health, capabilities, pricing, and a mock rewrite.
+ * Tests the full API surface: health, capabilities, pricing, and capability endpoints.
  *
  * Configurable via env:
- *   TERA_API_BASE_URL  (default: http://localhost:3000/api/v1)
+ *   TALOCODE_BASE_URL  (default: http://localhost:3000)
  *   TALOCODE_API_KEY   (default: tk_dev_smoke_test_key)
+ *
+ * Legacy env vars supported (fallback):
+ *   TERA_API_BASE_URL (overrides everything if set)
+ *   STACKLANE_API_BASE_URL (legacy alias)
  */
 
-const BASE_URL = process.env.TERA_API_BASE_URL || 'http://localhost:3000/api/v1'
+const BASE_URL = (process.env.TERA_API_BASE_URL
+  || (process.env.TALOCODE_BASE_URL ? `${process.env.TALOCODE_BASE_URL}/api/v1` : null)
+  || (process.env.STACKLANE_API_BASE_URL ? `${process.env.STACKLANE_API_BASE_URL}/api/v1/tera` : null)
+  || 'http://localhost:3000/api/v1')
 const API_KEY = process.env.TALOCODE_API_KEY || 'tk_dev_smoke_test_key'
 
 async function req(method, path, body) {
@@ -169,6 +176,24 @@ if (rewrite.status === 200) {
   check('x-tera-billing-provider header is stacklane', res.headers.get('x-tera-billing-provider') === 'stacklane', `got ${res.headers.get('x-tera-billing-provider')}`)
   check('x-tera-capability header is writing', res.headers.get('x-tera-capability') === 'writing', `got ${res.headers.get('x-tera-capability')}`)
 }
+
+// 11-14. Namespaced routes (/tera/ prefix)
+console.log('\n── Namespaced Routes (/tera/) ──')
+const nsRewrite = await req('POST', '/tera/writing/rewrite', { text: 'Test.', style: 'clear', tone: 'direct', maxLength: 100 })
+const nsRewriteOk = nsRewrite.status === 200 || nsRewrite.status === 402 || nsRewrite.status === 502
+check('namespaced rewrite returns expected status', nsRewriteOk, `got ${nsRewrite.status}`)
+
+const nsDraft = await req('POST', '/tera/writing/draft', { type: 'post', brief: 'Test', audience: 'dev', tone: 'direct' })
+const nsDraftOk = nsDraft.status === 200 || nsDraft.status === 402 || nsDraft.status === 502
+check('namespaced draft returns expected status', nsDraftOk, `got ${nsDraft.status}`)
+
+const nsExplain = await req('POST', '/tera/coding/explain', { language: 'js', code: 'const a=1', level: 'beginner', focus: ['logic'] })
+const nsExplainOk = nsExplain.status === 200 || nsExplain.status === 402 || nsExplain.status === 502
+check('namespaced explain returns expected status', nsExplainOk, `got ${nsExplain.status}`)
+
+const nsReview = await req('POST', '/tera/coding/review', { language: 'js', code: 'const a=1', focus: ['bugs'], strictness: 'normal' })
+const nsReviewOk = nsReview.status === 200 || nsReview.status === 402 || nsReview.status === 502
+check('namespaced review returns expected status', nsReviewOk, `got ${nsReview.status}`)
 
 console.log(`\nPassed: ${passed}  Failed: ${failed}`)
 process.exit(failed > 0 ? 1 : 0)

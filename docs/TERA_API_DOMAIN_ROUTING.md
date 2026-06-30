@@ -1,6 +1,13 @@
 # Tera API Domain Routing
 
-## Public Base URL
+## Canonical Base URL
+
+```
+TALOCODE_BASE_URL=https://api.talocode.xyz
+https://api.talocode.xyz/v1/tera/writing/rewrite
+```
+
+## Alias Base URL
 
 ```
 https://api.teraai.chat/v1
@@ -18,12 +25,18 @@ API routes exist under:
 /api/v1/health
 /api/v1/capabilities
 /api/v1/pricing
+/api/v1/tera/writing/rewrite      (namespaced alias)
+/api/v1/tera/writing/draft         (namespaced alias)
+/api/v1/tera/coding/explain        (namespaced alias)
+/api/v1/tera/coding/review         (namespaced alias)
 ```
 
-A Next.js rewrite rule maps `/v1/:path*` → `/api/v1/:path*`. This means both URLs work:
+A Next.js rewrite rule maps `/v1/:path*` → `/api/v1/:path*`. This means all these URLs work:
 
-- `https://api.teraai.chat/v1/writing/rewrite`
-- `https://teraai.chat/api/v1/writing/rewrite`
+- `https://api.talocode.xyz/v1/tera/writing/rewrite` (canonical)
+- `https://api.talocode.xyz/v1/writing/rewrite` (legacy)
+- `https://api.teraai.chat/v1/writing/rewrite` (alias)
+- `https://teraai.chat/api/v1/writing/rewrite` (main app)
 
 ## Routing Strategies
 
@@ -67,6 +80,7 @@ Cons: Duplicated infrastructure, more maintenance.
 
 | Record | Type | Value | Notes |
 |--------|------|-------|-------|
+| api.talocode.xyz | CNAME | talocode.netlify.app | Canonical Talocode Cloud API |
 | api.teraai.chat | CNAME | tera.netlify.app | Same site as teraai.chat (Option B) |
 | api.teraai.chat | CNAME | feat--tera.netlify.app | Branch-specific (Option A) |
 

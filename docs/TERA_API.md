@@ -4,9 +4,20 @@ Tera API is a capability-based API for useful writing and coding workflows. It i
 
 ## Base URL
 
-Production: `https://api.teraai.chat/v1`
+Tera API is part of Talocode Cloud. Use:
 
-Local development: `http://localhost:3000/api/v1` (or `/v1` with Next.js rewrites)
+```
+TALOCODE_BASE_URL=https://api.talocode.xyz
+```
+
+| Environment | URL |
+|-------------|-----|
+| Production | `https://api.talocode.xyz/v1/tera` |
+| Production (alias) | `https://api.teraai.chat/v1` |
+| Local (Next.js rewrites) | `http://localhost:3000/v1/tera` |
+| Local (direct) | `http://localhost:3000/api/v1/tera` |
+
+All routes are available under both `/v1/tera/` (namespaced) and `/v1/` (legacy) paths for backward compatibility.
 
 > Note: The public API is not yet live. See `TERA_API_RELEASE_CHECKLIST.md` for deployment readiness.
 
@@ -28,15 +39,15 @@ Get an API key from the Talocode Cloud Dashboard.
 
 ## Endpoints
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/v1/writing/rewrite` | Rewrite text with a specified style and tone |
-| POST | `/v1/writing/draft` | Draft content from a brief |
-| POST | `/v1/coding/explain` | Explain how code works |
-| POST | `/v1/coding/review` | Review code for issues |
-| GET | `/v1/health` | Service health check |
-| GET | `/v1/capabilities` | List available capabilities |
-| GET | `/v1/pricing` | Current pricing |
+| Method | Route | Aliased Route | Description |
+|--------|-------|---------------|-------------|
+| POST | `/v1/writing/rewrite` | `/v1/tera/writing/rewrite` | Rewrite text with a specified style and tone |
+| POST | `/v1/writing/draft` | `/v1/tera/writing/draft` | Draft content from a brief |
+| POST | `/v1/coding/explain` | `/v1/tera/coding/explain` | Explain how code works |
+| POST | `/v1/coding/review` | `/v1/tera/coding/review` | Review code for issues |
+| GET | `/v1/health` | — | Service health check |
+| GET | `/v1/capabilities` | — | List available capabilities |
+| GET | `/v1/pricing` | — | Current pricing |
 
 ## Pricing
 
@@ -90,7 +101,19 @@ Tera API is rate-limited by your Talocode Cloud wallet balance. There are no sep
 
 ## Domain Routing
 
-The API is served alongside the main teraai.chat app. A rewrite rule maps `/v1/:path*` → `/api/v1/:path*`, so both URLs work:
+Tera API runs under two routing schemes:
+
+### Talocode Cloud (canonical)
+
+```
+https://api.talocode.xyz/v1/tera/writing/rewrite
+```
+
+This is the canonical base URL for all Talocode Cloud products. Each product is namespaced under `/v1/{product}/`.
+
+### teraai.chat (alias)
+
+The API is also served alongside the main teraai.chat app via a Next.js rewrite rule mapping `/v1/:path*` → `/api/v1/:path*`:
 
 - `https://api.teraai.chat/v1/writing/rewrite` (via api.teraai.chat)
 - `https://teraai.chat/api/v1/writing/rewrite` (via main app)

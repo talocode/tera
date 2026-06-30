@@ -12,7 +12,7 @@ export async function GET() {
         description: 'Rewrite existing text with a specified style and tone.',
         credits: 5,
         methods: ['POST'],
-        route: '/v1/writing/rewrite',
+        routes: ['/v1/writing/rewrite', '/v1/tera/writing/rewrite'],
       },
       {
         id: 'writing.draft',
@@ -20,7 +20,7 @@ export async function GET() {
         description: 'Draft new content from a brief (email, social post, article, etc.).',
         credits: 10,
         methods: ['POST'],
-        route: '/v1/writing/draft',
+        routes: ['/v1/writing/draft', '/v1/tera/writing/draft'],
       },
       {
         id: 'coding.explain',
@@ -28,7 +28,7 @@ export async function GET() {
         description: 'Explain how a piece of code works.',
         credits: 10,
         methods: ['POST'],
-        route: '/v1/coding/explain',
+        routes: ['/v1/coding/explain', '/v1/tera/coding/explain'],
       },
       {
         id: 'coding.review',
@@ -36,7 +36,7 @@ export async function GET() {
         description: 'Review code for bugs, security, performance, and best practices.',
         credits: 20,
         methods: ['POST'],
-        route: '/v1/coding/review',
+        routes: ['/v1/coding/review', '/v1/tera/coding/review'],
       },
     ],
   })

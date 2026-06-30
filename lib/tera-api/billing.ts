@@ -33,7 +33,7 @@ export interface ChargeResult {
 }
 
 function getStacklaneBaseUrl(): string {
-  return process.env.STACKLANE_API_BASE_URL || 'http://localhost:4000'
+  return process.env.TALOCODE_BASE_URL || process.env.STACKLANE_API_BASE_URL || 'http://localhost:4000'
 }
 
 export async function chargeCredits(opts: {
