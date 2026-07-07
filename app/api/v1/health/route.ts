@@ -17,6 +17,8 @@ export async function GET() {
       '/v1/health',
       '/v1/capabilities',
       '/v1/pricing',
+      '/v1/chat/completions',
+      '/v1/tera/chat/completions',
     ],
     timestamp: new Date().toISOString(),
   }

@@ -42,3 +42,15 @@ export const reviewSchema = z.object({
   focus: z.array(z.enum(validReviewFocus)).optional().default(['bugs', 'security']),
   strictness: z.enum(validStrictness).optional().default('normal'),
 })
+
+export const chatMessageSchema = z.object({
+  role: z.enum(['system', 'user', 'assistant']),
+  content: z.string().min(1, 'Message content is required.'),
+})
+
+export const chatCompletionSchema = z.object({
+  model: z.string().optional().default('mistral-small-latest'),
+  messages: z.array(chatMessageSchema).min(1, 'At least one message is required.'),
+  max_tokens: z.number().int().positive().optional().default(2000),
+  temperature: z.number().min(0).max(2).optional().default(0.7),
+})

@@ -38,6 +38,14 @@ export async function GET() {
         methods: ['POST'],
         routes: ['/v1/coding/review', '/v1/tera/coding/review'],
       },
+      {
+        id: 'chat.completions',
+        object: 'tera.capability',
+        description: 'General-purpose chat completions powered by Mistral.',
+        credits: 3,
+        methods: ['POST'],
+        routes: ['/v1/chat/completions', '/v1/tera/chat/completions'],
+      },
     ],
   })
 }
