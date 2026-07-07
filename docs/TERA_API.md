@@ -45,6 +45,7 @@ Get an API key from the Talocode Cloud Dashboard.
 | POST | `/v1/writing/draft` | `/v1/tera/writing/draft` | Draft content from a brief |
 | POST | `/v1/coding/explain` | `/v1/tera/coding/explain` | Explain how code works |
 | POST | `/v1/coding/review` | `/v1/tera/coding/review` | Review code for issues |
+| POST | `/v1/coding/write` | `/v1/tera/coding/write` | Write production-ready code from a task description |
 | GET | `/v1/health` | — | Service health check |
 | GET | `/v1/capabilities` | — | List available capabilities |
 | GET | `/v1/pricing` | — | Current pricing |
@@ -57,6 +58,7 @@ Get an API key from the Talocode Cloud Dashboard.
 | writing.draft | 10 | $0.10 |
 | coding.explain | 10 | $0.10 |
 | coding.review | 20 | $0.20 |
+| coding.write | 20 | $0.20 |
 
 1 credit = $0.01 USD. Credits are deducted from your Talocode Cloud wallet.
 

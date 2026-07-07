@@ -39,6 +39,14 @@ export async function GET() {
         routes: ['/v1/coding/review', '/v1/tera/coding/review'],
       },
       {
+        id: 'coding.write',
+        object: 'tera.capability',
+        description: 'Write production-ready code from a task description.',
+        credits: 20,
+        methods: ['POST'],
+        routes: ['/v1/coding/write', '/v1/tera/coding/write'],
+      },
+      {
         id: 'chat.completions',
         object: 'tera.capability',
         description: 'General-purpose chat completions powered by Mistral.',

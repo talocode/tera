@@ -3,6 +3,7 @@ export const TERA_API_PRICING = {
   'writing.draft': 10,
   'coding.explain': 10,
   'coding.review': 20,
+  'coding.write': 20,
   'chat.completions': 3,
 } as const
 

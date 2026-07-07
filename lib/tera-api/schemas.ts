@@ -43,6 +43,14 @@ export const reviewSchema = z.object({
   strictness: z.enum(validStrictness).optional().default('normal'),
 })
 
+export const writeSchema = z.object({
+  language: z.string().min(1, 'Language is required.'),
+  task: z.string().min(1, 'Task description is required.').max(10000, 'Task must be under 10000 characters.'),
+  context: z.string().max(50000, 'Context must be under 50000 characters.').optional(),
+  style: z.string().optional().default('production-ready'),
+  generateTests: z.boolean().optional().default(false),
+})
+
 export const chatMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
   content: z.string().min(1, 'Message content is required.'),

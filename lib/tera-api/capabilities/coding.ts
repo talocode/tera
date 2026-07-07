@@ -1,9 +1,10 @@
 import { callProvider } from './provider.ts'
 import type { z } from 'zod'
-import type { explainSchema, reviewSchema } from '../schemas.ts'
+import type { explainSchema, reviewSchema, writeSchema } from '../schemas.ts'
 
 type ExplainInput = z.infer<typeof explainSchema>
 type ReviewInput = z.infer<typeof reviewSchema>
+type WriteInput = z.infer<typeof writeSchema>
 
 export interface ExplainResult {
   summary: string
@@ -78,6 +79,74 @@ Do NOT include any text outside the JSON object.`
 
   const raw = await callProvider(systemInstruction, userContent)
   return parseReviewResult(raw)
+}
+
+export interface WriteResult {
+  code: string
+  explanation: string
+  language: string
+  files: Array<{ name: string; code: string }>
+  testCode: string | null
+}
+
+export async function executeWrite(input: WriteInput): Promise<WriteResult> {
+  const systemInstruction = `You are a production-ready code generation assistant. Write clean, maintainable, well-documented code.
+
+Return ONLY valid JSON with this exact structure:
+{
+  "code": "the main code file content",
+  "explanation": "a brief explanation of the code architecture and key decisions",
+  "language": "the programming language used",
+  "files": [
+    {"name": "filename.ext", "code": "file content here"}
+  ],
+  "testCode": "test file content or null if generateTests was false"
+}
+
+Rules:
+- Write production-quality code with proper error handling and edge cases.
+- Include imports, type definitions, and exports where applicable.
+- Files array should include the main file plus any additional helper files.
+- If generateTests is true, write comprehensive tests.
+- Do NOT include any text outside the JSON object.`
+
+  const userContent = JSON.stringify({
+    task: 'write code',
+    language: input.language,
+    prompt: input.task,
+    context: input.context || null,
+    style: input.style || 'production-ready',
+    generateTests: input.generateTests || false,
+  })
+
+  const raw = await callProvider(systemInstruction, userContent)
+  return parseWriteResult(raw, input)
+}
+
+function parseWriteResult(raw: string, input: WriteInput): WriteResult {
+  const parsed = tryParseJson<WriteResult>(raw)
+  if (parsed && typeof parsed.code === 'string' && typeof parsed.language === 'string') {
+    return {
+      code: parsed.code,
+      explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+      language: parsed.language || input.language,
+      files: Array.isArray(parsed.files)
+        ? parsed.files.filter(
+            (f): f is { name: string; code: string } =>
+              typeof f === 'object' && typeof f.name === 'string' && typeof f.code === 'string'
+          )
+        : [{ name: `main.${input.language}`, code: parsed.code }],
+      testCode: typeof parsed.testCode === 'string' ? parsed.testCode : null,
+    }
+  }
+
+  return {
+    code: raw,
+    explanation: 'Generated code.',
+    language: input.language,
+    files: [{ name: `main.${input.language}`, code: raw }],
+    testCode: null,
+  }
 }
 
 function tryParseJson<T>(text: string): T | null {
