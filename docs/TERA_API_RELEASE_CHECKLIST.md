@@ -14,7 +14,7 @@
 
 | Variable | Required | Production Value | Notes |
 |----------|----------|------------------|-------|
-| TALOCODE_BASE_URL | Yes | https://api.talocode.xyz | Canonical Talocode Cloud API base |
+| TALOCODE_BASE_URL | Yes | https://api.talocode.site | Canonical Talocode Cloud API base |
 | STACKLANE_API_BASE_URL | No | (legacy alias) | Falls back to TALOCODE_BASE_URL |
 | MISTRAL_API_KEY | Yes* | production key | AI provider for capabilities |
 | TERA_API_ALLOW_MOCK_PROVIDER | No | `false` | Must be `false` or unset in production |
@@ -53,14 +53,14 @@ TERA_API_ALLOW_MOCK_PROVIDER=true
 - [ ] `api.teraai.chat/v1/pricing` returns correct credit values
 - [ ] Talocode Cloud wallet has sufficient funds for testing
 - [ ] Billing errors return proper JSON (402, 502)
-- [ ] `TALOCODE_BASE_URL` points to production Talocode Cloud (`https://api.talocode.xyz`)
+- [ ] `TALOCODE_BASE_URL` points to production Talocode Cloud (`https://api.talocode.site`)
 
 ## Post-Deploy
 
 - [ ] Monitor error logs for `billing_unavailable` or `provider_unavailable` errors
 - [ ] Verify response headers: `x-tera-request-id`, `x-tera-credits-charged`, etc.
 - [ ] Check that `x-tera-billing-provider: stacklane` is present
-- [ ] Run smoke script against production: `TALOCODE_BASE_URL=https://api.talocode.xyz TALOCODE_API_KEY=tk_live_... node scripts/smoke-tera-api-v0.1.mjs`
+- [ ] Run smoke script against production: `TALOCODE_BASE_URL=https://api.talocode.site TALOCODE_API_KEY=tk_live_... node scripts/smoke-tera-api-v0.1.mjs`
 
 ## Rollback
 

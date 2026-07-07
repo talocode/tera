@@ -7,12 +7,12 @@ Tera API is a capability-based API for useful writing and coding workflows. It i
 Tera API is part of Talocode Cloud. Use:
 
 ```
-TALOCODE_BASE_URL=https://api.talocode.xyz
+TALOCODE_BASE_URL=https://api.talocode.site
 ```
 
 | Environment | URL |
 |-------------|-----|
-| Production | `https://api.talocode.xyz/v1/tera` |
+| Production | `https://api.talocode.site/v1/tera` |
 | Production (alias) | `https://api.teraai.chat/v1` |
 | Local (Next.js rewrites) | `http://localhost:3000/v1/tera` |
 | Local (direct) | `http://localhost:3000/api/v1/tera` |
@@ -106,7 +106,7 @@ Tera API runs under two routing schemes:
 ### Talocode Cloud (canonical)
 
 ```
-https://api.talocode.xyz/v1/tera/writing/rewrite
+https://api.talocode.site/v1/tera/writing/rewrite
 ```
 
 This is the canonical base URL for all Talocode Cloud products. Each product is namespaced under `/v1/{product}/`.

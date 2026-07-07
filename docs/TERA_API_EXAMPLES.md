@@ -1,6 +1,6 @@
 # Tera API Examples
 
-Canonical base: `https://api.talocode.xyz/v1/tera` (set via `TALOCODE_BASE_URL`)
+Canonical base: `https://api.talocode.site/v1/tera` (set via `TALOCODE_BASE_URL`)
 Alias: `https://api.teraai.chat/v1`
 Local: `http://localhost:3000/api/v1` or `http://localhost:3000/v1/tera`
 
@@ -8,7 +8,7 @@ Local: `http://localhost:3000/api/v1` or `http://localhost:3000/v1/tera`
 
 ```bash
 export TALOCODE_API_KEY="tk_dev_xxxxxxxxxxxx"
-export TALOCODE_BASE_URL="https://api.talocode.xyz"
+export TALOCODE_BASE_URL="https://api.talocode.site"
 
 # Public (canonical)
 BASE="${TALOCODE_BASE_URL}/v1/tera"

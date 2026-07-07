@@ -3,8 +3,8 @@
 ## Canonical Base URL
 
 ```
-TALOCODE_BASE_URL=https://api.talocode.xyz
-https://api.talocode.xyz/v1/tera/writing/rewrite
+TALOCODE_BASE_URL=https://api.talocode.site
+https://api.talocode.site/v1/tera/writing/rewrite
 ```
 
 ## Alias Base URL
@@ -33,8 +33,8 @@ API routes exist under:
 
 A Next.js rewrite rule maps `/v1/:path*` → `/api/v1/:path*`. This means all these URLs work:
 
-- `https://api.talocode.xyz/v1/tera/writing/rewrite` (canonical)
-- `https://api.talocode.xyz/v1/writing/rewrite` (legacy)
+- `https://api.talocode.site/v1/tera/writing/rewrite` (canonical)
+- `https://api.talocode.site/v1/writing/rewrite` (legacy)
 - `https://api.teraai.chat/v1/writing/rewrite` (alias)
 - `https://teraai.chat/api/v1/writing/rewrite` (main app)
 
@@ -80,7 +80,7 @@ Cons: Duplicated infrastructure, more maintenance.
 
 | Record | Type | Value | Notes |
 |--------|------|-------|-------|
-| api.talocode.xyz | CNAME | talocode.netlify.app | Canonical Talocode Cloud API |
+| api.talocode.site | CNAME | talocode.netlify.app | Canonical Talocode Cloud API |
 | api.teraai.chat | CNAME | tera.netlify.app | Same site as teraai.chat (Option B) |
 | api.teraai.chat | CNAME | feat--tera.netlify.app | Branch-specific (Option A) |
 
