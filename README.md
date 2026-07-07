@@ -237,6 +237,17 @@ Tera includes specialized tools for different use cases:
 
 ---
 
+## Talocode Domains
+
+| Domain | Purpose |
+|--------|---------|
+| [talocode.site](https://talocode.site) | Main site / homepage |
+| [docs.talocode.site](https://docs.talocode.site) | Documentation |
+| [api.talocode.site](https://api.talocode.site) | API endpoint |
+| [cloud.talocode.site](https://cloud.talocode.site) | Cloud dashboard |
+| [stacklane.talocode.site](https://stacklane.talocode.site) | Stacklane platform |
+| [dashboard.talocode.site](https://dashboard.talocode.site) | Dashboard |
+
 ## 💖 Support Talocode
 
 Talocode builds open-source workflow layers for builders: coding agents, learning tools, trading intelligence, video workflows, and local-first automation.

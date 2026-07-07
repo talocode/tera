@@ -11,3 +11,30 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# API subdomain routing (api.teraai.chat)
+#
+# Option A: Same site, separate branch
+#   - Point api.teraai.chat CNAME to tera.netlify.app
+#   - Deploy feat/tera-api-v0.1 branch to a Netlify branch subdomain
+#   - Set api.teraai.chat to use that branch deploy
+#
+# Option B: Same site, all traffic
+#   - Point api.teraai.chat CNAME to tera.netlify.app
+#   - Next.js rewrites in next.config.js handle /v1/* → /api/v1/*
+#   - Both teraai.chat and api.teraai.chat serve the same app
+#   - API routes under /api/v1/* return JSON regardless of which domain serves them
+#
+# Option C: Separate site
+#   - Deploy only the API routes as a separate Netlify site
+#   - Point api.teraai.chat to that site
+#   - Requires maintaining a separate deployment
+#
+# Recommended for v0.1: Option A or B.
+# Add Netlify redirect rules here if using domain-specific routing:
+#
+# [[redirects]]
+#   from = "https://api.teraai.chat/v1/*"
+#   to = "/api/v1/:splat"
+#   status = 200
+#   force = true
