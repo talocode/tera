@@ -63,7 +63,7 @@ console.log('\n── Capabilities ──')
 const caps = await req('GET', '/capabilities')
 check('capabilities returns 200', caps.status === 200, `got ${caps.status}`)
 check('capabilities is a list', caps.data?.object === 'list', JSON.stringify(caps.data))
-check('capabilities has 4 items', Array.isArray(caps.data?.data) && caps.data.data.length === 4, JSON.stringify(caps.data))
+check('capabilities has 6 items', Array.isArray(caps.data?.data) && caps.data.data.length === 6, JSON.stringify(caps.data))
 check('capabilities include writing.rewrite', caps.data?.data?.some(c => c.id === 'writing.rewrite'), JSON.stringify(caps.data))
 
 // 3. Pricing
@@ -71,7 +71,7 @@ console.log('\n── Pricing ──')
 const pricing = await req('GET', '/pricing')
 check('pricing returns 200', pricing.status === 200, `got ${pricing.status}`)
 check('pricing is a list', pricing.data?.object === 'list', JSON.stringify(pricing.data))
-check('pricing has 4 items', Array.isArray(pricing.data?.data) && pricing.data.data.length === 4, JSON.stringify(pricing.data))
+check('pricing has 6 items', Array.isArray(pricing.data?.data) && pricing.data.data.length === 6, JSON.stringify(pricing.data))
 check('pricing includes writing.rewrite=5', pricing.data?.data?.some(p => p.action === 'writing.rewrite' && p.credits === 5), JSON.stringify(pricing.data))
 
 // 4. Rewrite (expect 402 insufficient credits or success with mock)
@@ -134,7 +134,38 @@ const review = await req('POST', '/coding/review', {
 const reviewOk = review.status === 200 || review.status === 402 || review.status === 502
 check('review returns expected status', reviewOk, `got ${review.status}: ${JSON.stringify(review.data)}`)
 
-// 8. Missing API key
+// 8. Chat Completions
+console.log('\n── Chat Completions ──')
+const chat = await req('POST', '/chat/completions', {
+  model: 'mistral-small-latest',
+  messages: [{ role: 'user', content: 'Hello!' }],
+  max_tokens: 100,
+})
+const chatOk = chat.status === 200 || chat.status === 402 || chat.status === 502
+check('chat completions returns expected status', chatOk, `got ${chat.status}: ${JSON.stringify(chat.data)}`)
+if (chat.status === 200) {
+  check('chat has id', typeof chat.data?.id === 'string', JSON.stringify(chat.data))
+  check('chat has choices array', Array.isArray(chat.data?.result?.choices), JSON.stringify(chat.data))
+  check('chat choice has message', typeof chat.data?.result?.choices?.[0]?.message?.content === 'string', JSON.stringify(chat.data))
+  check('chat has usage', typeof chat.data?.result?.usage?.total_tokens === 'number', JSON.stringify(chat.data))
+}
+
+// 9. Coding Write
+console.log('\n── Coding Write ──')
+const write = await req('POST', '/coding/write', {
+  language: 'typescript',
+  task: 'Write a function that sums an array of numbers',
+})
+const writeOk = write.status === 200 || write.status === 402 || write.status === 502
+check('coding write returns expected status', writeOk, `got ${write.status}: ${JSON.stringify(write.data)}`)
+if (write.status === 200) {
+  check('write has id', typeof write.data?.id === 'string', JSON.stringify(write.data))
+  check('write result has code', typeof write.data?.result?.code === 'string', JSON.stringify(write.data))
+  check('write result has language', typeof write.data?.result?.language === 'string', JSON.stringify(write.data))
+  check('write result has explanation', typeof write.data?.result?.explanation === 'string', JSON.stringify(write.data))
+}
+
+// 10. Missing API key
 console.log('\n── Auth (missing key) ──')
 const noKeyUrl = `${BASE_URL}/writing/rewrite`
 let noKeyStatus, noKeyData
@@ -152,13 +183,13 @@ try {
 check('missing key returns 401', noKeyStatus === 401, `got ${noKeyStatus}`)
 check('missing key error code', noKeyData?.error?.code === 'missing_api_key', JSON.stringify(noKeyData))
 
-// 9. Invalid body
+// 11. Invalid body
 console.log('\n── Validation (empty body) ──')
 const invalid = await req('POST', '/writing/rewrite', { text: '' })
 check('empty text returns 400', invalid.status === 400, `got ${invalid.status}`)
 check('empty text error code', invalid.data?.error?.code === 'invalid_request', JSON.stringify(invalid.data))
 
-// 10. Response headers (only if rewrite succeeded)
+// 12. Response headers (only if rewrite succeeded)
 if (rewrite.status === 200) {
   console.log('\n── Response Headers ──')
   const url = `${BASE_URL}/writing/rewrite`
@@ -177,7 +208,7 @@ if (rewrite.status === 200) {
   check('x-tera-capability header is writing', res.headers.get('x-tera-capability') === 'writing', `got ${res.headers.get('x-tera-capability')}`)
 }
 
-// 11-14. Namespaced routes (/tera/ prefix)
+// 13-18. Namespaced routes (/tera/ prefix)
 console.log('\n── Namespaced Routes (/tera/) ──')
 const nsRewrite = await req('POST', '/tera/writing/rewrite', { text: 'Test.', style: 'clear', tone: 'direct', maxLength: 100 })
 const nsRewriteOk = nsRewrite.status === 200 || nsRewrite.status === 402 || nsRewrite.status === 502
@@ -194,6 +225,14 @@ check('namespaced explain returns expected status', nsExplainOk, `got ${nsExplai
 const nsReview = await req('POST', '/tera/coding/review', { language: 'js', code: 'const a=1', focus: ['bugs'], strictness: 'normal' })
 const nsReviewOk = nsReview.status === 200 || nsReview.status === 402 || nsReview.status === 502
 check('namespaced review returns expected status', nsReviewOk, `got ${nsReview.status}`)
+
+const nsChat = await req('POST', '/tera/chat/completions', { model: 'mistral-small-latest', messages: [{ role: 'user', content: 'Hi' }], max_tokens: 50 })
+const nsChatOk = nsChat.status === 200 || nsChat.status === 402 || nsChat.status === 502
+check('namespaced chat completions returns expected status', nsChatOk, `got ${nsChat.status}`)
+
+const nsWrite = await req('POST', '/tera/coding/write', { language: 'python', task: 'Write a hello world' })
+const nsWriteOk = nsWrite.status === 200 || nsWrite.status === 402 || nsWrite.status === 502
+check('namespaced coding write returns expected status', nsWriteOk, `got ${nsWrite.status}`)
 
 console.log(`\nPassed: ${passed}  Failed: ${failed}`)
 process.exit(failed > 0 ? 1 : 0)

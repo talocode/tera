@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+talocode_tera.egg-info/PKG-INFO
+talocode_tera.egg-info/SOURCES.txt
+talocode_tera.egg-info/dependency_links.txt
+talocode_tera.egg-info/entry_points.txt
+talocode_tera.egg-info/top_level.txt
+tera/__init__.py
+tera/__main__.py
+tera/client.py

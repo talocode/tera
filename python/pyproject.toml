@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "talocode-tera"
+version = "0.1.0"
+description = "AI capabilities API — chat completions, writing (rewrite/draft), coding (explain/review/write)"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Talocode"}]
+keywords = ["ai", "llm", "chat", "writing", "coding", "mistral", "talocode"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/talocode/tera"
+PyPI = "https://pypi.org/project/tera/"
+
+[project.scripts]
+tera = "tera.__main__:main"

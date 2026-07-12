@@ -17,6 +17,8 @@ const ridMod = await import('../lib/tera-api/request-id.ts')
 const pricingMod = await import('../lib/tera-api/pricing.ts')
 // Schemas module
 const schemasMod = await import('../lib/tera-api/schemas.ts')
+// Chat capability
+const chatMod = await import('../lib/tera-api/capabilities/chat.ts')
 // Writing capabilities
 const writingMod = await import('../lib/tera-api/capabilities/writing.ts')
 // Coding capabilities
@@ -104,13 +106,15 @@ describe('pricing', () => {
     assert.equal(getPrice('writing.draft'), 10)
     assert.equal(getPrice('coding.explain'), 10)
     assert.equal(getPrice('coding.review'), 20)
+    assert.equal(getPrice('coding.write'), 20)
+    assert.equal(getPrice('chat.completions'), 3)
     assert.equal(getPrice('nonexistent'), null)
   })
 
   it('TERA_API_PRICING has all expected actions', () => {
     const { TERA_API_PRICING } = pricingMod
     assert.deepEqual(Object.keys(TERA_API_PRICING).sort(), [
-      'coding.explain', 'coding.review', 'writing.draft', 'writing.rewrite',
+      'chat.completions', 'coding.explain', 'coding.review', 'coding.write', 'writing.draft', 'writing.rewrite',
     ])
   })
 })
@@ -184,6 +188,52 @@ describe('schemas', () => {
       assert.ok(!reviewSchema.safeParse({ language: 'ts', code: 'x'.repeat(CODE_MAX + 1) }).success)
     })
   })
+  describe('chatCompletionSchema', () => {
+    it('validates correct input with model and messages', () => {
+      const { chatCompletionSchema } = schemasMod
+      const result = chatCompletionSchema.safeParse({
+        model: 'mistral-small-latest',
+        messages: [{ role: 'user', content: 'Hello' }],
+      })
+      assert.ok(result.success)
+    })
+    it('rejects empty messages array', () => {
+      const { chatCompletionSchema } = schemasMod
+      assert.ok(!chatCompletionSchema.safeParse({ messages: [] }).success)
+    })
+    it('rejects invalid role', () => {
+      const { chatCompletionSchema } = schemasMod
+      assert.ok(!chatCompletionSchema.safeParse({ messages: [{ role: 'admin', content: 'test' }] }).success)
+    })
+  })
+  describe('writeSchema', () => {
+    it('validates correct input with language and task', () => {
+      const { writeSchema } = schemasMod
+      const result = writeSchema.safeParse({ language: 'typescript', task: 'Build a hello world CLI' })
+      assert.ok(result.success)
+    })
+    it('rejects missing language', () => {
+      const { writeSchema } = schemasMod
+      assert.ok(!writeSchema.safeParse({ task: 'Build something' }).success)
+    })
+    it('rejects missing task', () => {
+      const { writeSchema } = schemasMod
+      assert.ok(!writeSchema.safeParse({ language: 'python' }).success)
+    })
+    it('accepts context as optional', () => {
+      const { writeSchema } = schemasMod
+      const r = writeSchema.safeParse({ language: 'go', task: 'Write an HTTP server', context: 'Use net/http' })
+      assert.ok(r.success)
+    })
+    it('defaults generateTests to false when omitted', () => {
+      const { writeSchema } = schemasMod
+      const r = writeSchema.safeParse({ language: 'rust', task: 'Write a calculator' })
+      assert.ok(r.success)
+      if (r.success) {
+        assert.equal(r.data.generateTests, false)
+      }
+    })
+  })
 })
 
 // ─── Capability Execution Tests (mock provider) ────────────────────────────
@@ -237,6 +287,22 @@ describe('provider', () => {
     assert.ok(typeof result === 'string')
     assert.ok(result.length > 0)
   })
+  it('callProviderChat with mock returns expected shape', async () => {
+    const { callProviderChat } = providerMod
+    const result = await callProviderChat({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: 'Hello' }],
+    })
+    assert.ok(typeof result.model === 'string')
+    assert.ok(Array.isArray(result.choices))
+    assert.equal(result.choices.length, 1)
+    assert.equal(result.choices[0].message.role, 'assistant')
+    assert.ok(typeof result.choices[0].message.content === 'string')
+    assert.equal(result.choices[0].finish_reason, 'stop')
+    assert.ok(typeof result.usage.prompt_tokens === 'number')
+    assert.ok(typeof result.usage.completion_tokens === 'number')
+    assert.ok(typeof result.usage.total_tokens === 'number')
+  })
 })
 
 // ─── Redaction Tests ───────────────────────────────────────────────────────
@@ -275,6 +341,34 @@ describe('capabilities endpoint', () => {
     assert.equal(entry.credits, 5)
     assert.ok(Array.isArray(entry.methods))
   })
+
+  it('includes chat.completions in capability list', () => {
+    const caps = [
+      { id: 'writing.rewrite', credits: 5 },
+      { id: 'writing.draft', credits: 10 },
+      { id: 'coding.explain', credits: 10 },
+      { id: 'coding.review', credits: 20 },
+      { id: 'coding.write', credits: 20 },
+      { id: 'chat.completions', credits: 3 },
+    ]
+    const found = caps.find(c => c.id === 'chat.completions')
+    assert.ok(found, 'chat.completions should be in the capability list')
+    assert.equal(found.credits, 3)
+  })
+
+  it('includes coding.write in capability list', () => {
+    const caps = [
+      { id: 'writing.rewrite', credits: 5 },
+      { id: 'writing.draft', credits: 10 },
+      { id: 'coding.explain', credits: 10 },
+      { id: 'coding.review', credits: 20 },
+      { id: 'coding.write', credits: 20 },
+      { id: 'chat.completions', credits: 3 },
+    ]
+    const found = caps.find(c => c.id === 'coding.write')
+    assert.ok(found, 'coding.write should be in the capability list')
+    assert.equal(found.credits, 20)
+  })
 })
 
 // ─── Pricing Endpoint Shape ────────────────────────────────────────────────
@@ -282,7 +376,7 @@ describe('pricing endpoint', () => {
   it('pricing data has expected structure', () => {
     const { TERA_API_PRICING } = pricingMod
     const entries = Object.entries(TERA_API_PRICING).map(([action, credits]) => ({ action, credits, usdValue: credits * 0.01 }))
-    assert.equal(entries.length, 4)
+    assert.equal(entries.length, 6)
     for (const e of entries) {
       assert.ok(typeof e.action === 'string')
       assert.ok(typeof e.credits === 'number')
