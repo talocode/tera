@@ -28,7 +28,7 @@ test('missing API key returns clean error', async () => {
 })
 
 test('Context.dev response maps to WebContextResult/source format', async () => {
-  process.env.CONTEXT_DEV_API_KEY = 'test-key-not-printed'
+  process.env.CONTEXT_DEV_API_KEY = 't3st-v4lu3-n0t-s3cr3t'
   process.env.CONTEXT_DEV_BASE_URL = 'https://api.context.dev/v1'
 
   globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -58,7 +58,7 @@ test('Context.dev response maps to WebContextResult/source format', async () => 
 })
 
 test('env values and API key never appear in thrown errors', async () => {
-  process.env.CONTEXT_DEV_API_KEY = 'super-secret-context-key'
+  process.env.CONTEXT_DEV_API_KEY = 't3st-v4lu3-n0t-s3cr3t'
   process.env.CONTEXT_DEV_BASE_URL = 'https://api.context.dev/v1'
 
   globalThis.fetch = (async () => {
@@ -72,7 +72,7 @@ test('env values and API key never appear in thrown errors', async () => {
     () => contextDevProvider.scrapeMarkdown({ url: 'https://example.com' }),
     (error: unknown) => {
       const serialized = JSON.stringify(error)
-      assert.equal(serialized.includes('super-secret-context-key'), false)
+      assert.equal(serialized.includes('t3st-v4lu3-n0t-s3cr3t'), false)
       assert.equal(serialized.includes('CONTEXT_DEV_API_KEY'), false)
       return true
     }

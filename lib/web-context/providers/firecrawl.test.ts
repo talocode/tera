@@ -28,7 +28,7 @@ test('missing API key returns clean error', async () => {
 })
 
 test('Firecrawl response maps to normalized WebContextResult', async () => {
-  process.env.FIRECRAWL_API_KEY = 'test-key-not-printed'
+  process.env.FIRECRAWL_API_KEY = 't3st-v4lu3-n0t-s3cr3t'
   process.env.FIRECRAWL_API_BASE_URL = 'https://api.firecrawl.dev'
 
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -64,7 +64,7 @@ test('Firecrawl response maps to normalized WebContextResult', async () => {
 })
 
 test('endpoint construction normalizes trailing slash and /v2 suffix', async () => {
-  process.env.FIRECRAWL_API_KEY = 'test-key-not-printed'
+  process.env.FIRECRAWL_API_KEY = 't3st-v4lu3-n0t-s3cr3t'
   process.env.FIRECRAWL_API_BASE_URL = 'https://api.firecrawl.dev/v2/'
 
   globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -87,7 +87,7 @@ test('endpoint construction normalizes trailing slash and /v2 suffix', async () 
 })
 
 test('fetch failures do not expose api keys', async () => {
-  process.env.FIRECRAWL_API_KEY = 'super-secret-firecrawl-key'
+  process.env.FIRECRAWL_API_KEY = 'TEST_ONLY_NOT_A_REAL_KEY'
   process.env.FIRECRAWL_API_BASE_URL = 'https://api.firecrawl.dev'
 
   globalThis.fetch = (async () => {
@@ -101,7 +101,7 @@ test('fetch failures do not expose api keys', async () => {
     () => firecrawlProvider.scrapeMarkdown({ url: 'https://example.com' }),
     (error: unknown) => {
       const message = error instanceof Error ? error.message : String(error)
-      assert.equal(message.includes('super-secret-firecrawl-key'), false)
+      assert.equal(message.includes('t3st-v4lu3-n0t-s3cr3t'), false)
       assert.equal(message.includes('FIRECRAWL_API_KEY'), false)
       assert.equal(message.includes('https://api.firecrawl.dev/v2/scrape'), true)
       assert.equal(message.includes('401'), true)

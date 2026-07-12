@@ -8,6 +8,7 @@
   NPM_FLAGS = "--no-frozen-lockfile"
   DISABLE_WEBPACK_CACHE = "1"
   SECRETS_SCAN_OMIT_KEYS = "RESEND_FROM_EMAIL,RESEND_REPLY_TO_EMAIL,MISTRAL_API_KEY,AUTO_UPDATE_EMAIL_AUDIENCE"
+  SECRETS_SCAN_OMIT_PATHS = "lib/web-context/providers/*.test.ts"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
