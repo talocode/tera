@@ -14,7 +14,10 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const callbackUrl = `${window.location.origin}/new`; await signIn('google', { callbackUrl, redirect: true })
+      const params = new URLSearchParams(window.location.search)
+      const redirectTo = params.get('redirect_to')
+      const callbackUrl = redirectTo ? `${window.location.origin}${redirectTo}` : `${window.location.origin}/new`
+      await signIn('google', { callbackUrl, redirect: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign up failed')
       setLoading(false)
