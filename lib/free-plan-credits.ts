@@ -19,15 +19,18 @@ type CreditState = {
   remaining: number
   total: number
   purchasedCredits: number
+  promotionalCredits: number
+  promotionalCreditsExpiry: string | null
   resetDate: string | null
   plan: PlanType
-  purchasedCredits: number
 }
 
 type UserCreditRecord = {
   plan: PlanType
   used: number
   purchasedCredits: number
+  promotionalCredits: number
+  promotionalCreditsExpiry: Date | null
   resetDate: Date | null
   hasCreditLedger: boolean
   createdAt: Date | null
@@ -111,7 +114,7 @@ function normalizePlan(plan: string | null | undefined): PlanType {
 async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | null> {
   const { data, error } = await supabaseServer
     .from('users')
-    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date, purchased_credits_balance, created_at')
+    .select('subscription_plan, free_plan_credits_used, free_plan_credits_reset_date, purchased_credits_balance, promotional_credits, promotional_credits_expiry, created_at')
     .eq('id', userId)
     .maybeSingle()
 
@@ -134,6 +137,8 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
       plan: normalizePlan(fallbackData.subscription_plan),
       used: 0,
       purchasedCredits: 0,
+      promotionalCredits: 0,
+      promotionalCreditsExpiry: null,
       resetDate: null,
       hasCreditLedger: false,
       createdAt: fallbackData.created_at ? new Date(fallbackData.created_at) : null,
@@ -152,6 +157,8 @@ async function getUserCreditRecord(userId: string): Promise<UserCreditRecord | n
     plan: normalizePlan(data.subscription_plan),
     used: Math.max(0, Number(data.free_plan_credits_used || 0)),
     purchasedCredits: Math.max(0, Number(data.purchased_credits_balance || 0)),
+    promotionalCredits: Math.max(0, Number(data.promotional_credits || 0)),
+    promotionalCreditsExpiry: data.promotional_credits_expiry ? new Date(data.promotional_credits_expiry) : null,
     resetDate: data.free_plan_credits_reset_date ? new Date(data.free_plan_credits_reset_date) : null,
     hasCreditLedger: true,
     createdAt: data.created_at ? new Date(data.created_at) : null,
@@ -234,8 +241,14 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const resetIntervalMs = CREDIT_USAGE_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000
     const windowStart = new Date(activeResetDate.getTime() - resetIntervalMs)
 
+    // Check if promotional credits have expired
+    const promotionalExpired = record?.promotionalCreditsExpiry
+      ? now > record.promotionalCreditsExpiry
+      : false
+    const activePromotionalCredits = promotionalExpired ? 0 : (record?.promotionalCredits || 0)
+
     if (record?.hasCreditLedger) {
-      const total = getPlanCreditCap(plan) + Math.max(0, record.purchasedCredits || 0)
+      const total = getPlanCreditCap(plan) + Math.max(0, record.purchasedCredits || 0) + activePromotionalCredits
       const used = Math.max(0, record.resetDate && now <= record.resetDate ? record.used : 0)
       const remaining = Math.max(0, total - used)
       return {
@@ -243,11 +256,10 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
         remaining,
         total,
         purchasedCredits: Math.max(0, record.purchasedCredits || 0),
+        promotionalCredits: activePromotionalCredits,
+        promotionalCreditsExpiry: record.promotionalCreditsExpiry ? record.promotionalCreditsExpiry.toISOString() : null,
         resetDate: activeResetDate.toISOString(),
         plan,
-        resetDate: activeResetDate.toISOString(),
-        plan,
-        purchasedCredits: Math.max(0, record.purchasedCredits || 0),
       }
     }
 
@@ -255,18 +267,17 @@ export async function getUserCreditsRemaining(userId: string): Promise<CreditSta
     const ledgerUsage = ledgerSummary?.creditsCharged ?? 0
     const sessionUsage = await getSessionCreditUsage(userId, windowStart)
     const used = ledgerSummary ? ledgerUsage : sessionUsage
-    const total = getPlanCreditCap(plan)
+    const total = getPlanCreditCap(plan) + activePromotionalCredits
     const remaining = Math.max(0, total - used)
     return {
       used,
       remaining,
       total,
       purchasedCredits: 0,
+      promotionalCredits: activePromotionalCredits,
+      promotionalCreditsExpiry: record?.promotionalCreditsExpiry ? record.promotionalCreditsExpiry.toISOString() : null,
       resetDate: activeResetDate.toISOString(),
       plan,
-      resetDate: activeResetDate.toISOString(),
-      plan,
-      purchasedCredits: 0,
     }
   } catch (error) {
     console.error('[credit_usage_read_failed]', { userId, error })
@@ -296,6 +307,7 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
       free_plan_credits_used: number
       free_plan_credits_reset_date?: string
       purchased_credits_balance?: number
+      promotional_credits?: number
     } = { free_plan_credits_used: used }
 
     // Check if the reset date has passed — use signup-based calculation for free plan
@@ -313,17 +325,30 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
       updatePayload.free_plan_credits_reset_date = nextReset.toISOString()
     }
 
-    // Consume one-time top-up credits first so spent balance does not reappear on the next reset.
-    const purchasedCreditsToConsume = record.hasCreditLedger
-      ? Math.min(record.purchasedCredits, charge)
-      : 0
-    const monthlyCreditsToConsume = charge - purchasedCreditsToConsume
+    // Check if promotional credits have expired
+    const promotionalExpired = record.promotionalCreditsExpiry
+      ? now > record.promotionalCreditsExpiry
+      : false
+    const activePromotionalCredits = promotionalExpired ? 0 : record.promotionalCredits
 
-    if (record.hasCreditLedger) {
-      updatePayload.purchased_credits_balance = Math.max(0, record.purchasedCredits - purchasedCreditsToConsume)
+    // Consume credits in order: promotional first (expire soonest), then purchased, then monthly
+    let remaining = charge
+
+    const promotionalToConsume = Math.min(activePromotionalCredits, remaining)
+    if (promotionalToConsume > 0 && record.hasCreditLedger) {
+      updatePayload.promotional_credits = activePromotionalCredits - promotionalToConsume
     }
+    remaining -= promotionalToConsume
 
-    updatePayload.free_plan_credits_used = used + monthlyCreditsToConsume
+    const purchasedToConsume = Math.min(record.purchasedCredits, remaining)
+    if (record.hasCreditLedger) {
+      updatePayload.purchased_credits_balance = Math.max(0, record.purchasedCredits - purchasedToConsume)
+    }
+    remaining -= purchasedToConsume
+
+    const monthlyToConsume = remaining
+
+    updatePayload.free_plan_credits_used = used + monthlyToConsume
 
     const { error: updateError } = await supabaseServer
       .from('users')

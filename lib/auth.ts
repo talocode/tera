@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { supabaseServer } from '@/lib/supabase-server'
-import { sendWelcomeEmail } from '@/lib/transactional-emails'
+import { sendWelcomeEmail, sendPromotionalCreditsExpiredEmail } from '@/lib/transactional-emails'
 import { resolveAppOrigin, rewriteToAppOrigin } from '@/lib/url'
 
 function syncAuthOriginFromRequest(req?: Request & { nextUrl?: URL }) {
@@ -79,6 +79,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
             }
           } else {
             user.id = existingUser.id
+
+            // Check if promotional credits have expired
+            try {
+              const { data: userData } = await supabaseServer
+                .from('users')
+                .select('promotional_credits, promotional_credits_expiry')
+                .eq('id', existingUser.id)
+                .maybeSingle()
+
+              if (userData?.promotional_credits > 0 && userData?.promotional_credits_expiry) {
+                const expiryDate = new Date(userData.promotional_credits_expiry)
+                if (new Date() > expiryDate) {
+                  // Zero out expired promotional credits
+                  await supabaseServer
+                    .from('users')
+                    .update({ promotional_credits: 0 })
+                    .eq('id', existingUser.id)
+
+                  // Send expiry email (non-blocking)
+                  sendPromotionalCreditsExpiredEmail({
+                    userId: existingUser.id,
+                    email: user.email,
+                  }).catch((error) => console.error('[promotional_expiry_email_failed]', { userId: existingUser.id, error }))
+                }
+              }
+            } catch {
+              // Non-critical: don't block sign-in if expiry check fails
+            }
           }
 
           return true

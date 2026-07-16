@@ -13,6 +13,7 @@ type TransactionalEmailType =
   | 'subscription_cancelled'
   | 'subscription_expired'
   | 'team_invite'
+  | 'promotional_credits_expired'
 
 type SendImportantEmailInput = {
   type: TransactionalEmailType
@@ -199,8 +200,8 @@ export function sendWelcomeEmail(input: { userId: string; email: string; name?: 
     to: input.email,
     subject: 'Welcome to TeraAI',
     heading: `Welcome to Tera, ${firstName}`,
-    previewText: 'Your TeraAI account is ready with 150 free credits.',
-    message: `Your Tera account is ready. You have 150 free AI credits to learn concepts, research clearly, and build from what you understand.\n\nA credit is currently charged at roughly 1 credit per ${getTokensPerCredit().toLocaleString()} AI tokens, with a minimum of 1 credit per prompt.`,
+    previewText: 'Your TeraAI account is ready with 350 free credits.',
+    message: `Your Tera account is ready. You have 350 free AI credits to get started:\n\n• 200 bonus credits (expire August 15, 2026)\n• 150 monthly plan credits (resets every 30 days)\n\nA credit is currently charged at roughly 1 credit per ${getTokensPerCredit().toLocaleString()} AI tokens, with a minimum of 1 credit per prompt.\n\nUse your bonus credits before August 15 — they don't roll over.`,
     ctaLabel: 'Start learning',
     ctaUrl: `${appUrl()}/new`,
     dedupeKey: `welcome:${input.userId}`,
@@ -325,5 +326,25 @@ export function sendTeamInviteEmail(input: {
     ctaLabel: 'Open Tera',
     ctaUrl: `${appUrl()}/auth/signin`,
     dedupeKey: `team-invite:${input.ownerUserId}:${input.inviteeEmail.toLowerCase()}`,
+  })
+}
+
+export function sendPromotionalCreditsExpiredEmail(input: {
+  userId: string
+  email: string
+}) {
+  const firstName = input.email.split('@')[0]
+
+  return sendImportantEmail({
+    type: 'promotional_credits_expired',
+    userId: input.userId,
+    to: input.email,
+    subject: 'Your 200 free credits have expired',
+    heading: 'Your free credits expired',
+    previewText: 'Your 200 free Tera credits expired on Aug 15. Top up or upgrade to continue.',
+    message: `Hi ${firstName},\n\nYour 200 free Tera credits expired on August 15, 2026. You can no longer use these credits for AI generations.\n\nTo continue using Tera, top up your account or upgrade to a paid plan for higher limits.`,
+    ctaLabel: 'View plans',
+    ctaUrl: `${appUrl()}/pricing`,
+    dedupeKey: `promotional-expired:${input.userId}`,
   })
 }

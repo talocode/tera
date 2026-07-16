@@ -12,6 +12,8 @@ import {
   fetchUserUsageSummary,
   fetchWeeklyUsageHistory,
   fetchStorageUsage,
+  fetchUsageForecast,
+  fetchActionBreakdown,
 } from '@/app/actions/user'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { getPlanCreditCap } from '@/lib/free-plan-credits'
@@ -25,14 +27,28 @@ type CreditUsageState = {
   remaining: number
   total: number
   purchasedCredits: number
+  promotionalCredits: number
+  promotionalCreditsExpiry: string | null
   resetDate: string | null
-  purchasedCredits: number
 } | null
 
 type UsageHistoryData = {
   date: string
   used: number
 }
+
+type UsageForecastData = {
+  dailyBurnRate: number
+  daysUntilEmpty: number | null
+  projectedExhaustionDate: string | null
+  willExhaustBeforeReset: boolean
+  daysUntilReset: number | null
+  analysisWindowDays: number
+  totalCreditsUsed: number
+  dailyBreakdown: Array<{ date: string; credits: number; tokens: number; chats: number }>
+} | null
+
+type ActionBreakdownData = Array<{ action: string; credits: number; count: number }>
 
 function formatResetLabel(resetAt: string | null) {
   if (!resetAt) return 'Not scheduled'
@@ -77,6 +93,8 @@ export default function UsagePage() {
   const [creditUsage, setCreditUsage] = useState<CreditUsageState>(null)
   const [storageUsage, setStorageUsage] = useState<{ usedBytes: number; limitBytes: number; limitDisplay: string; usedDisplay: string; percentageUsed: number } | null>(null)
   const [usageHistory, setUsageHistory] = useState<UsageHistoryData[]>([])
+  const [forecast, setForecast] = useState<UsageForecastData>(null)
+  const [actionBreakdown, setActionBreakdown] = useState<ActionBreakdownData>([])
   const [loading, setLoading] = useState(true)
   const [usageLoading, setUsageLoading] = useState(true)
   const [creditsLoading, setCreditsLoading] = useState(true)
@@ -90,6 +108,14 @@ export default function UsagePage() {
   const [autoTopupAmount, setAutoTopupAmount] = useState('5')
   const [autoTopupSaving, setAutoTopupSaving] = useState(false)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [gmailConnected, setGmailConnected] = useState(false)
+  const [gmailEmail, setGmailEmail] = useState<string | null>(null)
+  const [gmailLoading, setGmailLoading] = useState(false)
+  const [gmailSendOpen, setGmailSendOpen] = useState(false)
+  const [gmailTo, setGmailTo] = useState('')
+  const [gmailSubject, setGmailSubject] = useState('')
+  const [gmailBody, setGmailBody] = useState('')
+  const [gmailSending, setGmailSending] = useState(false)
 
   const loadUsageSummary = useCallback(async () => {
     if (!user) return
@@ -148,6 +174,39 @@ export default function UsagePage() {
     }
   }, [user])
 
+  const loadForecast = useCallback(async () => {
+    if (!user) return
+    try {
+      const data = await fetchUsageForecast(user.id)
+      setForecast(data)
+    } catch {
+      setForecast(null)
+    }
+  }, [user])
+
+  const loadActionBreakdown = useCallback(async () => {
+    if (!user) return
+    try {
+      const data = await fetchActionBreakdown(user.id)
+      setActionBreakdown(data || [])
+    } catch {
+      setActionBreakdown([])
+    }
+  }, [user])
+
+  const loadGmailStatus = useCallback(async () => {
+    if (!user) return
+    try {
+      const res = await fetch('/api/gmail/status')
+      const data = await res.json()
+      setGmailConnected(data.connected || false)
+      setGmailEmail(data.email || null)
+    } catch {
+      setGmailConnected(false)
+      setGmailEmail(null)
+    }
+  }, [user])
+
   const loadProfile = useCallback(async (options?: { silent?: boolean }) => {
     if (!user) return
     if (!options?.silent) {
@@ -166,8 +225,8 @@ export default function UsagePage() {
 
   useEffect(() => {
     if (!user?.id || !userReady) return
-    void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage()])
-  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, user?.id, userReady])
+    void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage(), loadForecast(), loadActionBreakdown(), loadGmailStatus()])
+  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, loadForecast, loadActionBreakdown, loadGmailStatus, user?.id, userReady])
 
   useEffect(() => {
     if (!user?.id || !userReady || typeof window === 'undefined') return
@@ -222,8 +281,8 @@ export default function UsagePage() {
   }, [loadCreditUsage, loadProfile, loadStorageUsage, loadUsageHistory, loadUsageSummary, user?.id, userReady])
 
   const refreshUsage = useCallback(() => {
-    void Promise.all([loadProfile({ silent: true }), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage()])
-  }, [loadCreditUsage, loadProfile, loadStorageUsage, loadUsageHistory, loadUsageSummary])
+    void Promise.all([loadProfile({ silent: true }), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage(), loadForecast(), loadActionBreakdown()])
+  }, [loadCreditUsage, loadProfile, loadStorageUsage, loadUsageHistory, loadUsageSummary, loadForecast, loadActionBreakdown])
 
   const handleAddCredits = async () => {
     if (!user?.email) return
@@ -314,6 +373,69 @@ export default function UsagePage() {
     }
   }
 
+  const handleConnectGmail = async () => {
+    setGmailLoading(true)
+    try {
+      const res = await fetch('/api/gmail/auth')
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch {
+      alert('Failed to start Gmail connection.')
+    } finally {
+      setGmailLoading(false)
+    }
+  }
+
+  const handleDisconnectGmail = async () => {
+    if (!confirm('Disconnect Gmail? You won\'t be able to send emails from Tera.')) return
+    setGmailLoading(true)
+    try {
+      await fetch('/api/gmail/disconnect', { method: 'POST' })
+      setGmailConnected(false)
+      setGmailEmail(null)
+    } catch {
+      alert('Failed to disconnect Gmail.')
+    } finally {
+      setGmailLoading(false)
+    }
+  }
+
+  const handleSendGmail = async () => {
+    if (!gmailTo || !gmailSubject || !gmailBody) {
+      alert('Please fill in all fields.')
+      return
+    }
+    setGmailSending(true)
+    try {
+      const res = await fetch('/api/gmail/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: gmailTo,
+          subject: gmailSubject,
+          body: gmailBody,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Failed to send email.')
+        return
+      }
+      alert(`Email sent! ${data.creditsCharged} credits charged.`)
+      setGmailSendOpen(false)
+      setGmailTo('')
+      setGmailSubject('')
+      setGmailBody('')
+      loadCreditUsage()
+    } catch {
+      alert('Failed to send email.')
+    } finally {
+      setGmailSending(false)
+    }
+  }
+
   const usageCardsLoading = usageLoading || creditsLoading
 
   const weeklyTotal = usageHistory.reduce((sum, day) => sum + day.used, 0)
@@ -322,9 +444,12 @@ export default function UsagePage() {
   const hasPaymentMethod = !!profile?.lemonSqueezyCustomerId
   const planCreditCap = profile ? getPlanCreditCap(profile.subscriptionPlan) : 0
   const purchasedCreditsRemaining = creditUsage ? Math.max(0, creditUsage.purchasedCredits) : 0
-  const planCreditsRemaining = creditUsage ? Math.max(0, creditUsage.remaining - purchasedCreditsRemaining) : 0
+  const planCreditsRemaining = creditUsage ? Math.max(0, creditUsage.remaining - purchasedCreditsRemaining - (creditUsage.promotionalCredits || 0)) : 0
   const availableCreditsLabel = creditUsage ? creditUsage.remaining.toLocaleString() : '—'
   const purchasedCredits = creditUsage?.purchasedCredits ?? 0
+  const promotionalCredits = creditUsage?.promotionalCredits ?? 0
+  const promotionalExpiry = creditUsage?.promotionalCreditsExpiry ? new Date(creditUsage.promotionalCreditsExpiry) : null
+  const promotionalDaysLeft = promotionalExpiry ? Math.ceil((promotionalExpiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
 
   if (authLoading || loading) {
     return <div className="tera-page flex items-center justify-center text-sm text-tera-secondary">Loading usage data...</div>
@@ -443,6 +568,36 @@ export default function UsagePage() {
                   </div>
                 </div>
               </div>
+
+              {promotionalCredits > 0 && (
+                <div className="tera-card h-full">
+                  <div className="flex h-full flex-col justify-between gap-6">
+                    <div>
+                      <p className="text-sm font-medium text-tera-secondary">Free bonus credits</p>
+                      <p className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-tera-primary">
+                        {promotionalCredits.toLocaleString()}
+                      </p>
+                      <p className="mt-3 text-sm text-tera-secondary">
+                        One-time credits given at signup. These expire on{' '}
+                        <span className="text-tera-primary">August 15, 2026</span>.
+                      </p>
+                      {promotionalDaysLeft !== null && promotionalDaysLeft <= 3 && promotionalDaysLeft > 0 && (
+                        <div className="mt-3 rounded-[12px] border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                          <p className="text-xs font-medium text-amber-400">
+                            These credits expire in {promotionalDaysLeft} day{promotionalDaysLeft !== 1 ? 's' : ''}. Use them before they&apos;re gone.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="mt-4 flex items-center justify-between gap-4 text-sm text-tera-secondary">
+                        <span>Expires Aug 15, 2026</span>
+                        <span>{promotionalCredits.toLocaleString()} credits</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <UsageMetricCard
                 title="File uploads (monthly)"
@@ -660,8 +815,8 @@ export default function UsagePage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="tera-card">
             <p className="tera-eyebrow">Weekly trend</p>
-            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Credit consumption</h2>
-            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track credits used over the last 7 days.</p>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Token consumption</h2>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track tokens used over the last 7 days.</p>
             <div className="mt-8">
               {historyLoading ? (
                 <div className="flex h-[200px] items-center justify-center text-sm text-tera-secondary">Loading...</div>
@@ -675,16 +830,150 @@ export default function UsagePage() {
               <div className="mt-4 grid grid-cols-2 gap-4 border-t border-tera-border pt-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-tera-secondary">7D total</p>
-                  <p className="mt-1 text-base font-semibold text-tera-primary">{weeklyTotal.toLocaleString()}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
+                  <p className="mt-1 text-base font-semibold text-tera-primary">{weeklyTotal.toLocaleString()}<span className="ml-1 text-xs font-normal text-tera-secondary">tokens</span></p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Daily avg</p>
-                  <p className="mt-1 text-base font-semibold text-tera-primary">{Math.round(weeklyTotal / 7)}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
+                  <p className="mt-1 text-base font-semibold text-tera-primary">{Math.round(weeklyTotal / 7)}<span className="ml-1 text-xs font-normal text-tera-secondary">tokens</span></p>
                 </div>
               </div>
             )}
           </div>
 
+          <div className="tera-card">
+            <p className="tera-eyebrow">Burn rate</p>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Credit forecast</h2>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">See how fast you&apos;re using credits and when they&apos;ll run out.</p>
+
+            {forecast ? (
+              <div className="mt-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Daily burn rate</p>
+                    <p className="mt-1 text-2xl font-semibold text-tera-primary">
+                      {forecast.dailyBurnRate}<span className="ml-1 text-xs font-normal text-tera-secondary">cr/day</span>
+                    </p>
+                  </div>
+                  <div className="rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-widest text-tera-secondary">7D total used</p>
+                    <p className="mt-1 text-2xl font-semibold text-tera-primary">
+                      {forecast.totalCreditsUsed}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span>
+                    </p>
+                  </div>
+                </div>
+
+                {forecast.daysUntilEmpty !== null && (
+                  <div className={`rounded-[16px] border px-4 py-3 ${
+                    forecast.willExhaustBeforeReset
+                      ? 'border-red-500/30 bg-red-500/10'
+                      : 'border-emerald-500/30 bg-emerald-500/10'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-sm font-medium ${
+                          forecast.willExhaustBeforeReset ? 'text-red-400' : 'text-emerald-400'
+                        }`}>
+                          {forecast.willExhaustBeforeReset ? 'Credits may run out before reset' : 'On track — credits will last'}
+                        </p>
+                        <p className="mt-1 text-xs text-tera-secondary">
+                          {forecast.daysUntilEmpty} days until empty at current rate
+                          {forecast.projectedExhaustionDate && ` (est. ${forecast.projectedExhaustionDate})`}
+                        </p>
+                      </div>
+                      <span className={`text-2xl font-bold ${
+                        forecast.willExhaustBeforeReset ? 'text-red-400' : 'text-emerald-400'
+                      }`}>
+                        {forecast.daysUntilEmpty}d
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {forecast.daysUntilEmpty === null && (
+                  <div className="rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
+                    <p className="text-sm text-tera-secondary">No usage data yet — credits will last indefinitely.</p>
+                  </div>
+                )}
+
+                {forecast.dailyBreakdown.some((d) => d.credits > 0) && (
+                  <div className="rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Daily credit usage</p>
+                    <div className="mt-3 flex items-end gap-1">
+                      {forecast.dailyBreakdown.map((day) => {
+                        const maxCredits = Math.max(...forecast.dailyBreakdown.map((d) => d.credits), 1)
+                        const height = maxCredits > 0 ? (day.credits / maxCredits) * 100 : 0
+                        return (
+                          <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                            <div
+                              className="w-full rounded-sm bg-tera-neon/60 transition-all"
+                              style={{ height: `${Math.max(height, 4)}%`, minHeight: '4px' }}
+                            />
+                            <span className="text-[9px] text-tera-secondary">{day.date.slice(5)}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-6 flex h-[200px] items-center justify-center text-sm text-tera-secondary">
+                Loading forecast...
+              </div>
+            )}
+          </div>
+        </div>
+
+        {actionBreakdown.length > 0 && (
+          <div className="mt-8">
+            <div className="tera-card">
+              <p className="tera-eyebrow">Credit usage by feature</p>
+              <h2 className="mt-3 text-xl font-semibold text-tera-primary">Action breakdown</h2>
+              <p className="mt-3 text-sm leading-7 text-tera-secondary">How credits were spent across different features this cycle.</p>
+              <div className="mt-6 space-y-3">
+                {actionBreakdown.map((item) => {
+                  const maxCredits = Math.max(...actionBreakdown.map((a) => a.credits), 1)
+                  const width = maxCredits > 0 ? (item.credits / maxCredits) * 100 : 0
+                  const actionLabels: Record<string, string> = {
+                    chat_generation: 'AI Chat',
+                    file_upload: 'File Upload',
+                    web_search: 'Web Search',
+                    deep_research: 'Deep Research',
+                    code_review: 'Code Review',
+                    code_explain: 'Code Explain',
+                    writing_rewrite: 'Rewrite',
+                    writing_draft: 'Draft Content',
+                    image_generation: 'Image Gen',
+                    credit_blocked: 'Credit Blocked',
+                    web_search_blocked: 'Search Blocked',
+                  }
+                  return (
+                    <div key={item.action} className="flex items-center gap-4">
+                      <div className="w-32 shrink-0 text-right">
+                        <span className="text-sm text-tera-primary">{actionLabels[item.action] || item.action}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="h-3 overflow-hidden rounded-full bg-white/[0.08]">
+                          <div
+                            className="h-full rounded-full bg-tera-neon/60 transition-all"
+                            style={{ width: `${Math.max(width, 4)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="w-24 shrink-0 text-right">
+                        <span className="text-sm font-medium text-tera-primary">{item.credits}</span>
+                        <span className="ml-1 text-xs text-tera-secondary">cr</span>
+                        <span className="ml-2 text-xs text-tera-secondary">({item.count}x)</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="tera-card">
             <p className="tera-eyebrow">Billing cycle</p>
             <h2 className="mt-3 text-xl font-semibold text-tera-primary">Reset schedule</h2>
@@ -699,6 +988,19 @@ export default function UsagePage() {
                 </div>
                 <span className="text-xs text-tera-secondary">{creditDaysLeft !== null ? `${creditDaysLeft}d left` : '—'}</span>
               </div>
+              {promotionalCredits > 0 && promotionalExpiry && (
+                <div className="flex items-center justify-between rounded-[16px] border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-amber-400">Free bonus credits</p>
+                    <p className="mt-1 text-xs text-tera-secondary">
+                      {promotionalCredits.toLocaleString()} credits expire Aug 15
+                    </p>
+                  </div>
+                  <span className="text-xs text-amber-400">
+                    {promotionalDaysLeft !== null ? (promotionalDaysLeft > 0 ? `${promotionalDaysLeft}d left` : 'Expired') : '—'}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between rounded-[16px] border border-tera-border bg-tera-muted/50 px-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-tera-primary">File uploads</p>
@@ -723,6 +1025,105 @@ export default function UsagePage() {
           </div>
         </div>
       </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="tera-card">
+            <p className="tera-eyebrow">Integrations</p>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Gmail</h2>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">Send emails directly from Tera using your Gmail account.</p>
+
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-tera-primary">Connection status</p>
+                  <p className="mt-1 text-xs text-tera-secondary">
+                    {gmailConnected ? `Connected as ${gmailEmail}` : 'Not connected'}
+                  </p>
+                </div>
+                <span className={`text-xs font-medium ${gmailConnected ? 'text-emerald-400' : 'text-tera-secondary'}`}>
+                  {gmailConnected ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {gmailConnected ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setGmailSendOpen(!gmailSendOpen)}
+                      className="tera-button-primary"
+                    >
+                      Send email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDisconnectGmail()}
+                      disabled={gmailLoading}
+                      className="tera-button-secondary disabled:opacity-60"
+                    >
+                      {gmailLoading ? 'Disconnecting...' : 'Disconnect'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleConnectGmail()}
+                    disabled={gmailLoading}
+                    className="tera-button-primary disabled:opacity-60"
+                  >
+                    {gmailLoading ? 'Connecting...' : 'Connect Gmail'}
+                  </button>
+                )}
+              </div>
+
+              {gmailSendOpen && gmailConnected && (
+                <div className="rounded-[16px] border border-tera-border bg-tera-muted/50 p-4 space-y-3">
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.22em] text-tera-secondary">To</label>
+                    <input
+                      type="email"
+                      value={gmailTo}
+                      onChange={(e) => setGmailTo(e.target.value)}
+                      placeholder="recipient@email.com"
+                      className="tera-input mt-1 h-10 w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.22em] text-tera-secondary">Subject</label>
+                    <input
+                      type="text"
+                      value={gmailSubject}
+                      onChange={(e) => setGmailSubject(e.target.value)}
+                      placeholder="Email subject"
+                      className="tera-input mt-1 h-10 w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.22em] text-tera-secondary">Body</label>
+                    <textarea
+                      value={gmailBody}
+                      onChange={(e) => setGmailBody(e.target.value)}
+                      placeholder="Email body..."
+                      rows={4}
+                      className="tera-input mt-1 w-full resize-none"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-tera-secondary">Cost: 3 credits</p>
+                    <button
+                      type="button"
+                      onClick={() => void handleSendGmail()}
+                      disabled={gmailSending || !gmailTo || !gmailSubject || !gmailBody}
+                      className="tera-button-primary disabled:opacity-60"
+                    >
+                      {gmailSending ? 'Sending...' : 'Send'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
       <PaymentMethodModal
         isOpen={paymentModalOpen}

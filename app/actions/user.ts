@@ -379,3 +379,64 @@ export async function fetchHistoryPageData(userId: string, page: number = 1, pag
     }
 }
 
+export async function fetchUsageForecast(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return null
+
+        const creditState = await getUserCreditsRemaining(userId)
+        if (!creditState) return null
+
+        const { calculateUsageForecast } = await import('@/lib/usage-analytics')
+        return await calculateUsageForecast(
+            userId,
+            creditState.remaining,
+            creditState.resetDate,
+            7,
+        )
+    } catch (error) {
+        console.error('Error fetching usage forecast:', error)
+        return null
+    }
+}
+
+export async function fetchAutoTopupConfig(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return null
+
+        const { getAutoTopupConfig } = await import('@/lib/auto-topup')
+        return await getAutoTopupConfig(userId)
+    } catch (error) {
+        console.error('Error fetching auto-topup config:', error)
+        return null
+    }
+}
+
+export async function saveAutoTopupSettings(userId: string, enabled: boolean, amountUsd: number) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return false
+
+        const { saveAutoTopupConfig } = await import('@/lib/auto-topup')
+        return await saveAutoTopupConfig(userId, enabled, amountUsd)
+    } catch (error) {
+        console.error('Error saving auto-topup settings:', error)
+        return false
+    }
+}
+
+export async function fetchActionBreakdown(userId: string) {
+    try {
+        const session = await auth()
+        if (!session?.user?.id || session.user.id !== userId) return []
+
+        const creditState = await getUserCreditsRemaining(userId)
+        const { getActionUsageBreakdown } = await import('@/lib/usage-analytics')
+        return await getActionUsageBreakdown(userId, creditState?.resetDate ?? null)
+    } catch (error) {
+        console.error('Error fetching action breakdown:', error)
+        return []
+    }
+}
+

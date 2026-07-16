@@ -1,0 +1,5 @@
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS promotional_credits INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS promotional_credits_expiry TIMESTAMPTZ;
