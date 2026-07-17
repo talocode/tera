@@ -150,6 +150,21 @@ async function getAnalyticsData() {
     : { data: [], error: null as any }
   throwIfSupabaseError(activatedError, 'activated-users')
 
+  // Get revenue data (credit top-up purchases)
+  const { data: revenueData, error: revenueError } = await supabase
+    .from('purchased_credit_topup_fulfillments')
+    .select('user_id, amount_usd, credits, created_at')
+  throwIfSupabaseError(revenueError, 'revenue-data')
+
+  // Aggregate revenue per user
+  const userRevenue: Record<string, { totalUsd: number; totalCredits: number; orders: number }> = {}
+  ;(revenueData || []).forEach((row: any) => {
+    if (!userRevenue[row.user_id]) userRevenue[row.user_id] = { totalUsd: 0, totalCredits: 0, orders: 0 }
+    userRevenue[row.user_id].totalUsd += Number(row.amount_usd || 0)
+    userRevenue[row.user_id].totalCredits += Number(row.credits || 0)
+    userRevenue[row.user_id].orders++
+  })
+
   // Aggregate activation data per user
   const userActivation: Record<string, { creditsUsed: number; hasUsed: boolean }> = {}
   ;(activatedUsers || []).forEach((row: any) => {
@@ -159,18 +174,20 @@ async function getAnalyticsData() {
   })
 
   // Build per-source activation metrics
-  const sourceMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }> = {}
-  const campaignMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }> = {}
-  const mediumMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }> = {}
-  let organicSignups = 0, organicActive = 0, organicCredits = 0, organicPaid = 0
+  const sourceMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }> = {}
+  const campaignMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }> = {}
+  const mediumMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }> = {}
+  let organicSignups = 0, organicActive = 0, organicCredits = 0, organicPaid = 0, organicRevenue = 0, organicOrders = 0
 
-  const initMetric = () => ({ signups: 0, active: 0, creditsUsed: 0, paid: 0 })
+  const initMetric = () => ({ signups: 0, active: 0, creditsUsed: 0, paid: 0, revenue: 0, orders: 0 })
 
   ;(referralData || []).forEach((user: any) => {
     const isPaid = user.subscription_plan !== 'free' || !!user.lemon_squeezy_customer_id
     const activation = userActivation[user.id]
     const isActive = activation?.hasUsed || false
     const credits = activation?.creditsUsed || 0
+    const rev = userRevenue[user.id]?.totalUsd || 0
+    const ord = userRevenue[user.id]?.orders || 0
 
     // Source breakdown
     const src = user.utm_source || '__organic__'
@@ -179,6 +196,8 @@ async function getAnalyticsData() {
     if (isActive) sourceMetrics[src].active++
     sourceMetrics[src].creditsUsed += credits
     if (isPaid) sourceMetrics[src].paid++
+    sourceMetrics[src].revenue += rev
+    sourceMetrics[src].orders += ord
 
     // Campaign breakdown
     const camp = user.utm_campaign || '__none__'
@@ -187,6 +206,8 @@ async function getAnalyticsData() {
     if (isActive) campaignMetrics[camp].active++
     campaignMetrics[camp].creditsUsed += credits
     if (isPaid) campaignMetrics[camp].paid++
+    campaignMetrics[camp].revenue += rev
+    campaignMetrics[camp].orders += ord
 
     // Medium breakdown
     const med = user.utm_medium || '__none__'
@@ -195,6 +216,8 @@ async function getAnalyticsData() {
     if (isActive) mediumMetrics[med].active++
     mediumMetrics[med].creditsUsed += credits
     if (isPaid) mediumMetrics[med].paid++
+    mediumMetrics[med].revenue += rev
+    mediumMetrics[med].orders += ord
 
     // Organic
     if (!user.utm_source) {
@@ -202,6 +225,8 @@ async function getAnalyticsData() {
       if (isActive) organicActive++
       organicCredits += credits
       if (isPaid) organicPaid++
+      organicRevenue += rev
+      organicOrders += ord
     }
   })
 
@@ -258,7 +283,7 @@ async function getAnalyticsData() {
       bySource: sourceMetrics,
       byMedium: mediumMetrics,
       byCampaign: campaignMetrics,
-      organic: { signups: organicSignups, active: organicActive, creditsUsed: organicCredits, paid: organicPaid },
+      organic: { signups: organicSignups, active: organicActive, creditsUsed: organicCredits, paid: organicPaid, revenue: organicRevenue, orders: organicOrders },
       total: referralData?.length || 0,
     },
   }

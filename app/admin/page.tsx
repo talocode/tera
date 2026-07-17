@@ -29,10 +29,10 @@ interface AnalyticsData {
   lockedOutUsers: any[]
   upgradeConversions: any[]
   referralSources: {
-    bySource: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }>
-    byMedium: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }>
-    byCampaign: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }>
-    organic: { signups: number; active: number; creditsUsed: number; paid: number }
+    bySource: Record<string, { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }>
+    byMedium: Record<string, { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }>
+    byCampaign: Record<string, { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }>
+    organic: { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }
     total: number
   }
 }
@@ -186,7 +186,7 @@ export default function AdminPage() {
                   {Object.keys(analytics.referralSources.bySource).length > 0 ? (
                     Object.entries(analytics.referralSources.bySource)
                       .filter(([k]) => k !== '__organic__')
-                      .sort((a, b) => b[1].signups - a[1].signups)
+                      .sort((a, b) => b[1].revenue - a[1].revenue || b[1].signups - a[1].signups)
                       .map(([source, m]) => {
                         const activationRate = m.signups > 0 ? ((m.active / m.signups) * 100).toFixed(0) : '0'
                         const conversionRate = m.signups > 0 ? ((m.paid / m.signups) * 100).toFixed(0) : '0'
@@ -196,18 +196,22 @@ export default function AdminPage() {
                               <span className="text-sm font-medium text-tera-primary">{source}</span>
                               <span className="text-xs text-tera-secondary">{m.signups} signups</span>
                             </div>
-                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                            <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                               <div>
                                 <p className="text-lg font-semibold text-tera-neon">{activationRate}%</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
                               </div>
                               <div>
                                 <p className="text-lg font-semibold text-tera-primary">{m.creditsUsed}</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Credits</p>
                               </div>
                               <div>
                                 <p className="text-lg font-semibold text-tera-primary">{conversionRate}%</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-neon">${m.revenue.toFixed(2)}</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Revenue</p>
                               </div>
                             </div>
                           </div>
@@ -221,18 +225,18 @@ export default function AdminPage() {
                       <span className="text-sm text-tera-secondary">Organic (no UTM)</span>
                       <span className="text-xs text-tera-secondary">{analytics.referralSources.organic.signups} signups</span>
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                    <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                       <div>
                         <p className="text-lg font-semibold text-tera-neon">
                           {analytics.referralSources.organic.signups > 0
                             ? ((analytics.referralSources.organic.active / analytics.referralSources.organic.signups) * 100).toFixed(0)
                             : '0'}%
                         </p>
-                        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                        <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-tera-primary">{analytics.referralSources.organic.creditsUsed}</p>
-                        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                        <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Credits</p>
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-tera-primary">
@@ -240,7 +244,11 @@ export default function AdminPage() {
                             ? ((analytics.referralSources.organic.paid / analytics.referralSources.organic.signups) * 100).toFixed(0)
                             : '0'}%
                         </p>
-                        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                        <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-tera-neon">${analytics.referralSources.organic.revenue.toFixed(2)}</p>
+                        <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Revenue</p>
                       </div>
                     </div>
                   </div>
@@ -254,7 +262,7 @@ export default function AdminPage() {
                   {Object.keys(analytics.referralSources.byCampaign).length > 0 ? (
                     Object.entries(analytics.referralSources.byCampaign)
                       .filter(([k]) => k !== '__none__')
-                      .sort((a, b) => b[1].signups - a[1].signups)
+                      .sort((a, b) => b[1].revenue - a[1].revenue || b[1].signups - a[1].signups)
                       .map(([campaign, m]) => {
                         const activationRate = m.signups > 0 ? ((m.active / m.signups) * 100).toFixed(0) : '0'
                         const conversionRate = m.signups > 0 ? ((m.paid / m.signups) * 100).toFixed(0) : '0'
@@ -264,18 +272,22 @@ export default function AdminPage() {
                               <span className="text-sm font-medium text-tera-primary">{campaign}</span>
                               <span className="text-xs text-tera-secondary">{m.signups} signups</span>
                             </div>
-                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                            <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                               <div>
                                 <p className="text-lg font-semibold text-tera-neon">{activationRate}%</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
                               </div>
                               <div>
                                 <p className="text-lg font-semibold text-tera-primary">{m.creditsUsed}</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Credits</p>
                               </div>
                               <div>
                                 <p className="text-lg font-semibold text-tera-primary">{conversionRate}%</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-neon">${m.revenue.toFixed(2)}</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Revenue</p>
                               </div>
                             </div>
                           </div>
@@ -294,7 +306,7 @@ export default function AdminPage() {
                   {Object.keys(analytics.referralSources.byMedium).length > 0 ? (
                     Object.entries(analytics.referralSources.byMedium)
                       .filter(([k]) => k !== '__none__')
-                      .sort((a, b) => b[1].signups - a[1].signups)
+                      .sort((a, b) => b[1].revenue - a[1].revenue || b[1].signups - a[1].signups)
                       .map(([medium, m]) => {
                         const activationRate = m.signups > 0 ? ((m.active / m.signups) * 100).toFixed(0) : '0'
                         const conversionRate = m.signups > 0 ? ((m.paid / m.signups) * 100).toFixed(0) : '0'
@@ -304,18 +316,22 @@ export default function AdminPage() {
                               <span className="text-sm font-medium text-tera-primary">{medium}</span>
                               <span className="text-xs text-tera-secondary">{m.signups} signups</span>
                             </div>
-                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                            <div className="mt-3 grid grid-cols-4 gap-2 text-center">
                               <div>
                                 <p className="text-lg font-semibold text-tera-neon">{activationRate}%</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
                               </div>
                               <div>
                                 <p className="text-lg font-semibold text-tera-primary">{m.creditsUsed}</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Credits</p>
                               </div>
                               <div>
                                 <p className="text-lg font-semibold text-tera-primary">{conversionRate}%</p>
-                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-neon">${m.revenue.toFixed(2)}</p>
+                                <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary">Revenue</p>
                               </div>
                             </div>
                           </div>
