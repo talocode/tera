@@ -29,10 +29,10 @@ interface AnalyticsData {
   lockedOutUsers: any[]
   upgradeConversions: any[]
   referralSources: {
-    bySource: Record<string, number>
-    byMedium: Record<string, number>
-    byCampaign: Record<string, number>
-    organic: number
+    bySource: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }>
+    byMedium: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }>
+    byCampaign: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }>
+    organic: { signups: number; active: number; creditsUsed: number; paid: number }
     total: number
   }
 }
@@ -181,51 +181,148 @@ export default function AdminPage() {
 
               <div className="tera-card">
                 <p className="tera-eyebrow">Traffic sources</p>
-                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Referral breakdown</h2>
+                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Activation by source</h2>
                 <div className="mt-5 space-y-4">
                   {Object.keys(analytics.referralSources.bySource).length > 0 ? (
-                    Object.entries(analytics.referralSources.bySource).sort((a, b) => b[1] - a[1]).map(([source, count]) => {
-                      const width = analytics.referralSources.total > 0 ? (count / analytics.referralSources.total) * 100 : 0
-                      return (
-                        <div key={source}>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-tera-secondary">{source}</span>
-                            <span className="text-tera-primary">{count}</span>
+                    Object.entries(analytics.referralSources.bySource)
+                      .filter(([k]) => k !== '__organic__')
+                      .sort((a, b) => b[1].signups - a[1].signups)
+                      .map(([source, m]) => {
+                        const activationRate = m.signups > 0 ? ((m.active / m.signups) * 100).toFixed(0) : '0'
+                        const conversionRate = m.signups > 0 ? ((m.paid / m.signups) * 100).toFixed(0) : '0'
+                        return (
+                          <div key={source} className="tera-card-subtle px-4 py-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-tera-primary">{source}</span>
+                              <span className="text-xs text-tera-secondary">{m.signups} signups</span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                              <div>
+                                <p className="text-lg font-semibold text-tera-neon">{activationRate}%</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-primary">{m.creditsUsed}</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-primary">{conversionRate}%</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="mt-2 h-2.5 rounded-full bg-white/[0.06]">
-                            <div className="h-full rounded-full bg-tera-neon" style={{ width: `${width}%` }} />
-                          </div>
-                        </div>
-                      )
-                    })
+                        )
+                      })
                   ) : (
                     <p className="text-sm text-tera-secondary">No UTM data yet. Share links with ?utm_source= to track.</p>
                   )}
-                  <div className="flex justify-between border-t border-white/[0.06] pt-3 text-sm">
-                    <span className="text-tera-secondary">Organic (no UTM)</span>
-                    <span className="text-tera-primary">{analytics.referralSources.organic}</span>
+                  <div className="border-t border-white/[0.06] pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-tera-secondary">Organic (no UTM)</span>
+                      <span className="text-xs text-tera-secondary">{analytics.referralSources.organic.signups} signups</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <p className="text-lg font-semibold text-tera-neon">
+                          {analytics.referralSources.organic.signups > 0
+                            ? ((analytics.referralSources.organic.active / analytics.referralSources.organic.signups) * 100).toFixed(0)
+                            : '0'}%
+                        </p>
+                        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-tera-primary">{analytics.referralSources.organic.creditsUsed}</p>
+                        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-tera-primary">
+                          {analytics.referralSources.organic.signups > 0
+                            ? ((analytics.referralSources.organic.paid / analytics.referralSources.organic.signups) * 100).toFixed(0)
+                            : '0'}%
+                        </p>
+                        <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                      </div>
+                    </div>
                   </div>
-                  {Object.keys(analytics.referralSources.byMedium).length > 0 && (
-                    <div className="border-t border-white/[0.06] pt-3">
-                      <p className="mb-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">By medium</p>
-                      {Object.entries(analytics.referralSources.byMedium).sort((a, b) => b[1] - a[1]).map(([medium, count]) => (
-                        <div key={medium} className="flex justify-between text-sm">
-                          <span className="text-tera-secondary">{medium}</span>
-                          <span className="text-tera-primary">{count}</span>
-                        </div>
-                      ))}
-                    </div>
+                </div>
+              </div>
+
+              <div className="tera-card">
+                <p className="tera-eyebrow">Campaigns</p>
+                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Activation by campaign</h2>
+                <div className="mt-5 space-y-4">
+                  {Object.keys(analytics.referralSources.byCampaign).length > 0 ? (
+                    Object.entries(analytics.referralSources.byCampaign)
+                      .filter(([k]) => k !== '__none__')
+                      .sort((a, b) => b[1].signups - a[1].signups)
+                      .map(([campaign, m]) => {
+                        const activationRate = m.signups > 0 ? ((m.active / m.signups) * 100).toFixed(0) : '0'
+                        const conversionRate = m.signups > 0 ? ((m.paid / m.signups) * 100).toFixed(0) : '0'
+                        return (
+                          <div key={campaign} className="tera-card-subtle px-4 py-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-tera-primary">{campaign}</span>
+                              <span className="text-xs text-tera-secondary">{m.signups} signups</span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                              <div>
+                                <p className="text-lg font-semibold text-tera-neon">{activationRate}%</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-primary">{m.creditsUsed}</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-primary">{conversionRate}%</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-sm text-tera-secondary">No campaign data yet.</p>
                   )}
-                  {Object.keys(analytics.referralSources.byCampaign).length > 0 && (
-                    <div className="border-t border-white/[0.06] pt-3">
-                      <p className="mb-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">By campaign</p>
-                      {Object.entries(analytics.referralSources.byCampaign).sort((a, b) => b[1] - a[1]).map(([campaign, count]) => (
-                        <div key={campaign} className="flex justify-between text-sm">
-                          <span className="text-tera-secondary">{campaign}</span>
-                          <span className="text-tera-primary">{count}</span>
-                        </div>
-                      ))}
-                    </div>
+                </div>
+              </div>
+
+              <div className="tera-card">
+                <p className="tera-eyebrow">Medium</p>
+                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Activation by medium</h2>
+                <div className="mt-5 space-y-4">
+                  {Object.keys(analytics.referralSources.byMedium).length > 0 ? (
+                    Object.entries(analytics.referralSources.byMedium)
+                      .filter(([k]) => k !== '__none__')
+                      .sort((a, b) => b[1].signups - a[1].signups)
+                      .map(([medium, m]) => {
+                        const activationRate = m.signups > 0 ? ((m.active / m.signups) * 100).toFixed(0) : '0'
+                        const conversionRate = m.signups > 0 ? ((m.paid / m.signups) * 100).toFixed(0) : '0'
+                        return (
+                          <div key={medium} className="tera-card-subtle px-4 py-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-tera-primary">{medium}</span>
+                              <span className="text-xs text-tera-secondary">{m.signups} signups</span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                              <div>
+                                <p className="text-lg font-semibold text-tera-neon">{activationRate}%</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Activated</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-primary">{m.creditsUsed}</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Credits used</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold text-tera-primary">{conversionRate}%</p>
+                                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">Paid</p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <p className="text-sm text-tera-secondary">No medium data yet.</p>
                   )}
                 </div>
               </div>

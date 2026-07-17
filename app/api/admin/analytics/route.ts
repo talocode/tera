@@ -137,26 +137,71 @@ async function getAnalyticsData() {
   const { data: recentSignups, error: recentSignupsError } = await supabase.from('users').select('id, email, subscription_plan, created_at').order('created_at', { ascending: false }).limit(10)
   throwIfSupabaseError(recentSignupsError, 'recent-signups')
 
-  // Referral source breakdown
-  const { data: referralData, error: referralError } = await supabase.from('users').select('utm_source, utm_medium, utm_campaign, referrer_url, landing_page')
+  // Referral source breakdown with activation metrics
+  const { data: referralData, error: referralError } = await supabase
+    .from('users')
+    .select('id, utm_source, utm_medium, utm_campaign, referrer_url, landing_page, subscription_plan, free_plan_credits_used, purchased_credits_balance, lemon_squeezy_customer_id')
   throwIfSupabaseError(referralError, 'referral-data')
 
-  const sourceBreakdown: Record<string, number> = {}
-  const mediumBreakdown: Record<string, number> = {}
-  const campaignBreakdown: Record<string, number> = {}
-  let organicCount = 0
+  // Get all users who have ever used credits (activated)
+  const allUserIds = (referralData || []).map((u: any) => u.id)
+  const { data: activatedUsers, error: activatedError } = ledgerAvailable
+    ? await supabase.from('usage_ledger').select('user_id, credits_charged').eq('event_type', 'chat_generation').eq('status', 'succeeded')
+    : { data: [], error: null as any }
+  throwIfSupabaseError(activatedError, 'activated-users')
+
+  // Aggregate activation data per user
+  const userActivation: Record<string, { creditsUsed: number; hasUsed: boolean }> = {}
+  ;(activatedUsers || []).forEach((row: any) => {
+    if (!userActivation[row.user_id]) userActivation[row.user_id] = { creditsUsed: 0, hasUsed: false }
+    userActivation[row.user_id].creditsUsed += Number(row.credits_charged || 0)
+    userActivation[row.user_id].hasUsed = true
+  })
+
+  // Build per-source activation metrics
+  const sourceMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }> = {}
+  const campaignMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }> = {}
+  const mediumMetrics: Record<string, { signups: number; active: number; creditsUsed: number; paid: number }> = {}
+  let organicSignups = 0, organicActive = 0, organicCredits = 0, organicPaid = 0
+
+  const initMetric = () => ({ signups: 0, active: 0, creditsUsed: 0, paid: 0 })
 
   ;(referralData || []).forEach((user: any) => {
-    if (user.utm_source) {
-      sourceBreakdown[user.utm_source] = (sourceBreakdown[user.utm_source] || 0) + 1
-    } else {
-      organicCount++
-    }
-    if (user.utm_medium) {
-      mediumBreakdown[user.utm_medium] = (mediumBreakdown[user.utm_medium] || 0) + 1
-    }
-    if (user.utm_campaign) {
-      campaignBreakdown[user.utm_campaign] = (campaignBreakdown[user.utm_campaign] || 0) + 1
+    const isPaid = user.subscription_plan !== 'free' || !!user.lemon_squeezy_customer_id
+    const activation = userActivation[user.id]
+    const isActive = activation?.hasUsed || false
+    const credits = activation?.creditsUsed || 0
+
+    // Source breakdown
+    const src = user.utm_source || '__organic__'
+    if (!sourceMetrics[src]) sourceMetrics[src] = initMetric()
+    sourceMetrics[src].signups++
+    if (isActive) sourceMetrics[src].active++
+    sourceMetrics[src].creditsUsed += credits
+    if (isPaid) sourceMetrics[src].paid++
+
+    // Campaign breakdown
+    const camp = user.utm_campaign || '__none__'
+    if (!campaignMetrics[camp]) campaignMetrics[camp] = initMetric()
+    campaignMetrics[camp].signups++
+    if (isActive) campaignMetrics[camp].active++
+    campaignMetrics[camp].creditsUsed += credits
+    if (isPaid) campaignMetrics[camp].paid++
+
+    // Medium breakdown
+    const med = user.utm_medium || '__none__'
+    if (!mediumMetrics[med]) mediumMetrics[med] = initMetric()
+    mediumMetrics[med].signups++
+    if (isActive) mediumMetrics[med].active++
+    mediumMetrics[med].creditsUsed += credits
+    if (isPaid) mediumMetrics[med].paid++
+
+    // Organic
+    if (!user.utm_source) {
+      organicSignups++
+      if (isActive) organicActive++
+      organicCredits += credits
+      if (isPaid) organicPaid++
     }
   })
 
@@ -210,10 +255,10 @@ async function getAnalyticsData() {
     recentLimitHits: recentLimitHits || [],
     upgradeConversions: upgradedAfterLimit || [],
     referralSources: {
-      bySource: sourceBreakdown,
-      byMedium: mediumBreakdown,
-      byCampaign: campaignBreakdown,
-      organic: organicCount,
+      bySource: sourceMetrics,
+      byMedium: mediumMetrics,
+      byCampaign: campaignMetrics,
+      organic: { signups: organicSignups, active: organicActive, creditsUsed: organicCredits, paid: organicPaid },
       total: referralData?.length || 0,
     },
   }
