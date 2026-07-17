@@ -28,6 +28,13 @@ interface AnalyticsData {
   recentSignups: Array<{ id: string; email: string; subscription_plan: string; created_at: string }>
   lockedOutUsers: any[]
   upgradeConversions: any[]
+  referralSources: {
+    bySource: Record<string, number>
+    byMedium: Record<string, number>
+    byCampaign: Record<string, number>
+    organic: number
+    total: number
+  }
 }
 
 function MetricCard({ title, value, subtext }: { title: string; value: string | number; subtext?: string }) {
@@ -169,6 +176,57 @@ export default function AdminPage() {
                       </div>
                     )
                   })}
+                </div>
+              </div>
+
+              <div className="tera-card">
+                <p className="tera-eyebrow">Traffic sources</p>
+                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Referral breakdown</h2>
+                <div className="mt-5 space-y-4">
+                  {Object.keys(analytics.referralSources.bySource).length > 0 ? (
+                    Object.entries(analytics.referralSources.bySource).sort((a, b) => b[1] - a[1]).map(([source, count]) => {
+                      const width = analytics.referralSources.total > 0 ? (count / analytics.referralSources.total) * 100 : 0
+                      return (
+                        <div key={source}>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-tera-secondary">{source}</span>
+                            <span className="text-tera-primary">{count}</span>
+                          </div>
+                          <div className="mt-2 h-2.5 rounded-full bg-white/[0.06]">
+                            <div className="h-full rounded-full bg-tera-neon" style={{ width: `${width}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <p className="text-sm text-tera-secondary">No UTM data yet. Share links with ?utm_source= to track.</p>
+                  )}
+                  <div className="flex justify-between border-t border-white/[0.06] pt-3 text-sm">
+                    <span className="text-tera-secondary">Organic (no UTM)</span>
+                    <span className="text-tera-primary">{analytics.referralSources.organic}</span>
+                  </div>
+                  {Object.keys(analytics.referralSources.byMedium).length > 0 && (
+                    <div className="border-t border-white/[0.06] pt-3">
+                      <p className="mb-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">By medium</p>
+                      {Object.entries(analytics.referralSources.byMedium).sort((a, b) => b[1] - a[1]).map(([medium, count]) => (
+                        <div key={medium} className="flex justify-between text-sm">
+                          <span className="text-tera-secondary">{medium}</span>
+                          <span className="text-tera-primary">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {Object.keys(analytics.referralSources.byCampaign).length > 0 && (
+                    <div className="border-t border-white/[0.06] pt-3">
+                      <p className="mb-2 text-xs uppercase tracking-[0.22em] text-tera-secondary">By campaign</p>
+                      {Object.entries(analytics.referralSources.byCampaign).sort((a, b) => b[1] - a[1]).map(([campaign, count]) => (
+                        <div key={campaign} className="flex justify-between text-sm">
+                          <span className="text-tera-secondary">{campaign}</span>
+                          <span className="text-tera-primary">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

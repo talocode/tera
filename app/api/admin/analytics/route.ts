@@ -137,6 +137,29 @@ async function getAnalyticsData() {
   const { data: recentSignups, error: recentSignupsError } = await supabase.from('users').select('id, email, subscription_plan, created_at').order('created_at', { ascending: false }).limit(10)
   throwIfSupabaseError(recentSignupsError, 'recent-signups')
 
+  // Referral source breakdown
+  const { data: referralData, error: referralError } = await supabase.from('users').select('utm_source, utm_medium, utm_campaign, referrer_url, landing_page')
+  throwIfSupabaseError(referralError, 'referral-data')
+
+  const sourceBreakdown: Record<string, number> = {}
+  const mediumBreakdown: Record<string, number> = {}
+  const campaignBreakdown: Record<string, number> = {}
+  let organicCount = 0
+
+  ;(referralData || []).forEach((user: any) => {
+    if (user.utm_source) {
+      sourceBreakdown[user.utm_source] = (sourceBreakdown[user.utm_source] || 0) + 1
+    } else {
+      organicCount++
+    }
+    if (user.utm_medium) {
+      mediumBreakdown[user.utm_medium] = (mediumBreakdown[user.utm_medium] || 0) + 1
+    }
+    if (user.utm_campaign) {
+      campaignBreakdown[user.utm_campaign] = (campaignBreakdown[user.utm_campaign] || 0) + 1
+    }
+  })
+
   const { data: upgradedAfterLimit, error: upgradedAfterLimitError } = await supabase.from('users').select('id, email, subscription_plan, limit_hit_chat_at, limit_hit_upload_at, created_at').neq('subscription_plan', 'free').or('limit_hit_chat_at.not.is.null, limit_hit_upload_at.not.is.null')
   throwIfSupabaseError(upgradedAfterLimitError, 'upgraded-after-limit')
 
@@ -186,5 +209,12 @@ async function getAnalyticsData() {
     lockedOutUsers: (lockedOutUsers || []).slice(0, 20),
     recentLimitHits: recentLimitHits || [],
     upgradeConversions: upgradedAfterLimit || [],
+    referralSources: {
+      bySource: sourceBreakdown,
+      byMedium: mediumBreakdown,
+      byCampaign: campaignBreakdown,
+      organic: organicCount,
+      total: referralData?.length || 0,
+    },
   }
 }
