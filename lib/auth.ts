@@ -4,6 +4,55 @@ import { supabaseServer } from '@/lib/supabase-server'
 import { sendWelcomeEmail, sendPromotionalCreditsExpiredEmail } from '@/lib/transactional-emails'
 import { resolveAppOrigin, rewriteToAppOrigin } from '@/lib/url'
 
+type UtmParams = {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+  referrer_url?: string
+  landing_page?: string
+}
+
+function extractUtmFromRequest(req?: Request & { nextUrl?: URL }): UtmParams {
+  if (!req) return {}
+
+  // 1. Try from query params (direct link, e.g. /auth/signin?utm_source=twitter)
+  const sp = req.nextUrl?.searchParams
+  if (sp) {
+    const fromQuery = {
+      utm_source: sp.get('utm_source') || undefined,
+      utm_medium: sp.get('utm_medium') || undefined,
+      utm_campaign: sp.get('utm_campaign') || undefined,
+      utm_term: sp.get('utm_term') || undefined,
+      utm_content: sp.get('utm_content') || undefined,
+      referrer_url: sp.get('ref') || sp.get('referrer') || undefined,
+      landing_page: sp.get('lp') || undefined,
+    }
+    if (fromQuery.utm_source) return fromQuery
+  }
+
+  // 2. Try from cookie (set by sign-in page before OAuth redirect)
+  try {
+    const cookieHeader = req.headers?.get('cookie') || ''
+    const match = cookieHeader.match(/tera_utm=([^;]+)/)
+    if (match) {
+      const decoded = JSON.parse(decodeURIComponent(match[1]))
+      return {
+        utm_source: decoded.utm_source || undefined,
+        utm_medium: decoded.utm_medium || undefined,
+        utm_campaign: decoded.utm_campaign || undefined,
+        utm_term: decoded.utm_term || undefined,
+        utm_content: decoded.utm_content || undefined,
+        referrer_url: decoded.ref || decoded.referrer || undefined,
+        landing_page: decoded.lp || undefined,
+      }
+    }
+  } catch {}
+
+  return {}
+}
+
 function syncAuthOriginFromRequest(req?: Request & { nextUrl?: URL }) {
   if (!req || process.env.NODE_ENV !== 'production') {
     return
@@ -42,6 +91,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         }
 
         try {
+          // Extract UTM params from cookie (set by sign-in page before OAuth redirect)
+          const utm = extractUtmFromRequest(req)
+
           const { data: existingUser, error: fetchError } = await supabaseServer
             .from('users')
             .select('id')
@@ -54,18 +106,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
 
           if (!existingUser) {
             const newUserId = crypto.randomUUID()
+            const insertData: any = {
+              id: newUserId,
+              email: user.email,
+              full_name: user.name || profile?.name || null,
+              profile_image_url: user.image || (profile as any)?.picture || null,
+              subscription_plan: 'free',
+              daily_chats: 0,
+              monthly_file_uploads: 0,
+              created_at: new Date().toISOString(),
+            }
+
+            // Attach UTM/referral data if present
+            if (utm.utm_source) insertData.utm_source = utm.utm_source
+            if (utm.utm_medium) insertData.utm_medium = utm.utm_medium
+            if (utm.utm_campaign) insertData.utm_campaign = utm.utm_campaign
+            if (utm.utm_term) insertData.utm_term = utm.utm_term
+            if (utm.utm_content) insertData.utm_content = utm.utm_content
+            if (utm.referrer_url) insertData.referrer_url = utm.referrer_url
+            if (utm.landing_page) insertData.landing_page = utm.landing_page
+
             const { error: insertError } = await supabaseServer
               .from('users')
-              .insert({
-                id: newUserId,
-                email: user.email,
-                full_name: user.name || profile?.name || null,
-                profile_image_url: user.image || (profile as any)?.picture || null,
-                subscription_plan: 'free',
-                daily_chats: 0,
-                monthly_file_uploads: 0,
-                created_at: new Date().toISOString(),
-              })
+              .insert(insertData)
 
             if (insertError) {
               console.error('Error creating user:', insertError)

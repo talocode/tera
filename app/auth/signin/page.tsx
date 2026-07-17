@@ -17,6 +17,18 @@ export default function SignInPage() {
       const params = new URLSearchParams(window.location.search)
       const redirectTo = params.get('redirect_to')
       const callbackUrl = redirectTo ? `${window.location.origin}${redirectTo}` : `${window.location.origin}/new`
+
+      // Capture UTM params before OAuth redirect (they get lost during the redirect chain)
+      const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref', 'referrer', 'lp']
+      const utmData: Record<string, string> = {}
+      for (const key of utmKeys) {
+        const val = params.get(key)
+        if (val) utmData[key] = val
+      }
+      if (Object.keys(utmData).length > 0) {
+        document.cookie = `tera_utm=${encodeURIComponent(JSON.stringify(utmData))}; path=/; max-age=86400; SameSite=Lax`
+      }
+
       await signIn('google', { callbackUrl, redirect: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')
