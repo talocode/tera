@@ -254,6 +254,37 @@ async function getAnalyticsData() {
   const upgradeRate = totalLimitHits > 0 ? ((upgradedCount / totalLimitHits) * 100).toFixed(2) : '0.00'
   const avgChatsPerUser = totalUsers && totalUsers > 0 ? Math.round((totalChatSessions || 0) / totalUsers) : 0
 
+  // Onboarding funnel metrics
+  const { data: activationEvents } = await supabase
+    .from('activation_events')
+    .select('user_id, event_type, metadata')
+
+  const eventCounts: Record<string, Set<string>> = {
+    onboarding_viewed: new Set(),
+    onboarding_completed: new Set(),
+    quickstart_clicked: new Set(),
+    first_message_sent: new Set(),
+    first_credit_used: new Set(),
+  }
+  const choiceCounts: Record<string, number> = {}
+
+  ;(activationEvents || []).forEach((event: any) => {
+    if (eventCounts[event.event_type]) {
+      eventCounts[event.event_type].add(event.user_id)
+    }
+    if (event.event_type === 'onboarding_completed' && event.metadata?.choice) {
+      const choice = event.metadata.choice
+      choiceCounts[choice] = (choiceCounts[choice] || 0) + 1
+    }
+  })
+
+  const onboardingViewed = eventCounts.onboarding_viewed.size
+  const onboardingCompleted = eventCounts.onboarding_completed.size
+  const quickstartClicked = eventCounts.quickstart_clicked.size
+  const firstMessageSent = eventCounts.first_message_sent.size
+  const firstCreditUsed = eventCounts.first_credit_used.size
+  const onboardingChoiceBreakdown = choiceCounts
+
   return {
     summary: {
       totalUsers: totalUsers || 0,
@@ -285,6 +316,18 @@ async function getAnalyticsData() {
       byCampaign: campaignMetrics,
       organic: { signups: organicSignups, active: organicActive, creditsUsed: organicCredits, paid: organicPaid, revenue: organicRevenue, orders: organicOrders },
       total: referralData?.length || 0,
+    },
+    onboardingFunnel: {
+      viewed: onboardingViewed,
+      completed: onboardingCompleted,
+      quickstartClicked: quickstartClicked,
+      firstMessage: firstMessageSent,
+      firstCredit: firstCreditUsed,
+      completionRate: totalUsers && totalUsers > 0 ? ((onboardingCompleted / totalUsers) * 100).toFixed(1) : '0',
+      quickstartRate: onboardingCompleted > 0 ? ((quickstartClicked / onboardingCompleted) * 100).toFixed(1) : '0',
+      messageRate: totalUsers && totalUsers > 0 ? ((firstMessageSent / totalUsers) * 100).toFixed(1) : '0',
+      creditRate: totalUsers && totalUsers > 0 ? ((firstCreditUsed / totalUsers) * 100).toFixed(1) : '0',
+      byChoice: onboardingChoiceBreakdown,
     },
   }
 }

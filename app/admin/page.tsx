@@ -35,6 +35,18 @@ interface AnalyticsData {
     organic: { signups: number; active: number; creditsUsed: number; paid: number; revenue: number; orders: number }
     total: number
   }
+  onboardingFunnel: {
+    viewed: number
+    completed: number
+    quickstartClicked: number
+    firstMessage: number
+    firstCredit: number
+    completionRate: string
+    quickstartRate: string
+    messageRate: string
+    creditRate: string
+    byChoice: Record<string, number>
+  }
 }
 
 function MetricCard({ title, value, subtext }: { title: string; value: string | number; subtext?: string }) {
@@ -139,6 +151,45 @@ export default function AdminPage() {
               <MetricCard title="Total chats" value={analytics.summary.totalChatSessions} subtext={`${analytics.summary.chatsToday} today`} />
               <MetricCard title="Active users" value={analytics.summary.activeUsersToday} subtext="Today's activity" />
               <MetricCard title="Upgrade rate" value={`${analytics.summary.upgradeRate}%`} subtext={`${analytics.summary.upgradedAfterLimit} after limit`} />
+            </div>
+
+            <div className="mt-8">
+              <div className="tera-card">
+                <p className="tera-eyebrow">Activation funnel</p>
+                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Onboarding to first credit</h2>
+                <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-2">
+                  {[
+                    { label: 'Viewed onboarding', count: analytics.onboardingFunnel.viewed, rate: null },
+                    { label: 'Completed', count: analytics.onboardingFunnel.completed, rate: analytics.onboardingFunnel.completionRate },
+                    { label: 'Clicked quickstart', count: analytics.onboardingFunnel.quickstartClicked, rate: analytics.onboardingFunnel.quickstartRate },
+                    { label: 'First message', count: analytics.onboardingFunnel.firstMessage, rate: analytics.onboardingFunnel.messageRate },
+                    { label: 'First credit used', count: analytics.onboardingFunnel.firstCredit, rate: analytics.onboardingFunnel.creditRate },
+                  ].map((step, i) => (
+                    <div key={step.label} className="flex items-center gap-2">
+                      <div className="tera-card-subtle min-w-[140px] px-4 py-3 text-center">
+                        <p className="text-2xl font-semibold text-tera-primary">{step.count}</p>
+                        <p className="mt-1 text-[0.65rem] uppercase tracking-[0.18em] text-tera-secondary">{step.label}</p>
+                        {step.rate && <p className="mt-1 text-xs font-medium text-tera-neon">{step.rate}%</p>}
+                      </div>
+                      {i < 4 && <span className="text-tera-secondary/40">→</span>}
+                    </div>
+                  ))}
+                </div>
+
+                {Object.keys(analytics.onboardingFunnel.byChoice).length > 0 && (
+                  <div className="mt-5 border-t border-white/[0.06] pt-4">
+                    <p className="text-xs uppercase tracking-[0.22em] text-tera-secondary">Activation by onboarding choice</p>
+                    <div className="mt-3 grid grid-cols-3 gap-3 md:grid-cols-6">
+                      {Object.entries(analytics.onboardingFunnel.byChoice).sort((a, b) => b[1] - a[1]).map(([choice, count]) => (
+                        <div key={choice} className="text-center">
+                          <p className="text-lg font-semibold text-tera-primary">{count}</p>
+                          <p className="text-[0.6rem] uppercase tracking-[0.18em] text-tera-secondary capitalize">{choice}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-8 grid gap-6 lg:grid-cols-2">

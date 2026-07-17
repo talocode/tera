@@ -403,7 +403,8 @@ export default function PromptShell({
     userReady,
     onRequireSignIn,
     sessionId,
-    initialPrompt
+    initialPrompt,
+    autoSend
 }: {
     tool: TeacherTool
     onToolChange?: (tool: TeacherTool) => void
@@ -412,6 +413,7 @@ export default function PromptShell({
     onRequireSignIn?: () => void
     sessionId?: string | null
     initialPrompt?: string
+    autoSend?: boolean
 }) {
     const router = useRouter()
     const { theme } = useTheme()
@@ -617,6 +619,16 @@ export default function PromptShell({
             setPrompt(initialPrompt)
         }
     }, [initialPrompt, sessionId])
+
+    // Auto-send when quickstart card is clicked
+    useEffect(() => {
+        if (!autoSend || !initialPrompt || !userReady) return
+        const timer = setTimeout(() => {
+            processMessage(initialPrompt, [], 'ask')
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [autoSend, initialPrompt, userReady])
+
     useEffect(() => {
         void refreshUsageSignals()
     }, [refreshUsageSignals])
