@@ -1,0 +1,74 @@
+STUDYING IS BROKEN.
+You read the textbook, highlight everything, and remember nothing. You stay up late rereading notes, and the next morning it's gone.
+
+What if you had a tutor that was available 24/7, never got tired, and could explain the same concept ten different ways until it clicks?
+
+That's what I'm going to show you today. No fluff. Just how to actually use AI to study better.
+
+Most students spend hours on passive studying — reading, rereading, highlighting. The research is clear: this barely works.
+
+What actually works is active recall and spaced repetition. But doing that manually takes forever. You'd need to create your own flashcards, write your own practice questions, build your own study schedule. Who has time for that?
+
+Today I'll show you three things you can do with TeraAI that replace hours of passive studying. I'll walk through each one step by step, and you can follow along — it's free.
+
+STEP ONE: ACTUALLY UNDERSTAND THE TOPIC
+
+Go to teraai.chat and sign in. You get 150 free credits per month — that's enough for serious studying. No credit card needed.
+
+Here's the trick — don't just say "explain photosynthesis." Give Tera a specific audience. "Explain it like I'm 10." "Use an analogy." This forces it to simplify instead of dumping textbook jargon on you.
+
+[Type: Explain photosynthesis like I'm 10 years old. Use a simple analogy a kid would understand, then give me 3 real-world examples.]
+
+Look at that analogy. Plants are like tiny food factories — sunlight is the power, water and CO2 are the ingredients, and sugar is the product. That's something you'll actually remember. Way better than memorizing "chloroplasts convert light energy into chemical energy."
+
+[Type: Now give me 3 real-world examples of photosynthesis I can see in everyday life.]
+
+Now ask for real-world examples. This connects the abstract concept to things you already know. That's how memory works — new information sticks when it attaches to something familiar.
+
+STEP TWO: TEST YOURSELF
+
+This is the most important part. Reading feels productive, but it's not. Testing is where learning actually happens. It's called the testing effect — the act of trying to recall information strengthens your memory more than reading the same thing five times.
+
+[Type: Create 5 quiz questions about photosynthesis. Mix multiple choice and short answer. Include the answers at the end.]
+
+Tera generates five questions from the topic you just studied. Multiple choice and short answer. Try answering each one before you look at the answer. If you get it wrong, that's good — it means you found a gap.
+
+And here's where it gets powerful — tell Tera which ones you got wrong. It'll explain the correct answers and even give you memory tricks. That's personalized tutoring. For free.
+
+[Type: I got questions 2 and 4 wrong. Explain why those answers are correct and give me a memory trick to remember them.]
+
+STEP THREE: BUILD A STUDY PLAN
+
+This is where most students fail — not because they don't study, but because they don't have a plan. They cram the night before and forget everything.
+
+[Type: I have a biology exam in 7 days. Create a 7-day study plan that covers cell biology, genetics, and evolution. Include 1 hour per day, with a mix of reading, practice questions, and review. Make it realistic — I have school during the day.]
+
+Tera builds you a realistic 7-day plan. One hour per day. It mixes different types of studying — reading, practice questions, review. And it accounts for the fact that you have school during the day. This is way better than "study everything the night before."
+
+And you can customize it. Tell Tera which days need more focus on your weak areas. It adjusts the plan for you.
+
+[Type: Can you make day 3 more focused on genetics? That's my weakest area.]
+
+STEP FOUR: SUMMARIZE YOUR NOTES
+
+If you have pages of notes, you don't need to reread all of them. Ask Tera to pull out the key points. Five things you absolutely need to remember.
+
+[Type: I have notes on photosynthesis. Summarize them into 5 key points I need to remember for the exam. Format as bullet points.]
+
+Now you have a focused summary. These five points are what you review the day before the exam. Not 20 pages. Just the essentials.
+
+Bonus — ask Tera to turn those points into flashcards. You can use these for spaced repetition throughout the week.
+
+[Type: Turn these 5 points into flashcards with the concept on one side and the explanation on the other.]
+
+HONEST ASSESSMENT
+
+Here's the honest assessment. AI doesn't replace studying. You still have to put in the work. But it makes the work smarter. Instead of four hours of rereading, you get one hour of active studying that actually sticks.
+
+The three things that changed for me: I understood concepts faster with personalized explanations. I retained more because I tested myself. And I studied more consistently because I had a plan instead of cramming.
+
+Is it perfect? No. Sometimes Tera gives explanations that are too simple or too complex. You have to adjust. But for a free tool that's available 24/7, it's the best study partner I've found.
+
+CTA
+
+Try it yourself. Link is in the description. It's free — 150 credits per month, no credit card. If this video helped you, subscribe for more AI study tips. And drop a comment telling me what subject you're studying — I'll make a video on that next.

@@ -1,35 +1,190 @@
 # Tera
 
-AI capabilities API — chat completions, writing (rewrite/draft), coding (explain/review/write).
+**AI capabilities API** — chat completions, writing (rewrite / draft), and coding (explain / review / write).
+
+Part of **[Talocode](https://talocode.site)**. Hosted at `/v1/tera/*` on the Talocode Cloud base URL.
+
+| | |
+|--|--|
+| **Package** | `pip install talocode-tera` |
+| **Import** | `from tera import TeraClient` |
+| **Cloud API** | `https://api.talocode.site/v1/tera/*` |
+| **Auth** | `TALOCODE_API_KEY` |
+| **npm** | `@talocode/tera` / product also via Tera hosts |
+| **Repo** | [github.com/talocode/tera](https://github.com/talocode/tera) |
+| **License** | MIT |
+
+---
+
+## Why Tera?
+
+Builders need a **small set of high-value AI actions** with clear credit prices—not a raw model reseller dump.
+
+| Capability | Credits (typical) | Use when |
+|------------|-------------------|----------|
+| Chat completions | **3** | General assistant / tool loops |
+| Writing rewrite | **5** | Tone / style polish |
+| Writing draft | **10** | New content from a brief |
+| Coding explain | **10** | Teach / document code |
+| Coding review | **20** | Bugs, style, security focus |
+| Coding write | **20** | Implement a task (+ optional tests) |
+
+Open clients; hosted inference is metered on Talocode Cloud.
+
+---
+
+## Install
 
 ```bash
-pip install tera
+pip install -U talocode-tera
 ```
 
-## Usage
+Python **3.10+**, stdlib only.
+
+---
+
+## Quickstart
 
 ```python
+import os
 from tera import TeraClient
 
-client = TeraClient(api_key="your_talocode_key")
+client = TeraClient(api_key=os.environ["TALOCODE_API_KEY"])
+# TALOCODE_BASE_URL defaults to https://api.talocode.site
+
+# Health / pricing / capabilities
+print(client.health())
+print(client.pricing())
+print(client.capabilities())
 
 # Chat
-result = client.chat_completions([{"role": "user", "content": "Hello!"}])
+chat = client.chat_completions(
+    messages=[{"role": "user", "content": "What is Talocode?"}],
+    model=None,  # host default
+    max_tokens=512,
+    temperature=0.3,
+)
 
 # Writing
-result = client.writing_rewrite("Hello world", style="professional")
+rewritten = client.writing_rewrite(
+    "hey team ship is delayed",
+    style="professional",
+    tone="neutral",
+)
+draft = client.writing_draft(
+    type="email",
+    brief="Announce SearchLane launch to early users",
+    audience="developers",
+)
 
 # Coding
-result = client.coding_explain("python", "print('hello')")
+explain = client.coding_explain("python", "print('hello')", level="beginner")
+review = client.coding_review("typescript", "const x: any = 1;", focus=["types", "bugs"])
+write = client.coding_write(
+    "python",
+    task="Parse ISO dates safely",
+    style="production-ready",
+    generate_tests=True,
+)
 ```
+
+### Environment
+
+| Variable | Default |
+|----------|---------|
+| `TALOCODE_API_KEY` | — |
+| `TALOCODE_BASE_URL` | `https://api.talocode.site` |
+
+---
+
+## HTTP routes
+
+| Method | Path | Credits |
+|--------|------|---------|
+| `GET` | `/v1/tera/health` | — |
+| `GET` | `/v1/tera/pricing` | — |
+| `GET` | `/v1/tera/capabilities` | — |
+| `POST` | `/v1/tera/chat/completions` | 3 |
+| `POST` | `/v1/tera/writing/rewrite` | 5 |
+| `POST` | `/v1/tera/writing/draft` | 10 |
+| `POST` | `/v1/tera/coding/explain` | 10 |
+| `POST` | `/v1/tera/coding/review` | 20 |
+| `POST` | `/v1/tera/coding/write` | 20 |
+
+Auth: `Authorization: Bearer $TALOCODE_API_KEY`.
+
+---
 
 ## CLI
 
 ```bash
+export TALOCODE_API_KEY=...
+
 tera health
+tera capabilities
 tera chat --message "What is Python?"
 tera rewrite --text "Hello world"
+tera draft --type email --brief "Follow up with a customer"
 tera explain --language python --code "print('hello')"
+tera review --language typescript --code "const x = 1"
 ```
 
-Requires `TALOCODE_API_KEY` environment variable.
+---
+
+## Client API
+
+```python
+from tera import TeraClient, TeraError, create_tera_client
+
+client = TeraClient(api_key=None, base_url=None)
+client.health()
+client.pricing()
+client.capabilities()
+client.chat_completions(messages, model=None, max_tokens=None, temperature=None)
+client.writing_rewrite(text, style="professional", tone="neutral", max_length=None)
+client.writing_draft(type, brief, audience="general", tone="neutral", max_length=None)
+client.coding_explain(language, code, level="intermediate", focus=None)
+client.coding_review(language, code, focus=None, strictness="normal")
+client.coding_write(language, task, context=None, style="production-ready", generate_tests=False)
+```
+
+`TeraError` is raised on API failures.
+
+---
+
+## Related packages
+
+| Package | Role |
+|---------|------|
+| `talocode` | Unified cloud client (all products) |
+| `talocode-tera` | **This package** |
+| `talocode-codra` | Repo summary / plan / review agent API |
+| `talocode-searchlane` | Web search & research |
+
+---
+
+## Talocode ecosystem
+
+| Project | Role |
+|---------|------|
+| **[Tera](https://github.com/talocode/tera)** | AI capability API (this package) |
+| **[StackLane](https://github.com/talocode/stacklane)** | Cloud control plane and credits |
+| **[Codra](https://github.com/talocode/codra)** | Coding agent workflows |
+| **[SearchLane](https://github.com/talocode/searchlane)** | Agent search and research |
+| **[GateLane](https://github.com/talocode/gatelane)** | Policy and access controls |
+| **[ContextLane](https://github.com/talocode/contextlane)** | Context management |
+| **[ScreenLane](https://github.com/talocode/screenlane)** | Screen understanding |
+| **[MemoryLane](https://github.com/talocode/memorylane)** | Agent memory |
+| **[Tradia](https://github.com/talocode/tradia)** | Trading workflows |
+| **[DevTool](https://github.com/talocode/devtool)** | Developer automation |
+| **[XProLane](https://github.com/talocode/xprolane)** | Social workflow setup |
+| **[Agent Browser](https://github.com/talocode/agent-browser)** | Browser automation |
+| **[InvoiceLane](https://github.com/talocode/invoicelane)** | Invoice workflows |
+| **[GeoLane](https://github.com/talocode/geolane)** | Geospatial workflows |
+| **[ClipLoop](https://github.com/talocode/cliploop)** | Video clipping workflows |
+
+More: [github.com/talocode](https://github.com/talocode) · [talocode.site](https://talocode.site) · [docs.talocode.site](https://docs.talocode.site)
+
+## License
+
+MIT © Talocode

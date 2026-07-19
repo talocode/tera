@@ -1,0 +1,23 @@
+PROMPT 1 — UNDERSTAND THE TOPIC
+Explain photosynthesis like I'm 10 years old. Use a simple analogy a kid would understand, then give me 3 real-world examples.
+
+PROMPT 2 — REAL-WORLD EXAMPLES
+Now give me 3 real-world examples of photosynthesis I can see in everyday life.
+
+PROMPT 3 — QUIZ GENERATION
+Create 5 quiz questions about photosynthesis. Mix multiple choice and short answer. Include the answers at the end.
+
+PROMPT 4 — FOLLOW-UP ON WRONG ANSWERS
+I got questions 2 and 4 wrong. Explain why those answers are correct and give me a memory trick to remember them.
+
+PROMPT 5 — STUDY PLAN
+I have a biology exam in 7 days. Create a 7-day study plan that covers cell biology, genetics, and evolution. Include 1 hour per day, with a mix of reading, practice questions, and review. Make it realistic — I have school during the day.
+
+PROMPT 6 — CUSTOMIZE PLAN
+Can you make day 3 more focused on genetics? That's my weakest area.
+
+PROMPT 7 — SUMMARIZE NOTES
+I have notes on photosynthesis. Summarize them into 5 key points I need to remember for the exam. Format as bullet points.
+
+PROMPT 8 — CREATE FLASHCARDS
+Turn these 5 points into flashcards with the concept on one side and the explanation on the other.

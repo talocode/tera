@@ -13,6 +13,11 @@ dist/
 .env
 .env.*
 !.env.example
+.youtube-credentials.json
+*credentials*.json
+*secret*.json
+*token*.json
+client_secret*.json
 
 # Logs
 npm-debug.log*
