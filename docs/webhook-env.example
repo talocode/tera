@@ -1,0 +1,19 @@
+# Required for Telegram webhook (set in Netlify env vars)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_URL=https://teraai.chat/api/webhooks/telegram
+
+# Required for API capabilities
+TALOCODE_API_KEY=
+
+# LLM fallback (if TALOCODE_API_KEY is unset)
+MISTRAL_API_KEY=
+
+# Email capability
+RESEND_API_KEY=
+RESEND_FROM=onboarding@resend.dev
+
+# Admin commands
+ADMIN_CHAT_ID=
+
+# Default (no change needed)
+TALOCODE_BASE_URL=https://api.talocode.site

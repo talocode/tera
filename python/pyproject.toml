@@ -26,3 +26,7 @@ PyPI = "https://pypi.org/project/talocode-tera/"
 
 [project.scripts]
 tera = "tera.__main__:main"
+tera-bot = "tera.agent:main"
+
+[project.optional-dependencies]
+bot = ["gTTS", "requests"]

@@ -1,4 +1,4 @@
-"""Tera — AI capabilities API client."""
+"""Tera — AI capabilities API client + Telegram agent."""
 
 __version__ = "0.1.1"
 
