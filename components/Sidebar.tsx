@@ -332,6 +332,28 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             </div>
           )}
 
+          {/* Bottom: Talocode */}
+          <div className="pt-2">
+            <a
+              href="https://talocode.site"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Talocode"
+              className="flex h-[44px] items-center gap-3 rounded-[14px] px-3 text-[13px] font-medium tracking-[-0.01em] text-tera-secondary transition-all duration-150 hover:bg-tera-panel/70 hover:text-tera-primary"
+            >
+              <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3c-2.5 2-4 4.5-4 8s1.5 6 4 8c2.5-2 4-4.5 4-8s-1.5-6-4-8Z" />
+              </svg>
+              <span className={[
+                'whitespace-nowrap text-[13px] transition-all duration-200',
+                expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
+              ].join(' ')}
+              >
+                Talocode
+              </span>
+            </a>
+          </div>
+
           {/* Bottom: User */}
           <div className="pt-3 border-t border-tera-border/50 mt-2">
             <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />

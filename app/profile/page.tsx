@@ -870,7 +870,7 @@ export default function ProfilePage() {
           <div className="tera-card">
             <p className="tera-eyebrow">Weekly trend</p>
             <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Usage history</h2>
-            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track credit consumption over the last 7 days.</p>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track token consumption over the last 7 days.</p>
             <div className="mt-8">
               {historyLoading ? (
                 <div className="flex h-[200px] items-center justify-center text-sm text-tera-secondary">Loading history...</div>
@@ -882,14 +882,14 @@ export default function ProfilePage() {
                       <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Avg. intensity</p>
                       <p className="mt-1 text-xl font-semibold text-tera-primary">
                         {Math.round(weeklyTotal / sessionCount)}
-                        <span className="ml-1 text-xs font-normal text-tera-secondary">pts/session</span>
+                        <span className="ml-1 text-xs font-normal text-tera-secondary">tokens/session</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-tera-secondary">7D total</p>
                       <p className="mt-1 text-xl font-semibold text-tera-primary">
                         {weeklyTotal.toLocaleString()}
-                        <span className="ml-1 text-xs font-normal text-tera-secondary">credits</span>
+                        <span className="ml-1 text-xs font-normal text-tera-secondary">tokens</span>
                       </p>
                     </div>
                   </div>
