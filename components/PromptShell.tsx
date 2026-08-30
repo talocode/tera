@@ -1338,8 +1338,8 @@ export default function PromptShell({
                             )}
 
                             <div className="flex items-end gap-1">
-                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:-translate-y-px hover:bg-white/95"><StopIcon /></button>}
-                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:bg-white/95"><SendIcon /></button>}
+                                {showStop && <button onClick={handleStop} aria-label="Stop generating" className="composer-send-button"><StopIcon /></button>}
+                                {showSend && <button onClick={handleSubmit} aria-label="Send message" className="composer-send-button"><SendIcon /></button>}
                                 {showMic && <button onClick={toggleListening} className={`composer-action-button ${isListening ? 'border-red-400/40 bg-red-500/18 text-red-300 animate-pulse' : ''}`}><MicIcon /></button>}
                             </div>
                         </div>
