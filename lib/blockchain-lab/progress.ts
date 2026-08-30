@@ -1,7 +1,6 @@
 import { supabaseServer } from '@/lib/supabase-server';
 import type { BlockchainLabProgress, BlockchainLabUserBadge } from './schemas';
-import { BADGES, LESSONS } from './constants';
-import { getUserTransactions } from './transactions';
+import { BADGES } from './constants';
 
 export async function recordProgressEvent(
   userId: string,
@@ -89,12 +88,19 @@ export async function getUserLabProgress(
   const progress = progressResult.data || [];
   const badges = badgesResult.data || [];
   const completedLessons = progress.filter((p) => p.status === 'completed').length;
-  const [walletResult, transactions] = await Promise.all([
+  const [walletResult, sendResult] = await Promise.all([
     supabaseServer
-      .from('blockchain_lab_wallets')
+      .from('credit_usage_events')
       .select('id')
-      .eq('user_id', userId),
-    getUserTransactions(userId),
+      .eq('user_id', userId)
+      .eq('event_type', 'tcode_link')
+      .limit(1),
+    supabaseServer
+      .from('credit_usage_events')
+      .select('id, metadata')
+      .eq('user_id', userId)
+      .eq('event_type', 'solana_lab_send')
+      .eq('metadata->>success', 'true'),
   ]);
 
   const { data: lessons } = await supabaseServer
@@ -102,13 +108,15 @@ export async function getUserLabProgress(
     .select('slug')
     .eq('is_published', true);
 
+  const sends = (sendResult.data || []).filter((s) => s.metadata?.success === true);
+
   return {
     progress,
     badges,
     completedLessons,
     totalLessons: lessons?.length || 4,
     walletCount: walletResult.data?.length || 0,
-    transactions: transactions.map((transaction) => ({ status: transaction.status })),
+    transactions: sends.map(() => ({ status: 'confirmed' })),
   };
 }
 
@@ -136,23 +144,27 @@ export async function getUserBadgeSummary(
 export async function checkAndAwardBadges(userId: string): Promise<string[]> {
   const awardedBadges: string[] = [];
 
-  const { data: wallets } = await supabaseServer
-    .from('blockchain_lab_wallets')
-    .select('id')
-    .eq('user_id', userId);
+  const { data: walletLinks } = await supabaseServer
+    .from('credit_usage_events')
+    .select('id, metadata')
+    .eq('user_id', userId)
+    .eq('event_type', 'tcode_link')
+    .limit(1);
 
-  if (wallets && wallets.length > 0) {
+  if (walletLinks && walletLinks.length > 0) {
     const awarded = await awardBadgeIfEligible(userId, BADGES.FIRST_WALLET);
     if (awarded) awardedBadges.push(BADGES.FIRST_WALLET);
   }
 
-  const { data: transactions } = await supabaseServer
-    .from('blockchain_lab_transactions')
+  const { data: sends } = await supabaseServer
+    .from('credit_usage_events')
     .select('id')
     .eq('user_id', userId)
-    .eq('status', 'confirmed');
+    .eq('event_type', 'solana_lab_send')
+    .eq('metadata->>success', 'true')
+    .limit(1);
 
-  if (transactions && transactions.length > 0) {
+  if (sends && sends.length > 0) {
     const awarded = await awardBadgeIfEligible(userId, BADGES.FIRST_TRANSFER);
     if (awarded) awardedBadges.push(BADGES.FIRST_TRANSFER);
   }

@@ -1,21 +1,3 @@
-export const SUPPORTED_TOKENS = ['USDC', 'ETH', 'TERA'] as const;
-export type TokenSymbol = typeof SUPPORTED_TOKENS[number];
-
-export const SIM_NETWORK = 'tera-simnet';
-
-export const STARTER_BALANCES: Record<TokenSymbol, number> = {
-  USDC: 100,
-  ETH: 0.05,
-  TERA: 25,
-};
-
-export const GAS_SETTINGS = {
-  USDC_TRANSFER: 0.001,
-  ETH_TRANSFER: 0.002,
-  TERA_TRANSFER: 0.001,
-  BASE_FEE: 0.0005,
-};
-
 export const BADGES = {
   FIRST_WALLET: 'first-wallet',
   FIRST_TRANSFER: 'first-transfer',
@@ -32,15 +14,15 @@ export const LESSONS = {
 } as const;
 
 export const EDUCATIONAL_COPY = {
-  HEADLINE: 'Learn blockchain without risking money.',
+  HEADLINE: 'Learn blockchain with a real Solana wallet.',
   SUBHEADLINE:
-    'Create wallets, send fake stablecoins, inspect blocks, and understand how money moves onchain through safe AI guided simulations.',
+    'Connect your own wallet, track live balances, inspect real blocks, and understand how money moves on-chain.',
   SAFETY_NOTICE:
-    'Everything here is simulated. You are not using real crypto, real wallets, or real private keys.',
+    'You are connected to the real Solana network with your own wallet. You approve every transaction before it is broadcast.',
   WALLET_SAFETY: [
-    'Private keys control wallets',
+    'Your keys stay in your wallet',
     'Never share seed phrases',
-    'This lab uses fake educational keys only',
-    'No real money is involved',
+    'Verify every transaction before signing',
+    'Start with small test amounts',
   ],
 };

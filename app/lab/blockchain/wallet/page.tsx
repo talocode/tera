@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import BlockchainLabShell from '@/components/blockchain-lab/BlockchainLabShell';
-import WalletSimulator from '@/components/blockchain-lab/WalletSimulator';
+import RealSolanaWallet from '@/components/blockchain-lab/RealSolanaWallet';
 
 export default async function WalletPage() {
   const session = await auth();
@@ -11,10 +11,10 @@ export default async function WalletPage() {
 
   return (
     <BlockchainLabShell
-      title="Wallet Simulator"
-      description="Create and manage your simulated blockchain wallets. Learn about public addresses and private keys safely."
+      title="Your Wallet"
+      description="Connect your real Solana wallet and read live balances, tokens, and on-chain activity straight from the network."
     >
-      <WalletSimulator />
+      <RealSolanaWallet />
     </BlockchainLabShell>
   );
 }

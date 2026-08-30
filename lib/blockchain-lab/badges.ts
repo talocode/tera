@@ -3,7 +3,7 @@ import { BADGES } from './constants';
 export const BADGE_INFO: Record<string, { title: string; description: string; icon: string }> = {
   [BADGES.FIRST_WALLET]: {
     title: 'First Wallet',
-    description: 'Created your first simulated wallet',
+    description: 'Linked your real Solana wallet',
     icon: 'wallet',
   },
   [BADGES.FIRST_TRANSFER]: {

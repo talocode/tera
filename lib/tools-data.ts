@@ -199,9 +199,9 @@ export const studentTools: TeacherTool[] = [
 export const learnerTools: TeacherTool[] = [
     {
         name: 'Blockchain Lab',
-        description: 'Learn blockchain concepts safely through AI-guided simulations.',
+        description: 'Learn blockchain with a real Solana wallet - live balances, real transactions, and on-chain data.',
         icon: '⛓️',
-        tags: ['Blockchain', 'Education', 'Simulation']
+        tags: ['Blockchain', 'Education', 'Wallet']
     },
     {
         name: 'Skill Explorer',
