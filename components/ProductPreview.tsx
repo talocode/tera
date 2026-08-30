@@ -33,7 +33,7 @@ function AppSidebar() {
   return (
     <aside className="hidden w-44 shrink-0 border-r border-tera-border bg-tera-muted/40 p-3 md:block">
       <div className="mb-4 flex items-center gap-2 px-1">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-tera-primary font-bold text-white">T</span>
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-tera-border bg-tera-highlight text-[0.6rem] font-bold text-tera-accent">T</span>
         <span className="text-sm font-semibold text-tera-primary">TeraAI</span>
       </div>
       <div className="space-y-1">
@@ -74,19 +74,19 @@ function SourceChips({ chips }: { chips: string[] }) {
 }
 
 function Composer() {
-  return (
-    <div className="flex items-center gap-2 border-t border-tera-border px-4 py-3">
-      <div className="flex-1 rounded-full border border-tera-border bg-tera-input px-3.5 py-2 text-[0.7rem] text-tera-secondary">
-        Ask TeraAI about anything...
+    return (
+      <div className="flex items-center gap-2 border-t border-tera-border px-4 py-3">
+        <div className="flex-1 rounded-full border border-tera-border bg-tera-input px-3.5 py-2 text-[0.7rem] text-tera-secondary">
+          Ask TeraAI about anything...
+        </div>
+        <div className="composer-send-button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+            <path d="M4 12h16M14 5l7 7-7 7" />
+          </svg>
+        </div>
       </div>
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-tera-primary text-[#08101a] shadow-soft-lg">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
-          <path d="M4 12h16M14 5l7 7-7 7" />
-        </svg>
-      </div>
-    </div>
-  )
-}
+    )
+  }
 
 function StudyModeChip() {
   return (
@@ -111,7 +111,7 @@ function ChatPreview() {
 
           <div className="max-w-[88%] rounded-[18px] border border-tera-border bg-tera-muted/60 px-4 py-3.5">
             <div className="flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-tera-primary text-[0.5rem] font-bold text-white">T</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-md border border-tera-border bg-tera-highlight text-[0.5rem] font-bold text-tera-accent">T</span>
               <span className="text-[0.65rem] text-tera-secondary">TeraAI</span>
               <StudyModeChip />
             </div>
@@ -151,7 +151,7 @@ function explainCard(title: string, steps: string[]) {
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-tera-border bg-tera-panel p-4 shadow-panel">
       <div className="flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-tera-primary text-[0.5rem] font-bold text-white">T</span>
+        <span className="flex h-5 w-5 items-center justify-center rounded-md border border-tera-border bg-tera-highlight text-[0.5rem] font-bold text-tera-accent">T</span>
         <span className="text-xs font-medium text-tera-primary">{title}</span>
       </div>
       <div className="mt-3 space-y-2">
