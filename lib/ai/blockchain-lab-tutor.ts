@@ -6,37 +6,25 @@ import {
   GAS_EXPLANATION_PROMPT,
   FALLBACK_EXPLANATIONS,
 } from '@/lib/blockchain-lab/prompts';
+import { talocodeChatCompletion } from '@/lib/talocode';
 
-if (!process.env.MISTRAL_API_KEY) {
-  console.warn('MISTRAL_API_KEY not set, blockchain lab explanations will use fallbacks');
+if (!process.env.TALOCODE_API_KEY) {
+  console.warn('TALOCODE_API_KEY not set, blockchain lab explanations will use fallbacks');
 }
 
 async function callMistral(prompt: string): Promise<BlockchainExplanation | null> {
-  if (!process.env.MISTRAL_API_KEY) {
+  if (!process.env.TALOCODE_API_KEY) {
     return null;
   }
 
   try {
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'mistral-small-latest',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 600,
-      }),
+    const data = await talocodeChatCompletion({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 600,
     });
 
-    if (!response.ok) {
-      console.error('Mistral API error:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) return null;
@@ -52,7 +40,7 @@ async function callMistral(prompt: string): Promise<BlockchainExplanation | null
       checkpointAnswer: parsed.checkpointAnswer || '',
     };
   } catch (error) {
-    console.error('Error calling Mistral:', error);
+    console.error('Error calling Talocode:', error);
     return null;
   }
 }

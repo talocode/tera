@@ -1,3 +1,4 @@
+import { talocodeChatCompletion } from './talocode'
 import type { AttachmentReference } from './attachment'
 import type { ChatMode } from './ai/chat-modes'
 import { getChatModeSystemPrompt, normalizeChatMode } from './ai/chat-modes'
@@ -5,8 +6,8 @@ import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
 
-if (!process.env.MISTRAL_API_KEY) {
-  console.warn('MISTRAL_API_KEY not configured — will be available at runtime')
+if (!process.env.TALOCODE_API_KEY) {
+  console.warn('TALOCODE_API_KEY not configured — Tera routes through Talocode Cloud')
 }
 
 export const TERA_MODEL_NAME = 'pixtral-12b-2409'
@@ -195,21 +196,12 @@ async function extractMemories(userId: string, prompt: string, response: string)
     Tera: ${response.substring(0, 500)}
     `
 
-    const memoryResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'mistral-small-latest',
-        messages: [{ role: 'user', content: memoryPrompt }],
-        temperature: 0.1,
-      }),
+    const memoryResponse = await talocodeChatCompletion({
+      model: 'default',
+      messages: [{ role: 'user', content: memoryPrompt }],
+      temperature: 0.1,
     })
-
-    const data = await memoryResponse.json()
-    const content = data.choices?.[0]?.message?.content
+    const content = memoryResponse.choices?.[0]?.message?.content
 
     if (content && !content.includes('NO_MEMORY')) {
       const memories = content.split('\n').filter((line: string) => line.trim().startsWith('-'))
@@ -328,51 +320,19 @@ export async function generateTeacherResponse({
     userContent = `Context: ${toolContext}${responseBlueprint}${toolStyle}\nUser Prompt: ${enhancedPrompt}`
   }
 
-  async function retryFetch(url: string, options: RequestInit, retries = 3, delay = 1000): Promise<Response> {
-    try {
-      const response = await fetch(url, options)
-      if ([503, 502, 504, 429].includes(response.status)) {
-        throw new Error(`Service Unavailable: ${response.status}`)
-      }
-      return response
-    } catch (error) {
-      if (retries <= 0) throw error
-      await new Promise((r) => setTimeout(r, delay))
-      return retryFetch(url, options, retries - 1, delay * 2)
-    }
-  }
-
   try {
-    const response = await retryFetch(
-      'https://api.mistral.ai/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: TERA_MODEL_NAME,
-          messages: [
-            { role: 'system', content: systemPromptWithMemory },
-            ...history,
-            { role: 'user', content: userContent },
-          ],
-          temperature: researchMode ? 0.35 : 0.55,
-          top_p: 0.9,
-          max_tokens: researchMode ? 8000 : 4000,
-        }),
-      },
-      2,
-      2000
-    )
+    const data = await talocodeChatCompletion({
+      model: TERA_MODEL_NAME,
+      messages: [
+        { role: 'system', content: systemPromptWithMemory },
+        ...history,
+        { role: 'user', content: userContent },
+      ],
+      temperature: researchMode ? 0.35 : 0.55,
+      top_p: 0.9,
+      max_tokens: researchMode ? 8000 : 4000,
+    })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `Mistral API error: ${response.statusText}`)
-    }
-
-    const data = await response.json()
     const rawContent = data.choices?.[0]?.message?.content
 
     let text = ''
