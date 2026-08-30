@@ -129,7 +129,7 @@ function ChatPreview() {
                 <p className="text-[0.7rem] leading-relaxed text-tera-secondary">{step}</p>
               </div>
             ))}
-            <SourceChips chips={['NASA Earth', 'USGS', 'National Geographic']} />
+            <SourceChips chips={['Earth sciences archive', 'Weather bureau data', 'Field study notes']} />
             <div className="relative mt-4 overflow-hidden rounded-xl border border-tera-border bg-tera-panel/80 px-3.5 py-2.5">
               <p className="text-[0.62rem] uppercase tracking-[0.16em] text-tera-secondary">Checkpoint</p>
               <p className="mt-1 text-[0.72rem] font-medium text-tera-primary">What makes water rise from lakes as vapor?</p>
@@ -186,8 +186,8 @@ function ResearchPreview() {
         <span className="rounded-full border border-tera-neon/25 bg-tera-highlight px-2 py-0.5 text-[0.58rem] uppercase tracking-[0.14em] text-tera-accent">10 sources</span>
       </div>
       {[
-        { domain: 'nature.com', snippet: 'Neural networks improve when exposed to structured repetition over time.' },
-        { domain: 'ncbi.nlm.nih.gov', snippet: 'Active recall strengthens long-term memory more than rereading.' },
+        { domain: 'journals.example.edu', snippet: 'Neural networks improve when exposed to structured repetition over time.' },
+        { domain: 'recall.example.org', snippet: 'Active recall strengthens long-term memory more than rereading.' },
       ].map((s) => (
         <div key={s.domain} className="mt-2.5 rounded-xl border border-tera-border bg-tera-muted/60 px-3 py-2.5">
           <div className="flex items-center gap-1.5">

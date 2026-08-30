@@ -14,6 +14,8 @@ import {
   fetchStorageUsage,
   fetchUsageForecast,
   fetchActionBreakdown,
+  fetchAutoTopupConfig,
+  saveAutoTopupSettings,
 } from '@/app/actions/user'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { getPlanCreditCap } from '@/lib/free-plan-credits'
@@ -223,10 +225,23 @@ export default function UsagePage() {
     }
   }, [user])
 
+  const loadAutoTopup = useCallback(async () => {
+    if (!user) return
+    try {
+      const config = await fetchAutoTopupConfig(user.id)
+      setAutoTopupEnabled(config?.enabled ?? false)
+      if (config && config.topupAmountUsd > 0) {
+        setAutoTopupAmount(String(config.topupAmountUsd))
+      }
+    } catch {
+      setAutoTopupEnabled(false)
+    }
+  }, [user])
+
   useEffect(() => {
     if (!user?.id || !userReady) return
-    void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage(), loadForecast(), loadActionBreakdown(), loadGmailStatus()])
-  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, loadForecast, loadActionBreakdown, loadGmailStatus, user?.id, userReady])
+    void Promise.all([loadProfile(), loadUsageSummary(), loadCreditUsage(), loadUsageHistory(), loadStorageUsage(), loadForecast(), loadActionBreakdown(), loadGmailStatus(), loadAutoTopup()])
+  }, [loadProfile, loadUsageSummary, loadCreditUsage, loadUsageHistory, loadStorageUsage, loadForecast, loadActionBreakdown, loadGmailStatus, loadAutoTopup, user?.id, userReady])
 
   useEffect(() => {
     if (!user?.id || !userReady || typeof window === 'undefined') return
@@ -357,15 +372,8 @@ export default function UsagePage() {
     }
     setAutoTopupSaving(true)
     try {
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': user.id },
-        body: JSON.stringify({
-          auto_topup_enabled: autoTopupEnabled,
-          auto_topup_amount: Number(autoTopupAmount) || 5,
-        }),
-      })
-      if (!response.ok) throw new Error('Failed to save')
+      const saved = await saveAutoTopupSettings(user.id, autoTopupEnabled, Number(autoTopupAmount) || 5)
+      if (!saved) throw new Error('Failed to save')
     } catch {
       alert('Failed to save auto top-up settings.')
     } finally {
@@ -513,7 +521,7 @@ export default function UsagePage() {
                     <p className="mt-3 text-sm text-tera-secondary">
                       Used: <span className="text-tera-primary">{creditUsage?.used.toLocaleString() || '0'}</span>
                       {' '}of <span className="text-tera-primary">{creditUsage?.total.toLocaleString() || '0'}</span>
-                      <span className="ml-2 text-xs text-tera-secondary">(~5,000 tokens = 1 credit)</span>
+                      <span className="ml-2 text-xs text-tera-secondary">(~1 credit per AI request)</span>
                     </p>
                     <p className="mt-3 text-sm text-tera-secondary">
                       Purchased credits left: <span className="text-tera-primary">{purchasedCreditsRemaining.toLocaleString()}</span>
@@ -579,7 +587,7 @@ export default function UsagePage() {
                       </p>
                       <p className="mt-3 text-sm text-tera-secondary">
                         One-time credits given at signup. These expire on{' '}
-                        <span className="text-tera-primary">August 15, 2026</span>.
+                        <span className="text-tera-primary">{promotionalExpiry ? promotionalExpiry.toLocaleDateString() : 'a set date'}</span>.
                       </p>
                       {promotionalDaysLeft !== null && promotionalDaysLeft <= 3 && promotionalDaysLeft > 0 && (
                         <div className="mt-3 rounded-[12px] border border-amber-500/30 bg-amber-500/10 px-3 py-2">
@@ -591,7 +599,7 @@ export default function UsagePage() {
                     </div>
                     <div>
                       <div className="mt-4 flex items-center justify-between gap-4 text-sm text-tera-secondary">
-                        <span>Expires Aug 15, 2026</span>
+                        <span>Expires {promotionalExpiry ? promotionalExpiry.toLocaleDateString() : 'Soon'}</span>
                         <span>{promotionalCredits.toLocaleString()} credits</span>
                       </div>
                     </div>
@@ -668,7 +676,7 @@ export default function UsagePage() {
             <p className="tera-eyebrow">Top up credits</p>
             <h2 className="mt-3 text-xl font-semibold text-tera-primary">Add computational credits</h2>
             <p className="mt-3 text-sm leading-7 text-tera-secondary">
-              Credits fuel AI processing. Each credit covers roughly 5,000 tokens of model usage.
+              Credits fuel AI processing. Every AI request is priced in credits.
             </p>
 
             {profile.subscriptionPlan === 'free' && creditDaysLeft !== null && creditDaysLeft > 0 && (
@@ -815,8 +823,8 @@ export default function UsagePage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="tera-card">
             <p className="tera-eyebrow">Weekly trend</p>
-            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Token consumption</h2>
-            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track tokens used over the last 7 days.</p>
+            <h2 className="mt-3 text-xl font-semibold text-tera-primary">Credit consumption</h2>
+            <p className="mt-3 text-sm leading-7 text-tera-secondary">Track credits used over the last 7 days.</p>
             <div className="mt-8">
               {historyLoading ? (
                 <div className="flex h-[200px] items-center justify-center text-sm text-tera-secondary">Loading...</div>
@@ -830,11 +838,11 @@ export default function UsagePage() {
               <div className="mt-4 grid grid-cols-2 gap-4 border-t border-tera-border pt-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-tera-secondary">7D total</p>
-                  <p className="mt-1 text-base font-semibold text-tera-primary">{weeklyTotal.toLocaleString()}<span className="ml-1 text-xs font-normal text-tera-secondary">tokens</span></p>
+                  <p className="mt-1 text-base font-semibold text-tera-primary">{weeklyTotal.toLocaleString()}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-tera-secondary">Daily avg</p>
-                  <p className="mt-1 text-base font-semibold text-tera-primary">{Math.round(weeklyTotal / 7)}<span className="ml-1 text-xs font-normal text-tera-secondary">tokens</span></p>
+                  <p className="mt-1 text-base font-semibold text-tera-primary">{Math.round(weeklyTotal / 7)}<span className="ml-1 text-xs font-normal text-tera-secondary">credits</span></p>
                 </div>
               </div>
             )}

@@ -39,7 +39,7 @@ export default function UsageHistoryChart({ data }: { data: UsageHistoryData[] }
             }}
             cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
             labelStyle={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '4px' }}
-            formatter={(value) => [`${Number(value).toLocaleString()} tokens`, 'Used']}
+            formatter={(value) => [`${Number(value).toLocaleString()} credits`, 'Used']}
           />
           <Bar
             dataKey="used"
