@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import SeoFooter from '@/components/seo/SeoFooter'
+import ReferralCapture from '@/components/ReferralCapture'
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -22,6 +23,7 @@ export default async function HomePage() {
 
   return (
     <div className="tera-page">
+      <ReferralCapture />
       <div className="mx-auto w-full max-w-6xl px-6">
 
         {/* Hero — pure background, left-aligned */}
@@ -37,7 +39,7 @@ export default async function HomePage() {
               and turn knowledge into action — all in one workspace.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link href="/new" className="inline-flex h-12 items-center rounded-full bg-tera-primary px-8 text-sm font-semibold text-white transition hover:opacity-90">
+              <Link href="/new" className="tera-button-primary rounded-full px-8 py-3 text-sm">
                 Start learning free
               </Link>
               <Link href="/pricing" className="inline-flex h-12 items-center rounded-full border border-tera-border px-8 text-sm font-semibold text-tera-primary transition hover:bg-tera-highlight">
@@ -181,7 +183,7 @@ export default async function HomePage() {
             Join thousands of learners who use TeraAI to understand the world better.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link href="/new" className="inline-flex h-12 items-center rounded-full bg-tera-primary px-8 text-sm font-semibold text-white transition hover:opacity-90">
+            <Link href="/new" className="tera-button-primary rounded-full px-8 py-3 text-sm">
               Start for free
             </Link>
             <Link href="/pricing" className="inline-flex h-12 items-center rounded-full border border-tera-border px-8 text-sm font-semibold text-tera-primary transition hover:bg-tera-highlight">
