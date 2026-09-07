@@ -1,4 +1,4 @@
-﻿export type TeacherTool = {
+﻿export type Tool = {
   name: string
   description: string
   icon: string
@@ -6,9 +6,9 @@
 }
 
 export type ToolCardProps = {
-  tool: TeacherTool
+  tool: Tool
   selected?: boolean
-  onSelect?: (tool: TeacherTool) => void
+  onSelect?: (tool: Tool) => void
 }
 
 export default function ToolCard({ tool, selected, onSelect }: ToolCardProps) {

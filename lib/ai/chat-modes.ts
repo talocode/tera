@@ -1,6 +1,6 @@
-export type ChatMode = 'ask' | 'study' | 'quiz' | 'summarize' | 'image'
+export type ChatMode = 'general' | 'code' | 'write' | 'search' | 'build'
 
-export type ChatModeStatus = 'enabled' | 'coming_soon' | 'disabled'
+export type ChatModeStatus = 'enabled' | 'disabled'
 
 export type ChatModeConfig = {
   id: ChatMode
@@ -10,43 +10,43 @@ export type ChatModeConfig = {
   status: ChatModeStatus
 }
 
-export const DEFAULT_CHAT_MODE: ChatMode = 'ask'
+export const DEFAULT_CHAT_MODE: ChatMode = 'general'
 
-export const CHAT_MODES = [
+export const CHAT_MODES: readonly ChatModeConfig[] = [
   {
-    id: 'ask',
-    label: 'Ask',
-    description: 'Ask Tera anything and get a clear, helpful answer.',
-    placeholder: 'Ask anything you want to understand...',
+    id: 'general',
+    label: 'General',
+    description: 'Ask anything and get a clear, direct answer.',
+    placeholder: 'What do you need help with?',
     status: 'enabled',
   },
   {
-    id: 'study',
-    label: 'Study',
-    description: 'Learn step by step with guided explanations, examples, and checkpoints.',
-    placeholder: 'What topic are you studying?',
+    id: 'code',
+    label: 'Code',
+    description: 'Build, debug, review, and deploy code.',
+    placeholder: 'Describe the code you need...',
     status: 'enabled',
   },
   {
-    id: 'quiz',
-    label: 'Quiz',
-    description: 'Practice with questions that test understanding and reinforce learning.',
-    placeholder: 'What should Tera quiz you on?',
+    id: 'write',
+    label: 'Write',
+    description: 'Draft, edit, and create content.',
+    placeholder: 'Describe what you want to write...',
     status: 'enabled',
   },
   {
-    id: 'summarize',
-    label: 'Summarize',
-    description: 'Turn notes, files, or long text into concise summaries and takeaways.',
-    placeholder: 'Paste text or describe what you want summarized...',
+    id: 'search',
+    label: 'Search',
+    description: 'Research with real-time web information and citations.',
+    placeholder: 'What do you want to research?',
     status: 'enabled',
   },
   {
-    id: 'image',
-    label: 'Image',
-    description: 'Image generation is coming soon and is not currently enabled.',
-    placeholder: 'Image generation is coming soon.',
-    status: 'coming_soon',
+    id: 'build',
+    label: 'Build',
+    description: 'Create projects, plans, and implementation roadmaps.',
+    placeholder: 'Describe what you want to build...',
+    status: 'enabled',
   },
 ] as const satisfies readonly ChatModeConfig[]
 
@@ -57,11 +57,11 @@ const CHAT_MODE_CONFIG_BY_ID = Object.fromEntries(
 ) as Record<ChatMode, (typeof CHAT_MODES)[number]>
 
 const CHAT_MODE_SYSTEM_PROMPTS = {
-  ask: 'You are Tera in Ask mode. Answer the user clearly and directly, explain important reasoning, and offer useful next steps when helpful.',
-  study: 'You are Tera in Study mode. Teach step by step with patient explanations, concrete examples, short checkpoints, and encouragement that helps the user build durable understanding.',
-  quiz: 'You are Tera in Quiz mode. Create focused practice questions, wait for the user to answer when appropriate, then give feedback, explanations, and targeted follow-up practice.',
-  summarize: 'You are Tera in Summarize mode. Condense the provided material into accurate, organized summaries with key takeaways, important details, and any action items or open questions.',
-  image: 'You are Tera in Image mode. Image generation is coming soon and must remain disabled. Do not generate images; instead, briefly explain that image generation is not available yet and offer to help write or refine an image prompt.',
+  general: 'You are Tera in General mode. Answer the user clearly and directly, explain important reasoning, and offer useful next steps when helpful.',
+  code: 'You are Tera in Code mode. Build, debug, review, and deploy code. Write clean, correct, and well-structured code with clear explanations.',
+  write: 'You are Tera in Write mode. Draft, edit, and create content. Focus on clarity, style, and structure to produce polished writing.',
+  search: 'You are Tera in Search mode. Research with real-time web information and citations. Prioritize accuracy, sourcing, and up-to-date results.',
+  build: 'You are Tera in Build mode. Create projects, plans, and implementation roadmaps. Break down complex goals into actionable steps.',
 } as const satisfies Record<ChatMode, string>
 
 export function isChatMode(value: unknown): value is ChatMode {
@@ -78,4 +78,8 @@ export function getChatModeConfig(mode: ChatMode) {
 
 export function getChatModeSystemPrompt(mode: ChatMode): string {
   return CHAT_MODE_SYSTEM_PROMPTS[mode]
+}
+
+export function getSystemPromptForMode(mode: ChatMode): string {
+  return CHAT_MODE_SYSTEM_PROMPTS[mode] || CHAT_MODE_SYSTEM_PROMPTS.general
 }

@@ -1,9 +1,9 @@
 import Link from 'next/link'
 
 const resourceLinks = [
-  { href: '/ai-learning-companion', label: 'AI learning companion' },
-  { href: '/ai-study-assistant', label: 'AI study assistant' },
-  { href: '/ai-research-assistant', label: 'AI research assistant' },
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/pricing', label: 'Pricing' },
 ]
 
 const siteLinks = [
@@ -44,7 +44,7 @@ export default function SeoFooter() {
         </div>
       </div>
       <p className="mt-8 text-xs text-tera-secondary">
-        © {new Date().getFullYear()} TeraAI. Learn deeply, research clearly, build from what you study.
+        © {new Date().getFullYear()} TeraAI. Build, code, write, ship.
       </p>
     </footer>
   )

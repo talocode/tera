@@ -30,7 +30,7 @@ function getEmailLogoUrl() {
 }
 
 function getFromAddress() {
-  const raw = process.env.RESEND_FROM_EMAIL || 'TeraAI <onboarding@resend.dev>'
+  const raw = process.env.RESEND_FROM_EMAIL || 'TeraAI <updates@updates.teraai.chat>'
   return raw.replace(/^["']|["']$/g, '').trim()
 }
 
@@ -56,7 +56,7 @@ export async function sendResendEmail(payload: ResendEmailPayload): Promise<Rese
       subject: payload.subject,
       html: payload.html,
       text: payload.text,
-      reply_to: payload.replyTo || process.env.RESEND_REPLY_TO_EMAIL,
+      reply_to: payload.replyTo || 'admin@teraai.chat',
     }),
   })
 
@@ -138,6 +138,7 @@ export function renderProductUpdateEmail({
             <tr>
               <td style="padding:20px 32px 30px;border-top:1px solid rgba(255,255,255,0.08);">
                 <p style="margin:0;color:#7f8b98;font-size:12px;line-height:1.7;">You are receiving this because you use Tera and have email notifications enabled. We only send product updates when there is something useful to know about your account or workspace.</p>
+                <p style="margin:12px 0 0;color:#7f8b98;font-size:12px;line-height:1.7;">Support: <a href="mailto:admin@teraai.chat" style="color:#9dccff;text-decoration:underline;">admin@teraai.chat</a> &middot; Backup: <a href="mailto:teraaiguide@gmail.com" style="color:#9dccff;text-decoration:underline;">teraaiguide@gmail.com</a></p>
               </td>
             </tr>
           </table>

@@ -4,10 +4,10 @@ export const SITE_URL = 'https://teraai.chat'
 export const SITE_NAME = 'TeraAI'
 
 export const DEFAULT_TITLE =
-  'TeraAI — AI Learning Companion for Deep Learning and Research'
+  'TeraAI — AI Platform for Code, Write, Search, and Build'
 
 export const DEFAULT_DESCRIPTION =
-  'Learn anything deeply, research better, and turn knowledge into real projects with TeraAI, an AI learning companion for students and curious builders.'
+  'Build, code, write, and research with TeraAI, an AI platform powered by Talocode Cloud.'
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/assets/tera-logo.jpg`
 
@@ -23,9 +23,6 @@ export const PUBLIC_INDEXABLE_PATHS = [
   '/privacy',
   '/terms',
   '/help',
-  '/ai-learning-companion',
-  '/ai-study-assistant',
-  '/ai-research-assistant',
 ] as const
 
 export const ROBOTS_DISALLOW_PATHS = [

@@ -85,6 +85,7 @@ function renderImportantEmail({
             <tr>
               <td style="padding:20px 28px 28px;border-top:1px solid rgba(255,255,255,0.08);">
                 <p style="margin:0;color:#7f8b98;font-size:12px;line-height:1.6;">This is a service email about your Tera account, usage, billing, or team access.</p>
+                <p style="margin:12px 0 0;color:#7f8b98;font-size:12px;line-height:1.6;">Support: <a href="mailto:admin@teraai.chat" style="color:#9dccff;text-decoration:underline;">admin@teraai.chat</a> &middot; Backup: <a href="mailto:teraaiguide@gmail.com" style="color:#9dccff;text-decoration:underline;">teraaiguide@gmail.com</a></p>
               </td>
             </tr>
           </table>

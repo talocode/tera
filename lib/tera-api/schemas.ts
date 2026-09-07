@@ -57,7 +57,7 @@ export const chatMessageSchema = z.object({
 })
 
 export const chatCompletionSchema = z.object({
-  model: z.string().optional().default('mistral-small-latest'),
+  model: z.string().optional().default('default'),
   messages: z.array(chatMessageSchema).min(1, 'At least one message is required.'),
   max_tokens: z.number().int().positive().optional().default(2000),
   temperature: z.number().min(0).max(2).optional().default(0.7),

@@ -3,6 +3,7 @@
  * Generates practice quizzes from topics and grades user answers
  */
 
+import { talocodeChatCompletion } from './talocode'
 import { supabaseServer } from './supabase-server'
 
 // Quiz question types
@@ -102,24 +103,15 @@ IMPORTANT:
 - For multiple_choice: "correct" is the 0-based index of the correct option
 - For true_false: "correct" is 0 for True, 1 for False
 - For short_answer: "correct" is the expected answer string (lowercase)
-- Always include an explanation for learning
+- Always include an explanation
 - Make questions educational and clear`
 
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: 'mistral-large-latest',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-            response_format: { type: 'json_object' }
-        })
+    const data = await talocodeChatCompletion({
+        model: 'default',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
     })
-
-    const data = await response.json()
     const content = data.choices?.[0]?.message?.content
 
     if (!content) {

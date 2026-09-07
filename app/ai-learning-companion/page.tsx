@@ -7,113 +7,108 @@ import { buildPageMetadata, faqPageSchema } from '@/lib/seo'
 
 const faqs = [
   {
-    question: 'What is an AI learning companion?',
+    question: 'What is Tera?',
     answer:
-      'An AI learning companion is a tool designed to help you understand topics over time—not just answer one question. It supports explanation, follow-up questions, research, notes, and turning what you learn into next steps.',
+      'Tera is an AI platform powered by Talocode Cloud. Code, write, research, and build — all in one workspace with five work modes: General, Code, Write, Search, and Build.',
   },
   {
-    question: 'How is TeraAI different from a normal chatbot?',
+    question: 'How is Tera different from a normal chatbot?',
     answer:
-      'TeraAI is built around learning workflows: clearer explanations, cited web research when you need current information, specialized tools, notes, and conversation history in one workspace.',
+      'Tera is built around work modes: General for quick answers, Code for building software, Write for creating content, Search for cited research, and Build for planning projects.',
   },
   {
-    question: 'Can TeraAI help with research?',
+    question: 'Can Tera help with research?',
     answer:
-      'Yes. TeraAI supports web-backed research with citations on supported plans, and deeper research modes on Pro and Plus.',
+      'Yes. Use Search mode for cited web research, or Build mode to turn research into structured project plans.',
   },
   {
-    question: 'Can TeraAI help me understand difficult topics?',
+    question: 'Is Tera only for developers?',
     answer:
-      'Yes. You can ask for step-by-step explanations, examples, comparisons, and follow-up questions until the idea clicks.',
+      'No. Developers, writers, researchers, and builders all use Tera. Choose the work mode that fits your task.',
   },
   {
-    question: 'Is TeraAI only for students?',
+    question: 'Can I use Tera to build projects?',
     answer:
-      'No. Students use TeraAI for study and exam prep, but self-learners, researchers, and builders also use it to explore ideas and plan projects.',
-  },
-  {
-    question: 'Can I use TeraAI to build projects from what I learn?',
-    answer:
-      'Yes. Many people use TeraAI to move from understanding a topic to outlining a project, comparing approaches, and keeping notes organized as they build.',
+      'Yes. Use Build mode to outline projects, compare approaches, and create implementation roadmaps.',
   },
 ]
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'AI Learning Companion for Deep Understanding | TeraAI',
+  title: 'Tera AI Platform | Code, Write, Research, Build | Talocode',
   description:
-    'TeraAI is an AI learning companion that helps you understand difficult topics, research clearly, and turn what you study into real projects.',
-  path: '/ai-learning-companion',
+    'Tera is an AI platform powered by Talocode Cloud. Code, write, research, and build — all in one workspace with five work modes: General, Code, Write, Search, and Build.',
+  path: '/',
 })
 
-export default function AiLearningCompanionPage() {
+export default function TeraPlatformPage() {
   return (
     <div className="tera-page">
       <JsonLd data={faqPageSchema(faqs)} />
       <div className="tera-page-shell pt-20 md:pt-10">
         <section className="tera-surface overflow-hidden px-6 py-10 md:px-10 md:py-14">
           <div className="max-w-4xl">
-            <p className="tera-eyebrow">AI learning companion</p>
+            <p className="tera-eyebrow">AI Platform</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl lg:text-6xl">
-              AI Learning Companion for Deep Understanding
+              Tera AI Platform
             </h1>
             <p className="mt-6 max-w-3xl text-base leading-8 text-tera-secondary md:text-lg">
-              TeraAI helps you learn difficult topics, research clearly, and turn what you study into real projects.
+              Code, write, research, and build. All powered by Talocode Cloud, all in one workspace.
             </p>
             <div className="mt-8">
               <Link href="/new" className="tera-button-primary">
-                Start learning with TeraAI
+                Start building free
               </Link>
             </div>
           </div>
         </section>
 
         <section className="mt-8 tera-card">
-          <h2 className="text-2xl font-semibold text-tera-primary">What is an AI learning companion?</h2>
+          <h2 className="text-2xl font-semibold text-tera-primary">Five work modes</h2>
           <p className="mt-4 text-sm leading-7 text-tera-secondary md:text-base">
-            A learning companion focuses on understanding, not just quick replies. It helps you ask better questions,
-            connect ideas, and keep context as you work through a topic.
+            Tera gives you five focused modes: General for quick answers, Code for building software,
+            Write for creating content, Search for cited research, and Build for planning projects.
           </p>
         </section>
 
         <section className="mt-8 tera-card">
           <h2 className="text-2xl font-semibold text-tera-primary">
-            Why normal chatbots are not enough for deep learning
+            Why Tera is different
           </h2>
           <p className="mt-4 text-sm leading-7 text-tera-secondary md:text-base">
-            One-off answers can help, but deep learning needs continuity: follow-ups, sources, notes, and a workspace
-            that remembers what you are working on.
+            One-off answers can help, but real work needs continuity: follow-ups, sources, notes, and a
+            workspace that remembers what you are building.
           </p>
         </section>
 
         <section className="mt-8 tera-card">
-          <h2 className="text-2xl font-semibold text-tera-primary">How TeraAI helps you learn</h2>
+          <h2 className="text-2xl font-semibold text-tera-primary">How Tera helps you build</h2>
           <ul className="mt-4 space-y-3 text-sm leading-7 text-tera-secondary">
-            <li>Explain complex ideas in plain language</li>
-            <li>Ask better follow-up questions</li>
-            <li>Research topics with cited web answers when needed</li>
-            <li>Connect concepts across a thread</li>
-            <li>Turn knowledge into project plans and next steps</li>
+            <li>Build software with Code mode</li>
+            <li>Draft and create content with Write mode</li>
+            <li>Research with cited web answers in Search mode</li>
+            <li>Plan projects and roadmaps in Build mode</li>
+            <li>Get clear answers in General mode</li>
           </ul>
         </section>
 
         <section className="mt-8 grid gap-6 md:grid-cols-2">
           <div className="tera-card">
-            <h2 className="text-xl font-semibold text-tera-primary">Who TeraAI is for</h2>
+            <h2 className="text-xl font-semibold text-tera-primary">Who Tera is for</h2>
             <ul className="mt-4 space-y-2 text-sm leading-7 text-tera-secondary">
-              <li>Students</li>
-              <li>Self learners</li>
+              <li>Developers</li>
+              <li>Writers</li>
               <li>Researchers</li>
               <li>Builders</li>
             </ul>
           </div>
           <div className="tera-card-subtle px-6 py-6">
-            <h2 className="text-xl font-semibold text-tera-primary">Example workflows</h2>
+            <h2 className="text-xl font-semibold text-tera-primary">Work modes</h2>
             <ul className="mt-4 space-y-2 text-sm leading-7 text-tera-secondary">
-              <li>Understand a topic step by step</li>
-              <li>Compare sources and viewpoints</li>
-              <li>Prepare for exams with guided review</li>
-              <li>Research a project idea</li>
-              <li>Create a learning roadmap</li>
+              <li>General — Ask anything</li>
+              <li>Code — Build and debug</li>
+              <li>Write — Draft and create</li>
+              <li>Search — Research with citations</li>
+              <li>Build — Plan and roadmap</li>
             </ul>
           </div>
         </section>
@@ -124,11 +119,11 @@ export default function AiLearningCompanionPage() {
             <Link href="/" className="tera-button-secondary">
               Homepage
             </Link>
-            <Link href="/ai-study-assistant" className="tera-button-secondary">
-              AI study assistant
-            </Link>
             <Link href="/ai-research-assistant" className="tera-button-secondary">
-              AI research assistant
+              Research
+            </Link>
+            <Link href="/pricing" className="tera-button-secondary">
+              Pricing
             </Link>
           </div>
         </section>

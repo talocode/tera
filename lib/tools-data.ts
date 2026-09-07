@@ -1,4 +1,4 @@
-import type { TeacherTool } from '@/components/ToolCard'
+import type { Tool } from '@/components/ToolCard'
 
 export const slugify = (text: string) => {
     return text
@@ -9,14 +9,14 @@ export const slugify = (text: string) => {
         .trim()
 }
 
-export const UniversalTool: TeacherTool = {
+export const UniversalTool: Tool = {
     name: 'Universal Companion',
-    description: 'I adapt to whatever you need - teaching, learning, or exploring.',
+    description: 'I adapt to whatever you need - building, writing, or exploring.',
     icon: '✨',
     tags: ['Adaptive', 'Smart', 'All-Purpose']
 }
 
-export const teacherTools: TeacherTool[] = [
+export const tools: Tool[] = [
     {
         name: 'Lesson Plan Generator',
         description: 'Create objective-aligned lessons with pacing, hooks, and transitions.',
@@ -91,13 +91,13 @@ export const teacherTools: TeacherTool[] = [
     },
     {
         name: 'Icebreaker Generator',
-        description: 'Fun and engaging activities to build classroom community.',
+        description: 'Fun and engaging activities.',
         icon: '🧊',
         tags: ['Community', 'Fun', 'Start']
     },
     {
         name: 'Substitute Teacher Plan',
-        description: 'Emergency lesson plans and instructions for substitutes.',
+        description: 'Emergency plans and instructions for substitutes.',
         icon: '🆘',
         tags: ['Sub Plans', 'Emergency', 'Admin']
     },
@@ -133,16 +133,16 @@ export const teacherTools: TeacherTool[] = [
     }
 ]
 
-export const studentTools: TeacherTool[] = [
+export const studentTools: Tool[] = [
     {
         name: 'Homework Helper',
-        description: 'Step-by-step guidance to help you solve problems (without just giving answers!).',
+        description: 'Step-by-step guidance to help you solve problems.',
         icon: '💡',
         tags: ['Study', 'Math', 'Science', 'Help']
     },
     {
         name: 'Study Buddy',
-        description: 'I\'ll quiz you, create flashcards, and help you review for exams.',
+        description: 'I\'ll quiz you, create flashcards, and help you review.',
         icon: '📚',
         tags: ['Review', 'Quiz', 'Prep']
     },
@@ -160,7 +160,7 @@ export const studentTools: TeacherTool[] = [
     },
     {
         name: 'Project Planner',
-        description: 'Break down big school projects into manageble steps and timelines.',
+        description: 'Break down big projects into manageable steps and timelines.',
         icon: '📅',
         tags: ['Organization', 'Tasks', 'Planning']
     },
@@ -192,20 +192,20 @@ export const studentTools: TeacherTool[] = [
         name: 'Mind Map Maker',
         description: 'Visualize complex topics with auto-generated mind maps.',
         icon: '🧠',
-        tags: ['Visual Learning', 'Organization', 'Diagrams']
+        tags: ['Visual Creation', 'Organization', 'Diagrams']
     }
 ]
 
-export const learnerTools: TeacherTool[] = [
+export const learnerTools: Tool[] = [
     {
         name: 'Blockchain Lab',
-        description: 'Learn blockchain concepts safely through AI-guided simulations.',
+        description: 'Learn blockchain with a real Solana wallet - live balances, real transactions, and on-chain data.',
         icon: '⛓️',
-        tags: ['Blockchain', 'Education', 'Simulation']
+        tags: ['Blockchain', 'Wallet', 'On-Chain']
     },
     {
         name: 'Skill Explorer',
-        description: 'Want to learn something new? I\'ll create a roadmap for you.',
+        description: 'Want to explore something new? I\'ll create a roadmap for you.',
         icon: '🗺️',
         tags: ['New Skills', 'Roadmap', 'Hobby']
     },
@@ -259,7 +259,7 @@ export const learnerTools: TeacherTool[] = [
     }
 ]
 
-export const spreadsheetTools: TeacherTool[] = [
+export const spreadsheetTools: Tool[] = [
     {
         name: 'Spreadsheet Creator',
         description: 'Create and populate Google Sheets with data, charts, and visualizations.',
@@ -268,4 +268,4 @@ export const spreadsheetTools: TeacherTool[] = [
     }
 ]
 
-export const allTools = [...teacherTools, ...studentTools, ...learnerTools, ...spreadsheetTools]
+export const allTools = [...tools, ...studentTools, ...learnerTools, ...spreadsheetTools]

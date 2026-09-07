@@ -1,6 +1,6 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase-server'
-import { generateTeacherResponse, TERA_MODEL_NAME } from '@/lib/mistral'
+import { generatePlatformResponse, TERA_MODEL_NAME } from '@/lib/mistral'
 import type { GenerateAnswerResult, GenerateProps } from '@/lib/generate-types'
 import { checkAndResetUsageServer, getUserProfileServer, incrementChatsServer, incrementWebSearchesServer } from '@/lib/usage-tracking-server'
 import { canUploadFile, getPlanConfig } from '@/lib/plan-config'
@@ -43,7 +43,7 @@ export async function generateAnswerForPrompt({
   sessionId,
   chatId,
   researchMode = false,
-  chatMode = 'ask',
+  chatMode = 'general',
 }: GenerateProps): Promise<GenerateAnswerResult> {
   const normalizedChatMode = normalizeChatMode(chatMode)
   await checkAndResetUsageServer(authorId)
@@ -155,16 +155,6 @@ export async function generateAnswerForPrompt({
       sessionId: sessionId ?? null,
       chatId,
       error: errorMessage,
-    }
-  }
-
-  if (normalizedChatMode === 'image') {
-    const comingSoonMessage = 'Image mode is coming soon. For now, ask Tera for help explaining, planning, or drafting your idea in chat mode.'
-    return {
-      answer: comingSoonMessage,
-      sessionId: sessionId ?? null,
-      chatId,
-      error: comingSoonMessage,
     }
   }
 
@@ -309,7 +299,7 @@ export async function generateAnswerForPrompt({
   }
 
   // Generate the AI response
-  const generationResult = await generateTeacherResponse({
+  const generationResult = await generatePlatformResponse({
     prompt,
     tool,
     attachments,
@@ -327,7 +317,7 @@ export async function generateAnswerForPrompt({
 
   const creditsToCharge = calculateCreditsForTokens(tokenCost)
   const currentSessionId = sessionId || crypto.randomUUID()
-  const persistedChatMode = chatMode ?? 'ask'
+  const persistedChatMode = chatMode ?? 'general'
   const metadata = {
     chatMode: persistedChatMode,
     citations: researchCitations.length > 0 ? researchCitations : undefined,

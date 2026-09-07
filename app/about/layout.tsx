@@ -3,9 +3,9 @@ import type { ReactNode } from 'react'
 import { buildPageMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'About TeraAI — AI Learning Companion',
+  title: 'About Tera — AI Platform for Builders | Talocode',
   description:
-    'Learn how TeraAI helps students, teachers, and curious learners research, explain difficult topics, and keep notes and history in one workspace.',
+    'Learn how Tera, powered by Talocode Cloud, helps builders code, write, research, and ship real work in one workspace.',
   path: '/about',
 })
 
