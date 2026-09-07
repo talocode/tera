@@ -53,7 +53,7 @@ export const teraCatalog = defineCatalog(schema, {
                     explanation: z.string(),
                 })),
             }),
-            description: 'Interactive quiz component. Use when the user wants to test their knowledge, practice for exams (SAT, etc.), or check understanding. Provide clear questions with explanations.',
+            description: 'Interactive quiz component. Use when the user wants to test understanding or practice coding concepts.',
         },
 
         Spreadsheet: {

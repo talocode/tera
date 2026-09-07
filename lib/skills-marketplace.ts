@@ -110,14 +110,14 @@ const teraSections: MarketplaceSection[] = [
       tags: ['Build', 'Plan', 'Ship'],
     },
     {
-      id: 'tera-quiz',
-      name: 'Quiz',
-      description: 'Test understanding with quick questions and useful feedback.',
+      id: 'tera-write',
+      name: 'Write',
+      description: 'Draft and create polished content.',
       source: 'Tera',
       section: 'Tera Core',
       sectionSlug: 'tera-core',
       sourceUrl: '/new',
-      tags: ['Quiz', 'Recall', 'Practice'],
+      tags: ['Write', 'Draft', 'Content'],
     },
     {
       id: 'tera-summarize',

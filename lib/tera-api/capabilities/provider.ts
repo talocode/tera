@@ -7,8 +7,8 @@ export interface ProviderConfig {
 
 export function getProviderConfig(): ProviderConfig {
   return {
-    provider: process.env.TERA_API_PROVIDER || 'mistral',
-    model: process.env.TERA_API_MODEL || 'mistral-small-latest',
+    provider: process.env.TERA_API_PROVIDER || 'talocode',
+    model: process.env.TERA_API_MODEL || 'default',
   }
 }
 
@@ -39,16 +39,16 @@ export async function callProvider(
     return mockCompletion(userContent)
   }
 
-  const apiKey = process.env.MISTRAL_API_KEY
+  const apiKey = process.env.TALOCODE_API_KEY
   if (!apiKey) {
     if (MOCK_ENABLED) {
       return mockCompletion(userContent)
     }
-    throw new Error('No AI provider configured. Set MISTRAL_API_KEY or TERA_API_ALLOW_MOCK_PROVIDER=true for development.')
+    throw new Error('No AI provider configured. Set TALOCODE_API_KEY or TERA_API_ALLOW_MOCK_PROVIDER=true for development.')
   }
 
   try {
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    const response = await fetch('https://api.talocode.site/v1/tera/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,13 +124,13 @@ export async function callProviderChat(input: ChatCompletionInput): Promise<Chat
     return mockChatCompletion(input)
   }
 
-  const apiKey = process.env.MISTRAL_API_KEY
+  const apiKey = process.env.TALOCODE_API_KEY
   if (!apiKey) {
-    throw new Error('No AI provider configured. Set MISTRAL_API_KEY.')
+    throw new Error('No AI provider configured. Set TALOCODE_API_KEY.')
   }
 
   try {
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    const response = await fetch('https://api.talocode.site/v1/tera/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

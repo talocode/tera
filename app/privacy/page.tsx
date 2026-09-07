@@ -51,7 +51,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2>5. Contact</h2>
-              <p>If you have questions about this Privacy Policy, contact us at teraaiguide@gmail.com.</p>
+              <p>If you have questions about this Privacy Policy, contact us at admin@teraai.chat or teraaiguide@gmail.com.</p>
             </section>
 
             <p className="text-sm text-tera-secondary">Last updated: {new Date().toLocaleDateString()}</p>

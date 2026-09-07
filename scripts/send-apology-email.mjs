@@ -12,7 +12,7 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const DRY_RUN = process.env.DRY_RUN !== 'false'
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'TeraAI <updates@updates.teraai.chat>'
-const REPLY_TO = process.env.RESEND_REPLY_TO_EMAIL || 'teraaiguide@gmail.com'
+const REPLY_TO = 'admin@teraai.chat'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://teraai.chat'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -76,7 +76,7 @@ function renderHtml() {
 
                 <p style="margin:0 0 16px;color:#c5ced8;font-size:17px;line-height:1.85;">Trust is built by being honest about mistakes and transparent about fixes. We are committed to earning yours back.</p>
 
-                <p style="margin:0 0 16px;color:#c5ced8;font-size:17px;line-height:1.85;">If you have questions or run into any issues, please reply to this email or reach out to <a href="mailto:support@teraai.chat" style="color:#7bb8ff;text-decoration:underline;">support@teraai.chat</a>. We read every message.</p>
+                <p style="margin:0 0 16px;color:#c5ced8;font-size:17px;line-height:1.85;">If you have questions or run into any issues, please reply to this email or reach out to <a href="mailto:admin@teraai.chat" style="color:#7bb8ff;text-decoration:underline;">admin@teraai.chat</a>. If you cannot reach us there, use <a href="mailto:teraaiguide@gmail.com" style="color:#7bb8ff;text-decoration:underline;">teraaiguide@gmail.com</a>. We read every message.</p>
 
                 <p style="margin:0 0 16px;color:#c5ced8;font-size:17px;line-height:1.85;">Thank you for your patience and for being part of TeraAI.</p>
 
@@ -125,7 +125,9 @@ You can verify your updated credit balance at any time from your account setting
 
 Trust is built by being honest about mistakes and transparent about fixes. We are committed to earning yours back.
 
-If you have questions or run into any issues, please reply to this email or reach out to support@teraai.chat.
+If you have questions or run into any issues, please reply to this email or reach out to admin@teraai.chat.
+
+Backup contact: teraaiguide@gmail.com.
 
 Thank you for your patience and for being part of TeraAI.
 

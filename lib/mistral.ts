@@ -1,7 +1,7 @@
 import { talocodeChatCompletion } from './talocode'
 import type { AttachmentReference } from './attachment'
 import type { ChatMode } from './ai/chat-modes'
-import { getChatModeSystemPrompt, normalizeChatMode } from './ai/chat-modes'
+import { normalizeChatMode } from './ai/chat-modes'
 import { extractTextFromFile } from './extract-text'
 import { supabaseServer } from './supabase-server'
 import { teraVisualPrompt } from './tera-visual-prompt'
@@ -10,17 +10,16 @@ if (!process.env.TALOCODE_API_KEY) {
   console.warn('TALOCODE_API_KEY not configured — Tera routes through Talocode Cloud')
 }
 
-export const TERA_MODEL_NAME = 'pixtral-12b-2409'
+export const TERA_MODEL_NAME = 'default'
 
-const systemMessage = `You are Tera, the AI learning companion inside https://teraai.chat.
-Your job is to help users learn clearly, research well, and turn knowledge into action.
+const systemMessage = `You are Tera, an AI platform running on Talocode Cloud. You help users build, code, write, search, and create real work products. Your job is to be direct, practical, and execution-oriented.
 
 VOICE AND QUALITY BAR:
-- Sound calm, smart, and useful.
+- Sound calm, confident, and capable.
 - Write like a strong product assistant, not like a hype bot.
 - Be clear before being clever.
 - Prefer precision, structure, and practical value over filler.
-- Help the user feel progress quickly.
+- Help the user ship results quickly.
 
 RESPONSE STYLE:
 - Start with the direct answer in 1-2 sentences.
@@ -46,12 +45,6 @@ TRUTHFULNESS AND REASONING:
 - Distinguish clearly between observation, inference, and speculation.
 - When live web context is available, use it instead of relying on stale assumptions for current facts.
 
-TEACHING RULES:
-- Teach with the assumption that the user wants to understand, not just copy.
-- When useful, include one of: a worked example, a short mental model, a practical next action, or a quick check for understanding.
-- Do not force all of them into every answer.
-- If the user asks for a deeper explanation, expand patiently and concretely.
-
 VISUAL AND FILE CAPABILITIES:
 - If the user uploads an image, you MUST analyze it in detail. Look at every element, text, shape, color, diagram, chart, or visual information present.
 - Describe what you see before answering. If the user asks "what is this?" or similar, provide a thorough visual description.
@@ -65,7 +58,7 @@ VISUAL AND FILE CAPABILITIES:
 - If the user explicitly asks for a visual, generate it immediately in the required format.
 
 VISUAL OUTPUT FORMAT:
-When generating any visual, chart, diagram, quiz, or spreadsheet, output it inside a json:tera-ui code block.
+When generating any visual, chart, diagram, spreadsheet, or report, output it inside a json:tera-ui code block.
 The JSON must follow the json-render spec format with "root" and "elements" keys.
 
 Here are the components available to you:
@@ -85,29 +78,6 @@ GOOGLE SHEETS AND SPREADSHEETS:
 `
 
 function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: ChatMode): string {
-  if (chatMode === 'study') {
-    return `\nMode Guidance:
-- Act like a strong teacher.
-- Explain from first principles.
-- Use one simple mental model or worked example when it helps.
-- Keep the explanation approachable without sounding childish.`
-  }
-
-  if (chatMode === 'quiz') {
-    return `\nMode Guidance:
-- Act like a focused tutor running practice.
-- Keep questions clear and progressively useful.
-- Grade briefly and explain the reasoning behind corrections.
-- Use the next question to reinforce the weak spot.`
-  }
-
-  if (chatMode === 'summarize') {
-    return `\nMode Guidance:
-- Act like a sharp analyst.
-- Distill the material into the essential points, structure, and takeaways.
-- Prefer compression with clarity over volume.`
-  }
-
   const normalizedTool = tool.trim().toLowerCase()
 
   if (researchMode || normalizedTool.includes('research')) {
@@ -127,12 +97,44 @@ function getToolResponseStyle(tool: string, researchMode: boolean, chatMode: Cha
 - Call out tradeoffs, constraints, and the next action.`
   }
 
-  if (normalizedTool.includes('learn') || normalizedTool.includes('study') || normalizedTool.includes('quiz')) {
+  if (normalizedTool.includes('write') || normalizedTool.includes('draft') || normalizedTool.includes('content')) {
     return `\nMode Guidance:
-- Act like a strong teacher.
-- Explain from first principles.
-- Use one simple mental model or worked example when it helps.
-- Keep the explanation approachable without sounding childish.`
+- Act like a sharp editor and content strategist.
+- Focus on clarity, structure, and persuasive writing.
+- Polish prose, tighten language, and ensure every sentence earns its place.`
+  }
+
+  if (normalizedTool.includes('search') || normalizedTool.includes('find') || normalizedTool.includes('look')) {
+    return `\nMode Guidance:
+- Act like a focused search analyst.
+- Prioritize accuracy, sourcing, and up-to-date results.
+- Present findings with clear citations and context.`
+  }
+
+  if (chatMode === 'code') {
+    return `\nMode Guidance:
+- Act like a practical coding assistant.
+- Build, debug, review, and deploy code with clear explanations.
+- Write clean, correct, and well-structured code.`
+  }
+
+  if (chatMode === 'write') {
+    return `\nMode Guidance:
+- Act as a content and writing assistant.
+- Draft, edit, and create polished content with attention to style and structure.`
+  }
+
+  if (chatMode === 'search') {
+    return `\nMode Guidance:
+- Act as a research and search assistant.
+- Prioritize accuracy, sourcing, and up-to-date results.`
+  }
+
+  if (chatMode === 'build') {
+    return `\nMode Guidance:
+- Act as a project builder.
+- Create plans, roadmaps, and implementation strategies.
+- Break complex goals into actionable steps.`
   }
 
   return `\nMode Guidance:
@@ -188,8 +190,8 @@ async function saveConversationToMemory(userId: string, prompt: string, response
 async function extractMemories(userId: string, prompt: string, response: string) {
   try {
     const memoryPrompt = `
-    Analyze the following conversation between a user and Tera (AI assistant).
-    Extract any specific facts, preferences, context, goals, or patterns about the user that should be remembered.
+    Analyze the following conversation between a user and Tera (AI platform).
+    Extract any specific facts, work preferences, context, goals, projects, or patterns about the user that should be remembered for future work sessions.
     Return ONLY the extracted facts as a bulleted list. If nothing significant is worth remembering, return "NO_MEMORY".
 
     User: ${prompt}
@@ -217,14 +219,14 @@ async function extractMemories(userId: string, prompt: string, response: string)
   }
 }
 
-export async function generateTeacherResponse({
+export async function generatePlatformResponse({
   prompt,
   tool,
   attachments = [] as AttachmentReference[],
   history = [] as { role: 'user' | 'assistant'; content: string }[],
   userId,
   researchMode = false,
-  chatMode = 'ask',
+  chatMode = 'general',
   researchContext = '',
 }: {
   prompt: string
@@ -239,13 +241,6 @@ export async function generateTeacherResponse({
   const imageAttachments = attachments.filter((att) => att.type === 'image')
   const fileAttachments = attachments.filter((att) => att.type === 'file')
   const normalizedChatMode = normalizeChatMode(chatMode)
-
-  if (normalizedChatMode === 'image') {
-    return {
-      text: 'System: Image mode must be routed to the image generation provider, not the text chat provider.',
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
-    }
-  }
 
   let extractedTexts: string[] = []
   if (fileAttachments.length > 0) {
@@ -269,16 +264,11 @@ export async function generateTeacherResponse({
     enhancedPrompt = `${fileContents}\n\nUser Question: ${prompt}`
   }
 
-  const modeSystemPrompt = getChatModeSystemPrompt(normalizedChatMode)
-
   let systemPromptWithMemory = systemMessage
-  if (modeSystemPrompt) {
-    systemPromptWithMemory += `\n\n === CHAT MODE INSTRUCTIONS ===\n${modeSystemPrompt}\n === END CHAT MODE INSTRUCTIONS ===`
-  }
   if (userId) {
     const memories = await getMemories(userId)
     if (memories) {
-      systemPromptWithMemory += `\n\n=== CONTEXT ABOUT THIS USER ===\n`
+      systemPromptWithMemory += `\n\n=== WORK CONTEXT ABOUT THIS USER ===\n`
       systemPromptWithMemory += `\nKEY FACTS YOU REMEMBER:\n${memories}\n`
       systemPromptWithMemory += `\n=== END CONTEXT ===\n\nUse this context to provide personalized responses.`
     }

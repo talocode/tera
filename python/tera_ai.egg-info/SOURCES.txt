@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+tera/__init__.py
+tera/__main__.py
+tera/agent.py
+tera/client.py
+tera_ai.egg-info/PKG-INFO
+tera_ai.egg-info/SOURCES.txt
+tera_ai.egg-info/dependency_links.txt
+tera_ai.egg-info/entry_points.txt
+tera_ai.egg-info/requires.txt
+tera_ai.egg-info/top_level.txt

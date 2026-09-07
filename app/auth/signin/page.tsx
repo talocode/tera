@@ -29,7 +29,20 @@ export default function SignInPage() {
         document.cookie = `tera_utm=${encodeURIComponent(JSON.stringify(utmData))}; path=/; max-age=86400; SameSite=Lax`
       }
 
-      await signIn('google', { callbackUrl, redirect: true })
+      const authorization: Record<string, string> = {}
+      if (params.get('drive') === '1') {
+        authorization.access_type = 'offline'
+        authorization.prompt = 'consent'
+        authorization.scope = [
+          'openid',
+          'email',
+          'profile',
+          'https://www.googleapis.com/auth/drive.file',
+          'https://www.googleapis.com/auth/drive',
+        ].join(' ')
+      }
+
+      await signIn('google', { callbackUrl, redirect: true }, authorization)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')
       setLoading(false)

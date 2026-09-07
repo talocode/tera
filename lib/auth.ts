@@ -179,7 +179,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth((req) => {
         }
       },
 
-      async jwt({ token, user }: { token: any; user: any }) {
+      async jwt({ token, user, account }: { token: any; user: any; account?: any }) {
+        if (account?.provider === 'google' && account.refresh_token) {
+          const email = user?.email || token.email
+          if (email) {
+            try {
+              await supabaseServer
+                .from('users')
+                .update({
+                  google_access_token: account.access_token || null,
+                  google_refresh_token: account.refresh_token,
+                  google_token_expiry: account.expires_at
+                    ? new Date(account.expires_at * 1000).toISOString()
+                    : null,
+                  google_email: email,
+                })
+                .eq('email', email)
+            } catch (error) {
+              console.error('[google_drive_token_store_failed]', { email, error })
+            }
+          }
+        }
+
         if (user && user.email) {
           try {
             const { data } = await supabaseServer.from('users').select('id').eq('email', user.email).single()

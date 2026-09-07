@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "talocode-tera"
+name = "tera-ai"
 version = "0.1.1"
 description = "AI capabilities API — chat completions, writing (rewrite/draft), coding (explain/review/write)"
 readme = "README.md"
@@ -22,7 +22,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/talocode/tera"
-PyPI = "https://pypi.org/project/talocode-tera/"
+PyPI = "https://pypi.org/project/tera-ai/"
 
 [project.scripts]
 tera = "tera.__main__:main"

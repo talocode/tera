@@ -1,7 +1,7 @@
 {
   "name": "tera",
   "version": "1.0.0",
-  "description": "Tera - Your AI Learning Companion for Anything",
+  "description": "Tera — Your AI platform for building, coding, writing, and creating real work products.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -22,7 +22,6 @@
   "dependencies": {
     "@json-render/core": "^0.6.0",
     "@json-render/react": "^0.6.0",
-    "@mistralai/mistralai": "^1.10.0",
     "@radix-ui/react-avatar": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.16",
     "@radix-ui/react-dropdown-menu": "^2.1.17",

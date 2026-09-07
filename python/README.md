@@ -6,7 +6,7 @@ Part of **[Talocode](https://talocode.site)**. Hosted at `/v1/tera/*` on the Tal
 
 | | |
 |--|--|
-| **Package** | `pip install talocode-tera` |
+| **Package** | `pip install tera-ai` |
 | **Import** | `from tera import TeraClient` |
 | **Cloud API** | `https://api.talocode.site/v1/tera/*` |
 | **Auth** | `TALOCODE_API_KEY` |
@@ -36,7 +36,7 @@ Open clients; hosted inference is metered on Talocode Cloud.
 ## Install
 
 ```bash
-pip install -U talocode-tera
+pip install -U tera-ai
 ```
 
 Python **3.10+**, stdlib only.
@@ -157,9 +157,9 @@ client.coding_write(language, task, context=None, style="production-ready", gene
 | Package | Role |
 |---------|------|
 | `talocode` | Unified cloud client (all products) |
-| `talocode-tera` | **This package** |
+| `tera-ai` | **This package** |
 | `talocode-codra` | Repo summary / plan / review agent API |
-| `talocode-searchlane` | Web search & research |
+| `searchlane` | Web search & research |
 
 ---
 

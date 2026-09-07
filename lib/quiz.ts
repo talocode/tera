@@ -103,11 +103,11 @@ IMPORTANT:
 - For multiple_choice: "correct" is the 0-based index of the correct option
 - For true_false: "correct" is 0 for True, 1 for False
 - For short_answer: "correct" is the expected answer string (lowercase)
-- Always include an explanation for learning
+- Always include an explanation
 - Make questions educational and clear`
 
     const data = await talocodeChatCompletion({
-        model: 'mistral-small-latest',
+        model: 'default',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         response_format: { type: 'json_object' }

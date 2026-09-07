@@ -31,18 +31,17 @@ export default async function HomePage() {
         <section className="flex min-h-[85vh] flex-col justify-center py-16 lg:py-24">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div className="max-w-xl">
-              <p className="text-xs uppercase tracking-[0.3em] text-tera-secondary mb-6">AI Learning Companion</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-tera-secondary mb-6">AI Platform</p>
               <h1 className="text-5xl font-bold tracking-[-0.04em] text-tera-primary sm:text-6xl lg:text-7xl leading-[1.05]">
-                Learn anything.<br />
-                <span className="text-tera-secondary">Understand it deeply.</span>
+                Build anything.<br />
+                <span className="text-tera-secondary">Ship real work.</span>
               </h1>
               <p className="mt-8 max-w-xl text-lg leading-relaxed text-tera-secondary">
-                TeraAI helps you break down complex topics, research with real sources,
-                and turn knowledge into action — all in one workspace.
+                Tera is an AI platform powered by Talocode Cloud. Code, write, research, and build — all in one workspace.
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-4">
                 <Link href="/new" className="tera-button-primary rounded-full px-8 py-3 text-sm">
-                  Start learning free
+                  Start building free
                 </Link>
                 <Link href="/pricing" className="inline-flex h-12 items-center rounded-full border border-tera-border px-8 text-sm font-semibold text-tera-primary transition hover:bg-tera-highlight">
                   See plans
@@ -73,15 +72,15 @@ export default async function HomePage() {
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-[0.3em] text-tera-secondary mb-4">Capabilities</p>
             <h2 className="text-4xl font-bold tracking-[-0.03em] text-tera-primary">
-              Everything you need to learn smarter
+              Everything you need to build and ship
             </h2>
           </div>
           <div className="mt-16 grid gap-16 md:grid-cols-2">
             {[
               {
-                title: 'Deep explanations',
-                description: 'Break down complex topics into clear, step-by-step explanations you actually understand.',
-                visual: <ProductPreview variant="explain" />,
+                title: 'Code & Build',
+                description: 'Build, debug, review, and deploy code. Create projects, plans, and implementation roadmaps.',
+                visual: <ProductPreview variant="chat" />,
               },
               {
                 title: 'Web research with citations',
@@ -90,13 +89,13 @@ export default async function HomePage() {
               },
               {
                 title: 'Upload & analyze',
-                description: 'Drop in PDFs, images, or documents. Tera reads them and helps you understand the content.',
+                description: 'Drop in PDFs, images, or documents. Tera reads them and helps you analyze the content.',
                 visual: <ProductPreview variant="upload" />,
               },
               {
-                title: 'Quizzes & practice',
-                description: 'Test your understanding with auto-generated quizzes and get instant feedback.',
-                visual: <ProductPreview variant="quiz" />,
+                title: 'Write & Create',
+                description: 'Draft, edit, and create polished content. Generate marketing copy, docs, and reports.',
+                visual: <ProductPreview variant="chat" />,
               },
             ].map((feature) => (
               <div key={feature.title}>
@@ -113,12 +112,11 @@ export default async function HomePage() {
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-[0.3em] text-tera-secondary mb-4">Our mission</p>
             <h2 className="text-4xl font-bold tracking-[-0.03em] text-tera-primary leading-tight">
-              Make deep learning accessible to everyone
+              Ship real work, not just answers.
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-tera-secondary">
-              We believe understanding complex topics shouldn&apos;t require a tutor on speed dial.
-              TeraAI gives you the tools to break down any subject, research with real sources,
-              and build lasting knowledge — at your own pace.
+              We believe building products and creating content should be as easy as having a conversation.
+              Tera gives you the tools to code, write, research, and ship — all powered by Talocode Cloud.
             </p>
           </div>
         </section>
@@ -128,14 +126,14 @@ export default async function HomePage() {
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-[0.3em] text-tera-secondary mb-4">What people say</p>
             <h2 className="text-4xl font-bold tracking-[-0.03em] text-tera-primary">
-              Trusted by learners worldwide
+              Trusted by builders worldwide
             </h2>
           </div>
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             {[
-              { quote: 'Tera broke down quantum mechanics in a way my professor never could. I finally get it.', author: 'Physics student' },
-              { quote: 'The research mode with citations saved me hours of literature review.', author: 'Graduate researcher' },
-              { quote: 'I use Tera every day to understand codebases and learn new frameworks.', author: 'Software engineer' },
+              { quote: 'Tera helped me build a full-stack app in a weekend.', author: 'Full-stack developer' },
+              { quote: 'The research mode with citations saved me hours of documentation review.', author: 'Tech lead' },
+              { quote: 'I use Tera every day to write code, draft proposals, and ship projects.', author: 'Product builder' },
             ].map((t) => (
               <div key={t.author} className="border-t border-tera-border pt-6">
                 <p className="text-base leading-relaxed text-tera-primary">&ldquo;{t.quote}&rdquo;</p>
@@ -148,14 +146,14 @@ export default async function HomePage() {
         {/* CTA */}
         <section className="py-24">
           <h2 className="text-4xl font-bold tracking-[-0.03em] text-tera-primary">
-            Ready to learn something new?
+            Ready to build something?
           </h2>
           <p className="mt-4 max-w-lg text-lg text-tera-secondary">
-            Join thousands of learners who use TeraAI to understand the world better.
+            Join thousands of builders who use Tera to ship real work with Talocode Cloud.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link href="/new" className="tera-button-primary rounded-full px-8 py-3 text-sm">
-              Start for free
+              Start building free
             </Link>
             <Link href="/pricing" className="inline-flex h-12 items-center rounded-full border border-tera-border px-8 text-sm font-semibold text-tera-primary transition hover:bg-tera-highlight">
               Compare plans

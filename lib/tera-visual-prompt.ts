@@ -2,7 +2,7 @@
  * Server-safe visual prompt for Tera's AI.
  * 
  * This file MUST NOT import from @json-render/react or any React-dependent module,
- * because it is used in server-side code (mistral.ts).
+ * because it is used in server-side code (lib/mistral.ts).
  * 
  * The component descriptions here must stay in sync with tera-catalog.ts.
  */
@@ -18,7 +18,7 @@ AVAILABLE COMPONENTS:
   Props: { chart: string }
   The chart prop contains raw mermaid syntax. CRITICAL: Never use parentheses () inside labels - use hyphens instead.
 
-- Quiz: Interactive quiz component. Use when the user wants to test their knowledge, practice for exams (SAT, etc.), or check understanding.
+- Quiz: Interactive quiz component. Use when the user wants to test understanding or practice concepts.
   Props: { topic: string, questions: Array<{ id: number, type: "multiple_choice"|"true_false"|"short_answer", question: string, options: string[], correct: number|string, explanation: string }> }
 
 - Spreadsheet: Create a spreadsheet with tabular data. First row should be headers.

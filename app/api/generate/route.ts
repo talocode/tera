@@ -89,16 +89,6 @@ export async function POST(request: Request) {
 
   const chatMode = normalizeChatMode(body.chatMode)
 
-  if (chatMode === 'image') {
-    const message = 'Image creation is coming soon.'
-    return NextResponse.json<GenerateErrorResponse>({
-      answer: message,
-      sessionId: body.sessionId ?? null,
-      chatId: body.chatId,
-      error: message,
-    })
-  }
-
   try {
     const result = await generateAnswerForPrompt({ ...body, chatMode })
 

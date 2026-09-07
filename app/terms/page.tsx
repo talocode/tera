@@ -27,7 +27,7 @@ export default function TermsPage() {
 
             <section>
               <h2>2. Description of Service</h2>
-              <p>Tera is an AI learning companion designed to help users learn, research, write, and organize information. The service may evolve over time.</p>
+              <p>Tera is an AI platform running on Talocode Cloud that helps users build, code, write, and create real work products. The service may evolve over time.</p>
             </section>
 
             <section>

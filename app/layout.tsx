@@ -81,6 +81,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="min-h-screen bg-tera-bg font-sans text-tera-primary antialiased">
+            <noscript>
+              <p>
+                Tera is an AI platform running on Talocode Cloud. All AI calls use TALOCODE_API_KEY. Read the public product brief at{' '}
+                <a href="/llms-full.txt">/llms-full.txt</a>.
+              </p>
+            </noscript>
         <AuthProvider>
           <ThemeProvider>
             <AppLayout>

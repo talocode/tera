@@ -71,7 +71,7 @@ export function shouldUseRealTimeWeb(query: string): boolean {
  * @param query - The user's query
  * @returns string - Optimized term
  */
-export function optimizeGrokipediaTerm(query: string): string {
+export function optimizeSearchTerm(query: string): string {
     const fillerWords = [
         'please', 'can you', 'could you', 'would you', 'i want to know',
         'tell me', 'show me', 'find me', 'help me', 'i need',

@@ -18,7 +18,7 @@ const quickActions: QuickAction[] = [
   { label: 'Bookmarks', description: 'Review saved research sources', href: '/bookmarks', keywords: ['bookmarks', 'sources', 'research', 'saved'] },
   { label: 'Notes', description: 'View and edit saved notes', href: '/notes', keywords: ['notes', 'note', 'memo'] },
   { label: 'Deep research', description: 'Use web-backed research mode', href: '/deep-research', keywords: ['research', 'web', 'sources', 'deep'] },
-  { label: 'Study assistant', description: 'Open the study assistant page', href: '/ai-study-assistant', keywords: ['study', 'assistant', 'learn'] },
+  { label: 'Code mode', description: 'Open the code mode page', href: '/ai-study-assistant', keywords: ['code', 'build', 'engineer'] },
   { label: 'Research assistant', description: 'Open the research assistant page', href: '/ai-research-assistant', keywords: ['research', 'assistant', 'source'] },
   { label: 'Skills', description: 'Browse available tools and skills', href: '/skills', keywords: ['skills', 'tools', 'apps'] },
   { label: 'Profile', description: 'Review memories, workflows, and usage', href: '/profile', keywords: ['profile', 'usage', 'memories', 'workflows'] },

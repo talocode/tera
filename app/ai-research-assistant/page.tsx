@@ -27,9 +27,9 @@ const faqs = [
       'TeraAI helps you compare ideas, summarize sources, and draft structured notes. Always verify critical claims against primary sources.',
   },
   {
-    question: 'How is this different from the AI learning companion page?',
+    question: 'How is this different from the Code mode?',
     answer:
-      'The learning companion page focuses on understanding and projects. This page focuses on research workflows: questions, sources, and synthesis.',
+      'The Code mode focuses on building software. This page focuses on research workflows: questions, sources, and synthesis.',
   },
 ]
 
@@ -78,7 +78,7 @@ export default function AiResearchAssistantPage() {
           <h2 className="text-2xl font-semibold text-tera-primary">Plans and depth</h2>
           <p className="mt-4 text-sm leading-7 text-tera-secondary md:text-base">
             Deep Research with Tavily-backed web search and citations is available on Pro and Plus. The free plan
-            includes unlimited AI conversations and core learning tools; upgrade when you need structured research
+            includes unlimited AI conversations and core tools; upgrade when you need structured research
             briefs with sources.
           </p>
           <Link href="/pricing" className="tera-button-secondary mt-6 inline-flex">
@@ -92,8 +92,8 @@ export default function AiResearchAssistantPage() {
             <Link href="/" className="tera-button-secondary">
               Homepage
             </Link>
-            <Link href="/ai-learning-companion" className="tera-button-secondary">
-              AI learning companion
+            <Link href="/ai-code-mode" className="tera-button-secondary">
+              Code mode
             </Link>
             <Link href="/about" className="tera-button-secondary">
               About TeraAI

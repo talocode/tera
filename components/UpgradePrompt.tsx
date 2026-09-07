@@ -4,17 +4,17 @@ import Link from 'next/link'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 
 interface UpgradePromptProps {
-    type: 'lesson-plans' | 'chats' | 'file-uploads' | 'research-mode' | 'credits'
+    type: 'credits' | 'chats' | 'file-uploads' | 'research-mode' | 'credits'
     onClose?: () => void
     inline?: boolean
 }
 
 const PROMPTS = {
-    'lesson-plans': {
-        title: 'Lesson Plan Limit Reached',
-        description: 'You have reached your monthly lesson plan limit.',
-        benefit: 'Upgrade to Pro for more lesson plans and advanced features.',
-        icon: 'LP',
+    'credits': {
+        title: 'Credit Limit Reached',
+        description: 'You have reached your monthly credit limit.',
+        benefit: 'Upgrade to Pro for more computational credits.',
+        icon: 'CR',
     },
     chats: {
         title: 'Something Went Wrong',

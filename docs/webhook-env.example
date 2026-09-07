@@ -8,9 +8,17 @@ TALOCODE_API_KEY=
 # LLM fallback (if TALOCODE_API_KEY is unset)
 MISTRAL_API_KEY=
 
-# Email capability
+# Email delivery and engagement tracking
 RESEND_API_KEY=
-RESEND_FROM=onboarding@resend.dev
+RESEND_FROM_EMAIL=TeraAI <updates@updates.teraai.chat>
+RESEND_WEBHOOK_SECRET=
+# Configure the provider webhook with this URL and enable email.delivered,
+# email.opened, email.clicked, email.bounced, and email.complained events.
+RESEND_WEBHOOK_URL=https://teraai.chat/api/webhooks/resend
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+TIKTOK_REDIRECT_URI=https://teraai.chat/api/tiktok/callback
+TIKTOK_POSTING_ENABLED=false
 
 # Admin commands
 ADMIN_CHAT_ID=

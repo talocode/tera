@@ -1,87 +1,51 @@
-import type { TeacherTool } from '@/components/ToolCard'
+import type { Tool } from '@/components/ToolCard'
 
 export const slugify = (text: string) => {
     return text
         .toLowerCase()
-        .replace(/[^\w\s-]/g, '') // Remove special chars
-        .replace(/\s+/g, '-')     // Replace spaces with hyphens
-        .replace(/-+/g, '-')      // Remove duplicate hyphens
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
         .trim()
 }
 
-export const UniversalTool: TeacherTool = {
+export const UniversalTool: Tool = {
     name: 'Universal Companion',
-    description: 'I adapt to whatever you need - teaching, learning, or exploring.',
+    description: 'I adapt to whatever you need - building, writing, or exploring.',
     icon: '✨',
     tags: ['Adaptive', 'Smart', 'All-Purpose']
 }
 
-export const teacherTools: TeacherTool[] = [
+export const tools: Tool[] = [
     {
-        name: 'Lesson Plan Generator',
-        description: 'Create objective-aligned lessons with pacing, hooks, and transitions.',
-        icon: '🗂️',
-        tags: ['Lesson', 'Planning', 'Standards']
+        name: 'Code Builder',
+        description: 'Build, debug, review, and deploy code.',
+        icon: '💻',
+        tags: ['Code', 'Build', 'Deploy']
     },
     {
-        name: 'Worksheet & Quiz Generator',
-        description: 'Generate formative assessments with answer keys and differentiation.',
-        icon: '📝',
-        tags: ['Assessments', 'Forms', 'Print']
+        name: 'Content Writer',
+        description: 'Draft, edit, and create polished content.',
+        icon: '✍️',
+        tags: ['Write', 'Draft', 'Content']
     },
     {
-        name: 'Concept Explainer',
-        description: 'Break down complex ideas into grade-level explanations.',
-        icon: '🧠',
-        tags: ['Explain', 'Grades', 'Models']
+        name: 'Web Researcher',
+        description: 'Research with cited web answers and sources.',
+        icon: '🔍',
+        tags: ['Research', 'Search', 'Citations']
     },
     {
-        name: 'Rubric Builder',
-        description: 'Design scalable rubrics with leveled criteria and scoring.',
-        icon: '📊',
-        tags: ['Rubrics', 'Feedback', 'Grading']
+        name: 'Project Planner',
+        description: 'Create plans, roadmaps, and implementation strategies.',
+        icon: '📋',
+        tags: ['Build', 'Plan', 'Roadmap']
     },
     {
-        name: 'Parent Communication',
-        description: 'Draft thoughtful updates, celebrations, and interventions.',
-        icon: '📬',
-        tags: ['Email', 'Tone', 'Care']
-    },
-    {
-        name: 'Classroom Quick Assist',
-        description: 'Instant strategies for behavior, pacing, or transitions.',
-        icon: '⚡',
-        tags: ['Support', 'Live', 'Ops']
-    },
-    {
-        name: 'Rewrite & Differentiate',
-        description: 'Simplify or enrich passages for different learners.',
-        icon: '🔁',
-        tags: ['Access', 'Differentiation']
-    },
-    {
-        name: 'Teaching Materials Builder',
-        description: 'Layer slides, posters, and handouts from prompts.',
-        icon: '📚',
-        tags: ['Materials', 'Design']
-    },
-    {
-        name: 'Warm-up Question Generator',
-        description: 'Kick off every class with crisp, engaging prompts.',
-        icon: '🔥',
-        tags: ['Warm-up', 'Engagement']
-    },
-    {
-        name: 'Research & Reading Simplifier',
-        description: 'Summarize articles and align to your syllabus.',
-        icon: '📖',
-        tags: ['Summary', 'Research']
-    },
-    {
-        name: 'IEP Goal Drafter',
-        description: 'Draft SMART goals aligned with student needs and standards.',
-        icon: '🎯',
-        tags: ['IEP', 'Special Ed', 'Goals']
+        name: 'General Assistant',
+        description: 'Get clear, direct answers to any question.',
+        icon: '🤖',
+        tags: ['General', 'Quick', 'Answer']
     },
     {
         name: 'Group Project Generator',
@@ -90,101 +54,8 @@ export const teacherTools: TeacherTool[] = [
         tags: ['Collaboration', 'Projects', 'Roles']
     },
     {
-        name: 'Icebreaker Generator',
-        description: 'Fun and engaging activities to build classroom community.',
-        icon: '🧊',
-        tags: ['Community', 'Fun', 'Start']
-    },
-    {
-        name: 'Substitute Teacher Plan',
-        description: 'Emergency lesson plans and instructions for substitutes.',
-        icon: '🆘',
-        tags: ['Sub Plans', 'Emergency', 'Admin']
-    },
-    {
-        name: 'Student Feedback Generator',
-        description: 'Generate constructive and personalized feedback for students.',
-        icon: '💬',
-        tags: ['Feedback', 'Growth', 'Comments']
-    },
-    {
-        name: 'Field Trip Planner',
-        description: 'Plan logistics, permissions, and educational objectives for trips.',
-        icon: '🚌',
-        tags: ['Logistics', 'Events', 'Safety']
-    },
-    {
-        name: 'Report Card Generator',
-        description: 'Generate professional, personalized report card comments in bulk.',
-        icon: '📝',
-        tags: ['Grading', 'Admin', 'Writing']
-    },
-    {
-        name: 'Newsletter Creator',
-        description: 'Design engaging weekly newsletters for parents and staff.',
-        icon: '📰',
-        tags: ['Communication', 'Updates', 'Design']
-    },
-    {
-        name: 'Paper Grader Agent',
-        description: 'Upload student essays or assignments. I\'ll grade them and provide feedback.',
-        icon: '📝',
-        tags: ['Grading', 'Analysis', 'Time-Saver']
-    }
-]
-
-export const studentTools: TeacherTool[] = [
-    {
-        name: 'Homework Helper',
-        description: 'Step-by-step guidance to help you solve problems (without just giving answers!).',
-        icon: '💡',
-        tags: ['Study', 'Math', 'Science', 'Help']
-    },
-    {
-        name: 'Study Buddy',
-        description: 'I\'ll quiz you, create flashcards, and help you review for exams.',
-        icon: '📚',
-        tags: ['Review', 'Quiz', 'Prep']
-    },
-    {
-        name: 'Essay Coach',
-        description: 'Help with brainstorming, outlining, thesis statements, and editing.',
-        icon: '✍️',
-        tags: ['Writing', 'English', 'Structure']
-    },
-    {
-        name: 'Concept Clarifier',
-        description: 'Confused about a topic? I\'ll explain it in simple terms with examples.',
-        icon: '🤔',
-        tags: ['Understanding', 'Simple', 'Examples']
-    },
-    {
-        name: 'Project Planner',
-        description: 'Break down big school projects into manageble steps and timelines.',
-        icon: '📅',
-        tags: ['Organization', 'Tasks', 'Planning']
-    },
-    {
-        name: 'Presentation Outliner',
-        description: 'Create structured outlines and talking points for slide decks.',
-        icon: '📽️',
-        tags: ['Slides', 'Speaking', 'Planning']
-    },
-    {
-        name: 'Citation Helper',
-        description: 'Format citations (APA, MLA, Chicago) for your bibliography.',
-        icon: '📖',
-        tags: ['Research', 'Writing', 'Format']
-    },
-    {
-        name: 'Math Solver',
-        description: 'Get step-by-step explanations for complex math problems.',
-        icon: '➗',
-        tags: ['Math', 'Problem Solving', 'Logic']
-    },
-    {
         name: 'Research Agent',
-        description: 'I conduct deep web research with Context.dev and Tavily to build comprehensive reports with citations.',
+        description: 'Deep web research with Context.dev and Tavily to build comprehensive reports with citations.',
         icon: '🕵️',
         tags: ['Research', 'Web', 'Deep Dive']
     },
@@ -192,20 +63,44 @@ export const studentTools: TeacherTool[] = [
         name: 'Mind Map Maker',
         description: 'Visualize complex topics with auto-generated mind maps.',
         icon: '🧠',
-        tags: ['Visual Learning', 'Organization', 'Diagrams']
+        tags: ['Visual Creation', 'Organization', 'Diagrams']
+    },
+    {
+        name: 'Spreadsheet Creator',
+        description: 'Create and populate Google Sheets with data, charts, and visualizations.',
+        icon: '📊',
+        tags: ['Spreadsheet', 'Data', 'Charts', 'Google Sheets']
+    },
+    {
+        name: 'Resume Builder',
+        description: 'Draft and polish professional resumes and cover letters.',
+        icon: '💼',
+        tags: ['Career', 'Jobs', 'Writing']
+    },
+    {
+        name: 'Idea Generator',
+        description: 'Brainstorm ideas for creative writing, art, business, or just fun.',
+        icon: '💡',
+        tags: ['Creativity', 'Brainstorm', 'Inspiration']
+    },
+    {
+        name: 'Data Analyst',
+        description: 'Upload data files. I will analyze trends, visualize patterns, and generate insights.',
+        icon: '📈',
+        tags: ['Data', 'Analysis', 'Visuals']
     }
 ]
 
-export const learnerTools: TeacherTool[] = [
+export const learnerTools: Tool[] = [
     {
         name: 'Blockchain Lab',
         description: 'Learn blockchain with a real Solana wallet - live balances, real transactions, and on-chain data.',
         icon: '⛓️',
-        tags: ['Blockchain', 'Education', 'Wallet']
+        tags: ['Blockchain', 'Wallet', 'On-Chain']
     },
     {
         name: 'Skill Explorer',
-        description: 'Want to learn something new? I\'ll create a roadmap for you.',
+        description: 'Want to explore something new? I will create a roadmap for you.',
         icon: '🗺️',
         tags: ['New Skills', 'Roadmap', 'Hobby']
     },
@@ -214,12 +109,6 @@ export const learnerTools: TeacherTool[] = [
         description: 'Explore a topic in depth - history, science, philosophy, anything!',
         icon: '🧐',
         tags: ['Knowledge', 'Research', 'Curiosity']
-    },
-    {
-        name: 'Idea Generator',
-        description: 'Brainstorm ideas for creative writing, art, business, or just fun.',
-        icon: '💡',
-        tags: ['Creativity', 'Brainstorm', 'Inspiration']
     },
     {
         name: 'Book & Resource Finder',
@@ -234,12 +123,6 @@ export const learnerTools: TeacherTool[] = [
         tags: ['Language', 'Conversation', 'Practice']
     },
     {
-        name: 'Resume Builder',
-        description: 'Draft and polish professional resumes and cover letters.',
-        icon: '💼',
-        tags: ['Career', 'Jobs', 'Writing']
-    },
-    {
         name: 'Interview Coach',
         description: 'Practice answering common interview questions with feedback.',
         icon: '🤝',
@@ -250,16 +133,10 @@ export const learnerTools: TeacherTool[] = [
         description: 'Challenge your views and strengthen your arguments on any topic.',
         icon: '⚖️',
         tags: ['Critical Thinking', 'Logic', 'Discussion']
-    },
-    {
-        name: 'Data Analyst',
-        description: 'Upload data files. I\'ll analyze trends, visualize patterns, and generating insights.',
-        icon: '📈',
-        tags: ['Data', 'Analysis', 'Visuals']
     }
 ]
 
-export const spreadsheetTools: TeacherTool[] = [
+export const spreadsheetTools: Tool[] = [
     {
         name: 'Spreadsheet Creator',
         description: 'Create and populate Google Sheets with data, charts, and visualizations.',
@@ -268,4 +145,4 @@ export const spreadsheetTools: TeacherTool[] = [
     }
 ]
 
-export const allTools = [...teacherTools, ...studentTools, ...learnerTools, ...spreadsheetTools]
+export const allTools = [...tools, ...learnerTools, ...spreadsheetTools]
