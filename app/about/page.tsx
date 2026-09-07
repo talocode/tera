@@ -5,25 +5,25 @@ import SeoFooter from '@/components/seo/SeoFooter'
 
 const audienceCards = [
   {
-    title: 'For Students',
-    points: ['Get homework help that clicks', 'Break down tough concepts simply', 'Prepare for exams with guided support', 'Use web-backed answers when you need current information'],
+    title: 'For Builders',
+    points: ['Code, debug, and deploy with AI assistance', 'Build projects and implementation roadmaps', 'Ship production-ready code from one workspace', 'Connect with TALOCODE_API_KEY'],
   },
   {
-    title: 'For Teachers',
-    points: ['Create lessons and class materials faster', 'Generate worksheets, quizzes, and rubrics', 'Draft clear classroom communication', 'Keep resources and notes organized in one place'],
+    title: 'For Writers',
+    points: ['Draft, edit, and create content', 'Generate marketing copy, docs, and reports', 'Export to PDF and Word', 'Structured writing with citations'],
   },
   {
-    title: 'For Everyone',
-    points: ['Learn new skills on demand', 'Build roadmaps for projects and ideas', 'Switch between research, writing, and planning', 'Keep growing from one workspace'],
+    title: 'For Researchers',
+    points: ['Research with real-time web citations', 'Deep research for complex investigations', 'Fact-check, compare, and synthesize', 'Source-backed answers with live context'],
   },
 ]
 
 const features = [
   'Unlimited conversations on the free plan',
-  'Current answers with Tavily-backed web research and citations',
-  'Deeper research modes on higher tiers',
+  'Current answers with web research and citations',
+  'Deep research modes on higher tiers',
   'File uploads for documents and images',
-  'Specialized tools for teaching, learning, and planning',
+  'Specialized tools for code, writing, research, and planning',
   'Persistent notes and conversation history',
 ]
 
@@ -35,15 +35,14 @@ export default function AboutPage() {
           <div className="max-w-4xl">
             <p className="tera-eyebrow">About Tera</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-tera-primary md:text-5xl lg:text-6xl">
-              TeraAI — your AI learning companion for deep learning and research
+              Tera — an AI platform for building, coding, and creating real work
             </h1>
             <p className="mt-5 max-w-3xl text-base leading-7 text-tera-secondary md:text-lg md:leading-8">
-              TeraAI helps you learn difficult topics deeply, research with clearer context, and turn what you study into
-              real projects. Research, tools, notes, and conversation history stay in one workspace.
+              Tera helps you build products, write content, research with sources, and ship real work — all in one workspace powered by Talocode Cloud.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/new" className="tera-button-primary">
-                Start with Tera
+                Start building free
               </Link>
               <Link href="/pricing" className="tera-button-secondary">
                 View plans
@@ -55,9 +54,9 @@ export default function AboutPage() {
         <section className="mt-8 grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
           <div className="tera-card">
             <p className="tera-eyebrow">Mission</p>
-            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Learning should feel like a conversation, not a wall of friction.</h2>
+            <h2 className="mt-3 text-2xl font-semibold text-tera-primary">Shipping real work should feel like a conversation, not a wall of friction.</h2>
             <p className="mt-4 text-sm leading-7 text-tera-secondary md:text-base">
-              Tera adapts to the task in front of you. Ask a direct question, open a teaching tool, upload a document, or run a current-information search. The interface stays consistent while the assistance shifts to fit the job.
+              Tera adapts to the task in front of you. Write a prompt, open a code or research tool, upload a document, or run a current-information search. The interface stays consistent while the assistance shifts to fit the job.
             </p>
           </div>
           <div className="tera-card-subtle px-6 py-6">
@@ -93,14 +92,14 @@ export default function AboutPage() {
         <section className="mt-8 tera-card-subtle px-6 py-6">
           <p className="tera-eyebrow">Learn more</p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/ai-learning-companion" className="tera-button-secondary">
-              AI learning companion
+            <Link href="/new" className="tera-button-secondary">
+              Start building
             </Link>
-            <Link href="/ai-study-assistant" className="tera-button-secondary">
-              AI study assistant
+            <Link href="/pricing" className="tera-button-secondary">
+              View plans
             </Link>
-            <Link href="/ai-research-assistant" className="tera-button-secondary">
-              AI research assistant
+            <Link href="/help" className="tera-button-secondary">
+              Help center
             </Link>
           </div>
         </section>
@@ -108,7 +107,7 @@ export default function AboutPage() {
         <section className="mt-8 tera-card-subtle px-6 py-6">
           <p className="tera-eyebrow">Support open-source Talocode</p>
           <p className="mt-4 text-sm leading-7 text-tera-secondary">
-            Talocode builds open-source workflow layers for builders: coding agents, learning tools, trading intelligence, video workflows, and local-first automation.
+            Talocode builds open-source workflow layers for builders: coding agents, writing tools, trading intelligence, video workflows, and local-first automation.
           </p>
           <div className="mt-4 flex items-center gap-4">
             <a
@@ -131,7 +130,7 @@ export default function AboutPage() {
             <div>
               <p className="tera-eyebrow">How it works</p>
               <ol className="mt-4 space-y-4 text-sm leading-7 text-tera-secondary">
-                <li><span className="text-tera-primary">1.</span> Start with a natural prompt or open a tool.</li>
+                <li><span className="text-tera-primary">1.</span> Start with a natural prompt or open a work mode.</li>
                 <li><span className="text-tera-primary">2.</span> Turn on research mode when you need current, cited information.</li>
                 <li><span className="text-tera-primary">3.</span> Continue the same thread with follow-up questions, notes, and revisions.</li>
                 <li><span className="text-tera-primary">4.</span> Return later through history and keep your work moving.</li>

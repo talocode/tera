@@ -20,34 +20,34 @@ type StarterTemplate = {
 
 const starterTemplates: StarterTemplate[] = [
   {
-    title: 'Study a topic',
-    description: 'Get a clear explanation, examples, and a quick check for understanding.',
-    prompt: 'Explain this topic clearly from first principles, then give me one example and three things I should remember:',
-    badge: 'Study',
+    title: 'Build something',
+    description: 'Get a clear plan, code, or content draft to ship.',
+    prompt: 'Build me something clear and actionable. Give me the steps, code, or content structure I need:',
+    badge: 'Build',
   },
   {
     title: 'Research with sources',
     description: 'Use current web sources, summarize the evidence, and show citations.',
     prompt: 'Research this for me with current sources and citations. Summarize what is most important, what is uncertain, and link the best references:',
-    badge: 'Research',
+    badge: 'Search',
   },
   {
     title: 'Turn notes into action',
     description: 'Convert rough notes into tasks, a plan, and a clean next step.',
     prompt: 'Turn these notes into a clear action plan with tasks, deadlines, and next steps:',
-    badge: 'Plan',
+    badge: 'Build',
   },
   {
     title: 'Summarize something long',
     description: 'Compress long material into a short, useful summary.',
     prompt: 'Summarize this in a concise format with the key points, risks, and next actions:',
-    badge: 'Summarize',
+    badge: 'Write',
   },
   {
     title: 'Draft a message',
     description: 'Write a polished email, message, or response in a natural tone.',
     prompt: 'Draft a professional message for me based on this context:',
-    badge: 'Draft',
+    badge: 'Write',
   },
   {
     title: 'Compare options',
@@ -182,9 +182,9 @@ export default function PromptStarterTemplates({
             <div>
               <p className="tera-eyebrow">Quick starts</p>
               <h2 className="mt-2 text-sm font-semibold text-tera-primary sm:text-base">Pick a mode or prompt starter</h2>
-              <p className="mt-2 text-xs leading-6 text-tera-secondary sm:text-sm">
-                Study, research, plan, and summarize all live here without blocking the composer.
-              </p>
+<p className="mt-2 text-xs leading-6 text-tera-secondary sm:text-sm">
+                 Build, search, write, and summarize all live here without blocking the composer.
+               </p>
             </div>
             {savedWorkflows.length > 0 && (
               <Link href="/profile#saved-workflows" className="text-xs uppercase tracking-[0.2em] text-tera-secondary transition hover:text-tera-primary sm:text-sm sm:normal-case sm:tracking-normal">

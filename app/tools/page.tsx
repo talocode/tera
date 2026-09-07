@@ -3,17 +3,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import ToolCard from '@/components/ToolCard'
-import { teacherTools, studentTools, learnerTools, slugify } from '@/lib/tools-data'
+import { tools, learnerTools, slugify } from '@/lib/tools-data'
 
 export default function ToolsPage() {
-  const [activeTab, setActiveTab] = useState<'teachers' | 'students' | 'learners'>('teachers')
+  const [activeTab, setActiveTab] = useState<'builders' | 'explorers'>('builders')
 
   const activeTools =
-    activeTab === 'teachers'
-      ? teacherTools
-      : activeTab === 'students'
-        ? studentTools
-        : learnerTools
+    activeTab === 'builders'
+      ? tools
+      : learnerTools
 
   return (
     <div className="tera-page">
@@ -29,23 +27,20 @@ export default function ToolsPage() {
           <div className="tera-card-subtle flex items-center gap-4 px-5 py-4">
             <div>
               <p className="text-[0.62rem] uppercase tracking-[0.3em] text-tera-secondary">Available</p>
-              <p className="mt-1 text-2xl font-semibold text-tera-primary">{teacherTools.length + studentTools.length + learnerTools.length}</p>
+              <p className="mt-1 text-2xl font-semibold text-tera-primary">{tools.length + learnerTools.length}</p>
             </div>
             <div className="h-10 w-px bg-tera-border" />
-            <p className="max-w-[16rem] text-sm leading-6 text-tera-secondary">Teacher, student, and general-purpose flows share the same dark interface system.</p>
+            <p className="max-w-[16rem] text-sm leading-6 text-tera-secondary">Build, create, research, and explore — all in one workspace.</p>
           </div>
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
           <div className="tera-segmented">
-            <button type="button" className="tera-segmented-item" data-active={activeTab === 'teachers'} onClick={() => setActiveTab('teachers')}>
-              Teachers
+            <button type="button" className="tera-segmented-item" data-active={activeTab === 'builders'} onClick={() => setActiveTab('builders')}>
+              Builders
             </button>
-            <button type="button" className="tera-segmented-item" data-active={activeTab === 'students'} onClick={() => setActiveTab('students')}>
-              Students
-            </button>
-            <button type="button" className="tera-segmented-item" data-active={activeTab === 'learners'} onClick={() => setActiveTab('learners')}>
-              Everyone
+            <button type="button" className="tera-segmented-item" data-active={activeTab === 'explorers'} onClick={() => setActiveTab('explorers')}>
+              Explorers
             </button>
           </div>
         </div>

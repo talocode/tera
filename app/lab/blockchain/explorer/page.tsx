@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import BlockchainLabShell from '@/components/blockchain-lab/BlockchainLabShell';
-import BlockExplorer from '@/components/blockchain-lab/BlockExplorer';
+import LiveBlockExplorer from '@/components/blockchain-lab/LiveBlockExplorer';
 
 export default async function ExplorerPage() {
   const session = await auth();
@@ -12,9 +12,9 @@ export default async function ExplorerPage() {
   return (
     <BlockchainLabShell
       title="Block Explorer"
-      description="Search and explore your simulated blockchain. View blocks, transactions, and wallet data."
+      description="Search and explore the real Solana network. View live blocks, transactions, and wallet data."
     >
-      <BlockExplorer />
+      <LiveBlockExplorer />
     </BlockchainLabShell>
   );
 }

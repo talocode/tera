@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import BlockchainLabShell from '@/components/blockchain-lab/BlockchainLabShell';
-import SmartContractSimulator from '@/components/blockchain-lab/SmartContractSimulator';
+import LiveBlockExplorer from '@/components/blockchain-lab/LiveBlockExplorer';
 
 export default async function SmartContractsPage() {
   const session = await auth();
@@ -55,8 +55,13 @@ export default async function SmartContractsPage() {
         </div>
 
         <div className="tera-card">
-          <h3 className="text-lg font-semibold text-tera-primary">Playground Preview</h3>
-          <SmartContractSimulator />
+          <h3 className="text-lg font-semibold text-tera-primary">Real Contract Activity</h3>
+          <p className="mt-3 text-sm text-tera-secondary">
+            Look up real smart-program activity live on Solana:
+          </p>
+          <div className="mt-4">
+            <LiveBlockExplorer />
+          </div>
         </div>
       </div>
     </BlockchainLabShell>

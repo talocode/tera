@@ -4,12 +4,12 @@ import Link from 'next/link';
 import BlockchainLabShell from '@/components/blockchain-lab/BlockchainLabShell';
 import LabProgressCard from '@/components/blockchain-lab/LabProgressCard';
 import BadgeGrid from '@/components/blockchain-lab/BadgeGrid';
-import { EDUCATIONAL_COPY } from '@/lib/blockchain-lab/constants';
+import TcodeHoldToEarn from '@/components/blockchain-lab/TcodeHoldToEarn';
 
 const features = [
   {
-    title: 'Wallet Simulator',
-    description: 'Create fake wallets, understand addresses, and learn about private keys safely.',
+    title: 'Your Wallet',
+    description: 'Connect your real Solana wallet and read live balances and tokens from the network.',
     href: '/lab/blockchain/wallet',
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -19,8 +19,8 @@ const features = [
     ),
   },
   {
-    title: 'Stablecoin Transfer',
-    description: 'Send fake USDC between wallets and understand how transactions work.',
+    title: 'Send SOL',
+    description: 'Send real SOL through your own wallet. You approve every transaction.',
     href: '/lab/blockchain/transactions',
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -31,7 +31,7 @@ const features = [
   },
   {
     title: 'Block Explorer',
-    description: 'Search and explore blocks, transactions, and wallet data.',
+    description: 'Search live blocks, transactions, and addresses on the real Solana chain.',
     href: '/lab/blockchain/explorer',
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -41,8 +41,19 @@ const features = [
     ),
   },
   {
-    title: 'Smart Contract Playground',
-    description: 'Learn about smart contracts, read/write functions, and more.',
+    title: 'Stablecoins',
+    description: 'Understand stablecoins and track live stablecoin balances on Solana.',
+    href: '/lab/blockchain/stablecoins',
+    icon: (
+      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M12 2v20" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Smart Contracts',
+    description: 'Learn how programs and smart contracts work on Solana.',
     href: '/lab/blockchain/smart-contracts',
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -53,7 +64,7 @@ const features = [
   },
   {
     title: 'Proof Profile',
-    description: 'Track your learning progress and earn badges.',
+    description: 'Track your real on-chain activity, lessons, and badges.',
     href: '/lab/blockchain/profile',
     icon: (
       <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -64,15 +75,6 @@ const features = [
   },
 ];
 
-const learningPath = [
-  { step: 1, title: 'Create wallet', description: 'Make your first simulated wallet' },
-  { step: 2, title: 'Receive fake USDC', description: 'Get starter balances automatically' },
-  { step: 3, title: 'Send transaction', description: 'Transfer to another wallet' },
-  { step: 4, title: 'Confirm block', description: 'See your transaction in a block' },
-  { step: 5, title: 'Explore explorer', description: 'Search and inspect the blockchain' },
-  { step: 6, title: 'Earn badge', description: 'Complete lessons to earn badges' },
-];
-
 export default async function BlockchainLabPage() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -80,47 +82,40 @@ export default async function BlockchainLabPage() {
   }
 
   return (
-    <BlockchainLabShell
-      title={EDUCATIONAL_COPY.HEADLINE}
-      description={EDUCATIONAL_COPY.SUBHEADLINE}
-    >
+    <BlockchainLabShell title="Blockchain Lab" description="Real Solana. Your wallet. Live on-chain data.">
       <div className="space-y-8">
+        {/* REAL HOLD-TO-EARN FIRST */}
+        <TcodeHoldToEarn />
+
+        {/* ORYNTH BADGE SLOT — paste the provided badge snippet here */}
+        <a href="https://orynth.dev/projects/talocode-8992" target="_blank" rel="noopener noreferrer">
+          <img
+            src="https://orynth.dev/api/badge/talocode-8992?theme=light&style=default"
+            alt="Featured on Orynth"
+            width="260"
+            height="80"
+          />
+        </a>
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="rounded-xl bg-blue-500/10 px-4 py-3">
-            <p className="text-sm text-blue-400">{EDUCATIONAL_COPY.SAFETY_NOTICE}</p>
+            <p className="text-sm text-blue-400">
+              Connect your own wallet. Real addresses, real balances, real transactions. You are in control, and every
+              transfer is approved by you before it is broadcast.
+            </p>
           </div>
           <div className="flex gap-3">
             <Link href="/lab/blockchain/wallet" className="tera-button-primary">
-              Start with your first fake wallet
+              Connect your wallet
             </Link>
             <Link href="/lab/blockchain/explorer" className="tera-button-secondary">
-              Open Block Explorer
+              Open live explorer
             </Link>
           </div>
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold text-tera-primary">Learning Path</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {learningPath.map((item) => (
-              <div
-                key={item.step}
-                className="flex items-start gap-3 rounded-lg border border-tera-border bg-tera-panel p-4"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-tera-accent/20 text-tera-accent">
-                  {item.step}
-                </div>
-                <div>
-                  <h4 className="font-medium text-tera-primary">{item.title}</h4>
-                  <p className="text-sm text-tera-secondary">{item.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold text-tera-primary">Features</h2>
+          <h2 className="text-xl font-semibold text-tera-primary">Lab</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <Link

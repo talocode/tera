@@ -1,8 +1,8 @@
-# 🧠 Tera — Your AI Learning Companion for Anything
+# Tera — Your AI Platform for Building, Coding, Writing, and Creating
 
-> **Learn anything. Master everything. Powered by AI.**
+> **Build anything. Ship real work. Powered by Talocode Cloud.**
 
-Tera is a free, AI-powered learning companion designed for **anything** you want to learn — school subjects, work skills, creative projects, and everyday curiosity. Built with conversational AI at its core, Tera makes learning simple, personal, and powerful.
+Tera is a free, AI-powered platform for building, coding, writing, searching, and creating real work products. All AI runs through Talocode Cloud (`TALOCODE_API_KEY`). Built on the Talocode infrastructure, Tera gives you one workspace to code, write, research, and ship.
 
 🌐 **Live:** [teraai.chat](https://teraai.chat)
 
@@ -10,26 +10,29 @@ Tera is a free, AI-powered learning companion designed for **anything** you want
 
 ## ✨ Features
 
-### 🎓 For Students
-- Get homework help that actually clicks
-- Master tough concepts with simple explanations
-- Ace exams with confidence using interactive quizzes
-- Search the web for current information
-- Explore your curiosity
+### 🚀 For Builders
+- Code, debug, and deploy with real-time AI assistance
+- Build projects, plans, and implementation roadmaps
+- Ship production-ready code from one workspace
+- Connect your agent with `TALOCODE_API_KEY`
 
-### 👨‍🏫 For Teachers
-- Create lessons in seconds
-- Generate engaging materials & worksheets
-- Get classroom strategies & rubrics
-- Create interactive spreadsheets
-- Save hours every week
+### ✍️ For Writers
+- Draft, edit, and create content
+- Generate marketing copy, documentation, and reports
+- Export to PDF and Word
+- Structured writing with citations and references
 
-### 💡 For Everyone
-- Pick up any new skill
-- Get personalized learning roadmaps
+### 🔍 For Researchers
+- Research with real-time web information and citations
+- Deep research mode for complex investigations
+- Compare options, fact-check, and synthesize findings
+- Source-backed answers with live web context
+
+### 🏗️ For Everyone
+- Build, code, write, and search in one workspace
 - Access real-time web information
-- Upskill for your career
-- Never stop growing
+- Upload files and documents for analysis
+- Ship projects with persistent conversation history
 
 ---
 
@@ -48,36 +51,17 @@ Tera is a free, AI-powered learning companion designed for **anything** you want
 
 ---
 
-## Chat Learning Modes
+## Work Modes
 
-Tera chat includes learning modes that shape the assistant experience without changing existing usage limits or introducing new plan limits for this foundation.
+Tera chat includes work modes that shape the assistant experience without changing existing usage limits.
 
-- **Ask:** Preserves normal Tera chat behavior.
-- **Study:** Provides tutor-style, step-by-step teaching.
-- **Quiz:** Generates interactive quizzes and grades follow-up answers.
-- **Summarize:** Creates structured learning notes from pasted content.
-- **Image:** Visible in the mode picker, but coming soon and locked.
+- **General:** Default mode for any question or task.
+- **Code:** Build, debug, review, and deploy code.
+- **Write:** Draft, edit, and create polished content.
+- **Search:** Research with real-time web information and citations.
+- **Build:** Create projects, plans, and implementation roadmaps.
 
-Mode configuration and prompts live in `lib/ai/chat-modes.ts`. Document any migration added for mode metadata alongside this foundation; no new plan limits are introduced, so existing usage limits continue to apply.
-
----
-
-## 📖 Grokipedia Integration
-
-Tera integrates [Grokipedia](https://grokipedia.com) — an open-source AI-powered encyclopedia with **362,000+ pages** — as its primary knowledge base and citation source.
-
-### How It Works
-- **Knowledge Base:** Grokipedia serves as Tera's canonical reference layer for all educational topics
-- **Inline Citations:** Every educational concept, term, person, event, or topic in Tera's responses links directly to Grokipedia via `grokipedia.com/search?q=Term+Name`
-- **Hyper-Aggressive Linking:** Tera generates **20-30+ Grokipedia backlinks per response** (50-100+ for longer explanations)
-- **10,000+ Backlink Target:** Across all conversations, Tera aims to generate 10,000+ unique Grokipedia backlinks
-- **Distinctive Styling:** Grokipedia links render with a 📖 icon and violet color to distinguish them from regular links
-- **Footer Citation:** Every educational response ends with a Grokipedia source attribution
-
-### Link Format
-```
-[Term](https://grokipedia.com/search?q=Term+Name)
-```
+Mode configuration and prompts live in `lib/ai/chat-modes.ts`.
 
 ---
 
@@ -88,11 +72,11 @@ Tera integrates [Grokipedia](https://grokipedia.com) — an open-source AI-power
 | **Framework** | [Next.js](https://nextjs.org) (App Router) |
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS |
-| **AI Model** | Mistral AI (Pixtral 12B) |
+| **AI Platform** | [Talocode Cloud](https://api.talocode.site) (`TALOCODE_API_KEY`) |
 | **Database** | [Supabase](https://supabase.com) (PostgreSQL) |
 | **Auth** | NextAuth.js (Google OAuth) |
 | **Payments** | Lemon Squeezy |
-| **Hosting** | Vercel |
+| **Hosting** | Vercel / Cloudflare |
 | **Mobile** | React Native (Expo) |
 | **Charts** | Recharts |
 | **Diagrams** | Mermaid.js |
@@ -106,14 +90,12 @@ Tera integrates [Grokipedia](https://grokipedia.com) — an open-source AI-power
 Tera/
 ├── app/                    # Next.js App Router pages
 │   ├── about/              # About page
-│   ├── admin/              # Admin dashboard
 │   ├── api/                # API routes (billing, auth, agent)
 │   ├── auth/               # Authentication pages
 │   ├── help/               # Help center
 │   ├── history/            # Chat history
-│   ├── new/                # New chat & chat by ID
+│   ├── new/                # New chat
 │   ├── notes/              # Notes feature
-│   ├── plus/               # Premium features
 │   ├── pricing/            # Pricing page
 │   ├── privacy/            # Privacy policy
 │   ├── terms/              # Terms of service
@@ -121,23 +103,20 @@ Tera/
 ├── components/             # React components
 │   ├── visuals/            # Chart, Mermaid, Spreadsheet renderers
 │   ├── AppLayout.tsx       # Main app layout
-│   ├── MarkdownRenderer.tsx # Markdown rendering with Grokipedia link styling
 │   ├── PromptShell.tsx     # Main chat interface
 │   ├── Sidebar.tsx         # Navigation sidebar
 │   └── ...
 ├── lib/                    # Core logic & utilities
-│   ├── mistral.ts          # AI model integration & system prompt
+│   ├── mistral.ts          # AI platform integration & system prompt
+│   ├── talocode.ts         # Talocode Cloud client
 │   ├── supabase.ts         # Database client
 │   ├── auth.ts             # Authentication config
-│   ├── quiz.ts             # Quiz generation
 │   ├── tools-data.ts       # Tool definitions
 │   └── ...
 ├── mobile/                 # React Native mobile app (Expo)
 │   ├── app/                # Expo Router pages
 │   └── ...
 ├── backend-server/         # Backend API server
-│   └── src/
-│       └── services/       # Mistral & Ollama services
 ├── styles/                 # Global CSS
 └── public/                 # Static assets & images
 ```
@@ -150,11 +129,12 @@ Tera/
 - Node.js 18+
 - npm or yarn
 - Supabase project
-- Mistral AI API key
+- TALOCODE_API_KEY
 
 ### Environment Variables
 ```env
-MISTRAL_API_KEY=your_mistral_api_key
+TALOCODE_API_KEY=your_talocode_api_key
+TALOCODE_BASE_URL=https://api.talocode.site
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
@@ -204,19 +184,18 @@ Supports **dark mode** and **light mode** via `ThemeProvider`.
 
 ---
 
-## 📊 AI Tools
+## 📊 Work Tools
 
 Tera includes specialized tools for different use cases:
 
-- **Lesson Plan Generator** — Create objective-aligned lessons
-- **Worksheet & Quiz Generator** — Assessments with answer keys
-- **Concept Explainer** — Break down complex ideas
-- **Rubric Builder** — Scalable rubrics with criteria
-- **Parent Communication** — Draft thoughtful emails
-- **Spreadsheet Editor** — Interactive data sheets
+- **Code Assistant** — Build, debug, review, and deploy code
+- **Writing Assistant** — Draft, edit, and create content
+- **Research Assistant** — Web research with citations and sources
+- **Build Planner** — Create projects, plans, and roadmaps
+- **File Upload** — Analyze documents, images, and data
 - **Web Search** — Real-time info with citations
-- **SAT Practice** — Free SAT prep within the chat
-- **Universal Companion** — Adapt to any learning need
+- **Persistent Notes** — Keep work organized across sessions
+- **Conversation History** — Return to previous work anytime
 
 ---
 
@@ -227,12 +206,14 @@ Tera includes specialized tools for different use cases:
 - No selling of user data
 - Secure Google OAuth authentication
 - Data stored in Supabase with row-level security
+- All AI calls route through Talocode Cloud via `TALOCODE_API_KEY`
 
 ---
 
 ## 📬 Contact
 
-- **Email:** Teraaiguide@gmail.com
+- **Primary email:** admin@teraai.chat
+- **Backup email:** teraaiguide@gmail.com
 - **Website:** [teraai.chat](https://teraai.chat)
 
 ---
@@ -246,19 +227,18 @@ Tera includes specialized tools for different use cases:
 | [api.talocode.site](https://api.talocode.site) | API endpoint |
 | [dashboard.talocode.site](https://dashboard.talocode.site) | Cloud dashboard |
 | [stacklane.talocode.site](https://stacklane.talocode.site) | Stacklane platform |
-| [dashboard.talocode.site](https://dashboard.talocode.site) | Dashboard |
 
 ## 💖 Support Talocode
 
-Talocode builds open-source workflow layers for builders: coding agents, learning tools, trading intelligence, video workflows, and local-first automation.
+Talocode builds open-source workflow layers for builders: coding agents, writing tools, trading intelligence, video workflows, and local-first automation.
 
-If Tera helps you, you can support the work here:
+If Tera helps you ship real work, you can support the work here:
 
 [![Sponsor Abdulmuiz44](https://img.shields.io/badge/Sponsor-Abdulmuiz44-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Abdulmuiz44)
 
 ## 📄 License
 
-© 2025 Tera. All rights reserved. Built with care for curious minds everywhere.
+© 2025 Tera. All rights reserved. Built for shipping real work.
 
 ## Talocode ecosystem
 
@@ -266,32 +246,17 @@ Part of **[Talocode](https://github.com/talocode)** — open-source workflow lay
 
 | Project | What it is |
 |---------|------------|
-| **[ScreenLane](https://github.com/talocode/screenlane)** | Screen-aware voice command layer |
-| **[Tera](https://github.com/talocode/tera)** | AI chat & assistant **(this repo)** |
-| **[Codra](https://github.com/talocode/codra)** | Local coding agent |
-| **[GateLane](https://github.com/talocode/gatelane)** | MCP gateway & agent tool control plane |
-| **[ContextLane](https://github.com/talocode/contextlane)** | Context ingestion for persistent agents |
+| **[Tera](https://github.com/talocode/tera)** | AI platform for building, coding, writing **(this repo)** |
+| **[StackLane](https://github.com/talocode/stacklane)** | Cloud control plane, keys, wallet |
+| **[Codra](https://github.com/talocode/codra)** | Coding agent runtime |
+| **[Agent Browser](https://github.com/talocode/agent-browser)** | Browser automation API |
+| **[SearchLane](https://github.com/talocode/searchlane)** | Search layer for agents |
+| **[DocuLane](https://github.com/talocode/doculane)** | Office document CLI |
+| **[ClipLoop](https://github.com/talocode/cliploop)** | Short-form video loop |
+| **[Tradia](https://github.com/talocode/tradia)** | Trading intelligence |
+| **[GateLane](https://github.com/talocode/gatelane)** | Policy / gate tooling |
+| **[ContextLane](https://github.com/talocode/contextlane)** | Context infrastructure |
 | **[MemoryLane](https://github.com/talocode/memorylane)** | Persistent agent memory |
 | **[SignalLane](https://github.com/talocode/signallane)** | X growth intelligence |
-| **[ReplyLane](https://github.com/talocode/replylane)** | X reply opportunity intelligence |
-| **[CrawlerLane](https://github.com/talocode/crawlerlane)** | Crawler / SEO intelligence |
-| **[WebDataLane](https://github.com/talocode/webdatalane)** | Web extraction to structured data |
-| **[SearchLane](https://github.com/talocode/searchlane)** | Search layer for agents |
-| **[InvoiceLane](https://github.com/talocode/invoicelane)** | Invoicing tools |
-| **[GeoLane](https://github.com/talocode/geolane)** | Geo intelligence |
-| **[UgcLane](https://github.com/talocode/ugclane)** | UGC workflows |
-| **[OpenSourceLane](https://github.com/talocode/opensourcelane)** | Open-source distribution tools |
-| **[StackLane](https://github.com/talocode/stacklane)** | Builder stack platform |
-| **[Tradia](https://github.com/talocode/tradia)** | Trading intelligence |
-| **[Agent Browser](https://github.com/talocode/agent-browser)** | Browser automation for agents |
-| **[Talocode](https://github.com/talocode/talocode)** | Org home & control plane |
-| **[Skills](https://github.com/talocode/skills)** | Shared agent skills |
-| **[X Agent](https://github.com/talocode/x-agent)** | X automation agent |
-| **[LaunchPix](https://github.com/talocode/launchpix)** | Launch tooling |
-| **[ForgeCAD](https://github.com/talocode/forgecad)** | CAD workflows |
-| **[WorkLane](https://github.com/talocode/worklane)** | Work automation |
-| **[ClipLoop](https://github.com/talocode/cliploop)** | Clip / video loops |
-
-MCP-compatible agents integrate via each product's MCP server where available ([Model Context Protocol](https://modelcontextprotocol.io/)).
 
 More: [github.com/talocode](https://github.com/talocode) · [talocode.site](https://talocode.site) · [docs.talocode.site](https://docs.talocode.site)

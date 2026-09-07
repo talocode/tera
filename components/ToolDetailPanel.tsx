@@ -1,19 +1,21 @@
-import { TeacherTool } from './ToolCard'
+import { Tool } from './ToolCard'
 
 const samplePrompts: Record<string, string> = {
-  'Lesson Plan Generator': 'Generate a 45-minute 8th-grade lesson on Newton’s laws including a lab, exit ticket, and reflection prompt.',
-  'Worksheet & Quiz Generator': 'Create a 10-question mixed-format quiz for algebra inequalities with answer key and pacing suggestions.',
-  'Concept Explainer': 'Explain photosynthesis to a 5th-grade class using analogies and a quick demo idea.',
-  'Rubric Builder': 'Design a 4-level rubric for a lab report focusing on analysis, procedure, and collaboration.',
-  'Parent Communication': 'Write a compassionate update for a parent about a student’s progress and request for at-home support.',
-  'Classroom Quick Assist': 'Recommend three quick routines to de-escalate a disruptive group while keeping the class moving.',
-  'Rewrite & Differentiate': 'Simplify this paragraph for ELL support, keeping the key science vocabulary intact.',
-  'Teaching Materials Builder': 'Outline a bulletin board set of slides for the solar system unit that includes anchor questions.',
-  'Warm-up Question Generator': 'Provide 5 openers that spark discourse about civic responsibility in government class.',
-  'Research & Reading Simplifier': 'Summarize this 1200-word article into a 5-bullet reading guide with a vocabulary focus.'
+  'Code Builder': 'Build a full-stack CRUD API with authentication, validation, and error handling.',
+  'Content Writer': 'Draft a product launch announcement with a compelling headline, clear benefits, and a strong CTA.',
+  'Web Researcher': 'Research the latest developments in AI infrastructure and present findings with cited sources.',
+  'Project Planner': 'Create a 3-month roadmap for launching a new SaaS product with milestones and dependencies.',
+  'General Assistant': 'What are the key considerations when migrating a monolith to microservices?',
+  'Group Project Generator': 'Create a structured group project with roles, timelines, and rubrics.',
+  'Research Agent': 'I conduct deep web research with Context.dev and Tavily to build comprehensive reports with citations.',
+  'Mind Map Maker': 'Visualize complex topics with auto-generated mind maps.',
+  'Spreadsheet Creator': 'Create and populate Google Sheets with data, charts, and visualizations.',
+  'Resume Builder': 'Draft and polish professional resumes and cover letters.',
+  'Idea Generator': 'Brainstorm ideas for creative writing, art, business, or just fun.',
+  'Data Analyst': 'Upload data files. I will analyze trends, visualize patterns, and generate insights.'
 }
 
-export default function ToolDetailPanel({ tool }: { tool: TeacherTool }) {
+export default function ToolDetailPanel({ tool }: { tool: Tool }) {
   return (
     <section className="flex w-full max-w-[22rem] flex-col gap-5 rounded-[32px] border border-tera-border bg-gradient-to-b from-[#111111] to-[#050505] p-5 shadow-glow-md md:w-96 md:gap-6 md:p-6">
       <header className="flex flex-col gap-1">
@@ -40,15 +42,15 @@ export default function ToolDetailPanel({ tool }: { tool: TeacherTool }) {
         <ol className="flex flex-col gap-2 text-sm text-white/60">
           <li className="flex items-start gap-2">
             <span className="mt-1 h-2 w-2 rounded-full bg-tera-neon" />
-            Curate inputs (grade, topic, tone) →
+            Define the task and constraints →
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 h-2 w-2 rounded-full bg-tera-neon" />
-            Preview generated draft with highlights →
+            Generate the output with Tera →
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 h-2 w-2 rounded-full bg-tera-neon" />
-            Save to Supabase lessons or share via link
+            Review, iterate, and save to workspace
           </li>
         </ol>
       </div>

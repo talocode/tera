@@ -1,0 +1,3 @@
+[console_scripts]
+tera = tera.__main__:main
+tera-bot = tera.agent:main

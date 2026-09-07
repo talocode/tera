@@ -374,7 +374,8 @@ export default function PricingPage() {
               If you need help choosing a plan or resolving billing issues, contact support or browse the help center.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="mailto:Teraaiguide@gmail.com" className="tera-button-primary">Contact support</a>
+              <a href="mailto:admin@teraai.chat" className="tera-button-primary">Contact support</a>
+              <a href="mailto:teraaiguide@gmail.com" className="tera-button-secondary">Backup support</a>
               <button type="button" onClick={() => router.push('/help')} className="tera-button-secondary">Open help center</button>
             </div>
           </div>

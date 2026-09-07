@@ -16,8 +16,8 @@ export default async function BlockchainLabToolsPage() {
             <p className="tera-eyebrow">Tools</p>
             <h1 className="tera-title mt-3">Blockchain Lab</h1>
             <p className="tera-subtitle mt-4">
-              Learn blockchain concepts safely through AI-guided simulations.
-              No real money, no real wallets, just learning.
+              Learn blockchain with your real Solana wallet.
+              Live balances, real transactions, and live on-chain explorers.
             </p>
           </div>
         </div>
@@ -34,8 +34,8 @@ export default async function BlockchainLabToolsPage() {
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-tera-primary">Blockchain Lab</h2>
                 <p className="mt-2 text-tera-secondary">
-                  A safe, AI-guided blockchain simulator where you can learn how wallets, transactions,
-                  blocks, stablecoins, and smart contracts work without touching real money.
+                  A real Solana lab where you can connect your own wallet, track live balances, send real SOL,
+                  and inspect live blocks, transactions, and prices on-chain.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link href="/lab/blockchain" className="tera-button-primary">
@@ -86,37 +86,37 @@ export default async function BlockchainLabToolsPage() {
               </ul>
             </div>
             <div className="rounded-lg border border-tera-border bg-tera-muted p-4">
-              <h3 className="font-semibold text-tera-primary">Safety First</h3>
+              <h3 className="font-semibold text-tera-primary">You're in Control</h3>
               <ul className="mt-3 space-y-2 text-sm text-tera-secondary">
                 <li className="flex items-center gap-2">
                   <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
-                  Fake wallets only
+                  Your own wallet
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
-                  No real private keys
+                  Keys stay in your wallet
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
-                  No real money
+                  Approve every transaction
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
-                  No wallet connection
+                  Live on-chain data
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
-                  Educational simulation
+                  Hold TCODE, earn free credits
                 </li>
               </ul>
             </div>

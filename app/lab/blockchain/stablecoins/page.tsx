@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import BlockchainLabShell from '@/components/blockchain-lab/BlockchainLabShell';
-import StablecoinTransferSimulator from '@/components/blockchain-lab/StablecoinTransferSimulator';
+import RealSolanaWallet from '@/components/blockchain-lab/RealSolanaWallet';
 
 export default async function StablecoinsPage() {
   const session = await auth();
@@ -12,14 +12,14 @@ export default async function StablecoinsPage() {
   return (
     <BlockchainLabShell
       title="Stablecoins"
-      description="Learn about stablecoins like USDC and USDT - cryptocurrencies pegged to real-world currencies."
+      description="Learn about stablecoins like USDC and see real stablecoin balances held by your linked wallet on Solana."
     >
       <div className="space-y-6">
         <div className="tera-card">
           <h3 className="text-lg font-semibold text-tera-primary">What are Stablecoins?</h3>
           <p className="mt-3 text-tera-secondary">
-            Stablecoins are cryptocurrencies designed to maintain a stable value by being pegged to a reserve asset like the US dollar.
-            The most popular stablecoins are USDC and USDT.
+            Stablecoins are cryptocurrencies designed to maintain a stable value by being pegged to a reserve asset like
+            the US dollar. The most popular stablecoins are USDC and USDT.
           </p>
           <h4 className="mt-6 font-semibold text-tera-primary">Why People Use Stablecoins</h4>
           <ul className="mt-3 list-inside list-disc space-y-2 text-tera-secondary">
@@ -33,14 +33,15 @@ export default async function StablecoinsPage() {
         <div className="tera-card">
           <h3 className="text-lg font-semibold text-tera-primary">Network Selection</h3>
           <p className="mt-3 text-tera-secondary">
-            Stablecoins exist on multiple blockchain networks (Ethereum, Solana, Polygon, etc.). When sending stablecoins,
-            you must ensure both sender and receiver use the same network. Sending to the wrong network can result in permanent loss.
+            Stablecoins exist on multiple blockchain networks (Ethereum, Solana, Polygon, etc.). When sending
+            stablecoins, you must ensure both sender and receiver use the same network. Sending to the wrong network
+            can result in permanent loss.
           </p>
         </div>
 
         <div className="tera-card">
-          <h3 className="text-lg font-semibold text-tera-primary">Simulation Preview</h3>
-          <StablecoinTransferSimulator />
+          <h3 className="text-lg font-semibold text-tera-primary">Your Live Stablecoin Balances</h3>
+          <RealSolanaWallet />
         </div>
       </div>
     </BlockchainLabShell>

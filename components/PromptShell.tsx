@@ -94,7 +94,7 @@ const loadPromptDraft = (sessionId: string | null): DraftMessage | null => {
         return {
             prompt: parsed.prompt ?? '',
             attachments: Array.isArray(parsed.attachments) ? parsed.attachments : [],
-            chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'ask',
+            chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'general',
             updatedAt: parsed.updatedAt || new Date().toISOString(),
         }
     } catch (error) {
@@ -120,20 +120,24 @@ const clearPromptDraft = (sessionId: string | null) => {
 }
 
 const inferChatMode = (tool: TeacherTool, researchMode: boolean) => {
-    if (researchMode) return 'research'
+    if (researchMode) return 'search'
 
     const searchable = `${tool.name} ${tool.description} ${tool.tags.join(' ')}`.toLowerCase()
 
     if (/(research|deep dive|analysis|citation|data|reading|resource|investigation|web)/.test(searchable)) {
-        return 'research'
+        return 'search'
     }
 
-    if (/(build|builder|plan|planner|generator|creator|project|resume|rubric|lesson|worksheet|materials|spreadsheet)/.test(searchable)) {
+    if (/(build|builder|plan|planner|generator|creator|project|resume|spreadsheet)/.test(searchable)) {
         return 'build'
     }
 
-    if (/(learn|study|homework|concept|explain|clarifier|quiz|practice|language|math|skill)/.test(searchable)) {
-        return 'learn'
+    if (/(code|program|function|script|debug|api|algorithm|software|engine)/.test(searchable)) {
+        return 'code'
+    }
+
+    if (/(write|essay|story|poem|draft|content|article)/.test(searchable)) {
+        return 'write'
     }
 
     return 'general'
@@ -142,31 +146,15 @@ const inferChatMode = (tool: TeacherTool, researchMode: boolean) => {
 const getChatModeForTool = (toolName: string): ChatMode => {
     const normalized = toolName.toLowerCase()
 
-    if (normalized.includes('image')) return 'image'
-    if (normalized.includes('quiz') || normalized.includes('worksheet')) return 'quiz'
-    if (normalized.includes('summar') || normalized.includes('reading simplifier')) return 'summarize'
-    if (
-        normalized.includes('study') ||
-        normalized.includes('homework') ||
-        normalized.includes('concept') ||
-        normalized.includes('math') ||
-        normalized.includes('language practice')
-    ) return 'study'
+    if (normalized.includes('code') || normalized.includes('program') || normalized.includes('script')) return 'code'
+    if (normalized.includes('write') || normalized.includes('content') || normalized.includes('article')) return 'write'
+    if (normalized.includes('research') || normalized.includes('search') || normalized.includes('web')) return 'search'
+    if (normalized.includes('build') || normalized.includes('project') || normalized.includes('plan')) return 'build'
 
-    return 'ask'
+    return 'general'
 }
 
-const isNoteSaveMode = (chatMode?: ChatMode) => chatMode === 'study' || chatMode === 'summarize'
-
-const mapSurfaceModeToChatMode = (surfaceMode: SurfaceMode, currentChatMode: ChatMode): ChatMode => {
-    if (surfaceMode === 'research') {
-        return currentChatMode === 'image' ? 'ask' : currentChatMode
-    }
-
-    if (surfaceMode === 'image') {
-        return 'image'
-    }
-
+const mapSurfaceModeToChatMode = (currentChatMode: ChatMode): ChatMode => {
     return currentChatMode
 }
 
@@ -201,7 +189,6 @@ import { teraRegistry } from '@/lib/tera-registry'
 
 const SearchHistoryRenderer = dynamic(() => import('./search/SearchHistory'), { ssr: false })
 const MarkdownRenderer = dynamic(() => import('./MarkdownRenderer'), { ssr: false })
-const QuizRenderer = dynamic(() => import('./visuals/QuizRenderer'), { ssr: false })
 
 type ContentBlock =
     | { type: 'text', content: string, isHeader: boolean }
@@ -210,7 +197,6 @@ type ContentBlock =
     | { type: 'code', language: string, code: string }
     | { type: 'spreadsheet', config: any }
     | { type: 'universal-visual', code: string, language: string, title: string }
-    | { type: 'quiz', config: { action: 'quiz'; topic: string; questions: any[] } }
     | { type: 'tera-ui', spec: any }
 
 const parseContent = (content: string): ContentBlock[] => {
@@ -242,7 +228,6 @@ const parseContent = (content: string): ContentBlock[] => {
 
                 const isChart = (c: string) => (c.includes('"data"') && c.includes('"type"')) || (c.includes('"series"'))
                 const isSpreadsheet = (c: string) => c.includes('"action"') && (c.includes('"data"') || c.includes('"title"')) && !c.includes('"questions"')
-                const isQuiz = (c: string) => c.includes('"action"') && c.includes('"quiz"') && c.includes('"questions"')
                 const isHTML = (c: string) => c.includes('<!DOCTYPE') || c.includes('<html') || c.includes('<body')
                 const isVisualization = (c: string) => c.includes('THREE.') || c.includes('requestAnimationFrame') || c.includes('canvas.getContext')
 
@@ -255,18 +240,6 @@ const parseContent = (content: string): ContentBlock[] => {
                     })
                 } else if (lang === 'mermaid' || /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|journey|gitGraph|pie|mindmap|timeline)/.test(cleanCode.trim())) {
                     blocks.push({ type: 'mermaid', chart: cleanCode })
-                } else if ((lang === 'json' && type === 'quiz') || isQuiz(cleanCode)) {
-                    try {
-                        const jsonStr = cleanCode.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
-                        const config = JSON.parse(jsonStr)
-                        if (config.action === 'quiz' && config.questions) {
-                            blocks.push({ type: 'quiz', config })
-                        } else {
-                            blocks.push({ type: 'code', language: 'json', code: cleanCode })
-                        }
-                    } catch (e) {
-                        blocks.push({ type: 'code', language: 'json', code: cleanCode })
-                    }
                 } else if ((lang === 'json' && type === 'spreadsheet') || isSpreadsheet(cleanCode)) {
                     try {
                         const jsonStr = cleanCode.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
@@ -369,33 +342,35 @@ const IconResearch = () => (
 )
 
 
-const AskIcon = () => (
+const GeneralIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9M7.5 12h6m-9 6 1.5-3.75A2.25 2.25 0 016.75 12h10.5A2.25 2.25 0 0119.5 14.25V17.25A2.25 2.25 0 0117.25 19.5H8.25L4.5 21V19.5A2.25 2.25 0 002.25 17.25V6.75A2.25 2.25 0 014.5 4.5h15A2.25 2.25 0 0121.75 6.75V9" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75a2.25 2.25 0 012.25 2.25 2.25 2.25 0 01-2.25 2.25 2.25 2.25 0 01-2.25-2.25 2.25 2.25 0 012.25-2.25zm0 0h.01M12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
     </svg>
 )
 
-const StudyIcon = () => (
+const CodeIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 8.25h7.5m-7.5 3h7.5m-7.5 3h4.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
     </svg>
 )
 
-const QuizIcon = () => (
+const WriteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M9.75 9.75a2.25 2.25 0 114.5 0c0 1.5-2.25 1.5-2.25 3.75" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 19.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l12.925-12.9z" />
     </svg>
 )
 
-const SummarizeIcon = () => (
+const SearchIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75h15M4.5 12h10.5M4.5 17.25h6" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 15.75l1.5 1.5 3-3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 005.197 5.197a7.5 7.5 0 0010.607 10.607z" />
     </svg>
 )
 
+const BuildIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a6 6 0 01-2.368-2.368l5.653-4.655m11.85-3.75l.615-.615a1.5 1.5 0 012.177 0l.615.615a1.5 1.5 0 010 2.177l-.615.615a1.5 1.5 0 01-2.177 0l-.615-.615a1.5 1.5 0 010-2.177z" />
+    </svg>
+)
 
 export default function PromptShell({
     tool,
@@ -433,7 +408,7 @@ export default function PromptShell({
     const [, startTransition] = useTransition()
     const conversationRef = useRef<HTMLDivElement | null>(null)
     const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null)
-    const [chatMode, setChatMode] = useState<ChatMode>('ask')
+    const [chatMode, setChatMode] = useState<ChatMode>('general')
     const showInitialPrompt = !historyLoading && conversations.length === 0
     const [isListening, setIsListening] = useState(false)
     const recognitionRef = useRef<any>(null)
@@ -464,7 +439,7 @@ export default function PromptShell({
         : showInitialPrompt
             ? `${selectedMode === 'research'
                 ? 'Ask for current facts, sources, or comparisons...'
-                : selectedChatModeConfig.placeholder} Start with study, research, plan, or summarize.`
+                : selectedChatModeConfig.placeholder} Start with general, code, write, search, or build.`
             : selectedMode === 'research'
                 ? 'Ask for current facts, sources, or comparisons...'
                 : selectedChatModeConfig.placeholder
@@ -498,18 +473,13 @@ export default function PromptShell({
         }
     }, [user?.id, userReady])
 
-    const handleResponseModeSelect = useCallback((mode: ChatMode | 'research') => {
-        if (mode === 'image') {
-            setSelectedMode('image')
-            setChatMode('image')
-        } else if (mode === 'research') {
+const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
+        if (mode === 'research') {
             setSelectedMode('research')
-            setChatMode((current) => (current === 'image' ? 'ask' : current))
         } else {
             setSelectedMode('chat')
-            setChatMode(mode)
+            setChatMode(mode as ChatMode)
         }
-
         setAttachmentOpen(false)
     }, [])
 
@@ -598,7 +568,7 @@ export default function PromptShell({
         setNoteSaveStatuses({})
         setSavingNoteIds({})
         setBookmarkSaveStatuses({})
-        setChatMode('ask')
+        setChatMode('general')
         setSelectedMode('chat')
         setHistoryLoading(false)
     }, [initialPrompt, sessionId, tool.name])
@@ -611,7 +581,7 @@ export default function PromptShell({
             setPrompt(draft.prompt)
             setPendingAttachments(draft.attachments)
             setChatMode(draft.chatMode)
-            setSelectedMode(draft.chatMode === 'image' ? 'image' : 'chat')
+            setSelectedMode('chat')
             return
         }
 
@@ -624,7 +594,7 @@ export default function PromptShell({
     useEffect(() => {
         if (!autoSend || !initialPrompt || !userReady) return
         const timer = setTimeout(() => {
-            processMessage(initialPrompt, [], 'ask')
+            processMessage(initialPrompt, [], 'general')
         }, 300)
         return () => clearTimeout(timer)
     }, [autoSend, initialPrompt, userReady])
@@ -660,7 +630,7 @@ export default function PromptShell({
         const shouldPersist =
             trimmedPrompt.length > 0 ||
             pendingAttachments.length > 0 ||
-            chatMode !== 'ask'
+            chatMode !== 'general'
 
         if (!shouldPersist) {
             clearPromptDraft(currentSessionId)
@@ -750,7 +720,7 @@ export default function PromptShell({
             setSelectedMode('research')
         }
 
-        const outgoingChatMode = useResearchFlow ? mapSurfaceModeToChatMode('research', mode) : mode
+        const outgoingChatMode = useResearchFlow ? mapSurfaceModeToChatMode(mode) : mode
         const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode: outgoingChatMode }
         
         setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage: undefined } : e) : [...prev, { id: entryId, userMessage }])
@@ -881,21 +851,6 @@ export default function PromptShell({
         const messageToSend = prompt.trim()
         if (!messageToSend && pendingAttachments.length === 0) return
 
-        if (chatMode === 'image') {
-            const entryId = editingMessageId ?? createId()
-            const atts = [...pendingAttachments]
-            const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: atts.length > 0 ? atts : undefined, timestamp: Date.now() }
-            const assistantMessage: Message = { id: createId(), role: 'tera', content: 'Image creation is coming soon.', timestamp: Date.now() }
-            setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage } : e) : [...prev, { id: entryId, userMessage, assistantMessage }])
-            setConversationActive(true)
-            if (!hasBumpedInput) setHasBumpedInput(true)
-            setPrompt('')
-            setPendingAttachments([])
-            setEditingMessageId(null)
-            clearPromptDraft(currentSessionId)
-            return
-        }
-
         if (!user) {
             const data: QueuedMessage = { prompt: messageToSend, attachments: [...pendingAttachments], chatMode }
             localStorage.setItem('tera_queued_message', JSON.stringify(data))
@@ -922,7 +877,7 @@ export default function PromptShell({
                 setQueuedMessage({
                     prompt: parsed.prompt ?? '',
                     attachments: parsed.attachments ?? [],
-                    chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'ask',
+                    chatMode: isChatMode(parsed.chatMode) ? parsed.chatMode : 'general',
                 })
             } catch (e) { localStorage.removeItem('tera_queued_message') }
         }
@@ -1048,12 +1003,16 @@ export default function PromptShell({
             return [requestSummary, 'Inspecting the request', 'Reasoning through the implementation', 'Preparing the answer']
         }
 
-        if (promptText.includes('summar') || promptText.includes('write') || promptText.includes('essay') || promptText.includes('draft')) {
+        if (promptText.includes('write') || promptText.includes('essay') || promptText.includes('story') || promptText.includes('draft')) {
             return [requestSummary, 'Reading your request', 'Drafting the response', 'Refining the wording']
         }
 
-        if (promptText.includes('solve') || promptText.includes('calculate') || promptText.includes('math') || promptText.includes('equation')) {
-            return [requestSummary, 'Parsing the problem', 'Working through the steps', 'Checking the result']
+        if (promptText.includes('build') || promptText.includes('plan') || promptText.includes('project') || promptText.includes('roadmap')) {
+            return [requestSummary, 'Planning the build', 'Breaking down tasks', 'Executing the plan']
+        }
+
+        if (promptText.includes('search') || promptText.includes('find') || promptText.includes('look')) {
+            return [requestSummary, 'Searching sources', 'Evaluating results', 'Compiling findings']
         }
 
         return [requestSummary, 'Reading your request', 'Calling the model', 'Saving the response']
@@ -1139,7 +1098,6 @@ export default function PromptShell({
                                                         if (block.type === 'chart') return <ChartRenderer key={idx} config={block.config} />
                                                         if (block.type === 'spreadsheet') return <SpreadsheetRenderer key={idx} config={block.config} userId={user?.id} />
                                                         if (block.type === 'mermaid') return <MermaidRenderer key={idx} chart={block.chart} />
-                                                        if (block.type === 'quiz') return <QuizRenderer key={idx} quiz={block.config} />
                                                         if (block.type === 'code') return (
                                                             <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 dark:bg-[#08101a]/90 light:bg-gray-900 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
                                                                 <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
@@ -1217,22 +1175,18 @@ export default function PromptShell({
                                                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-tera-border pt-2">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <span className="text-xs text-tera-secondary/60">Tera</span>
-                                                        {isNoteSaveMode(entry.assistantMessage.chatMode) && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleSaveNote(entry.assistantMessage!)}
-                                                                    disabled={savingNoteIds[entry.assistantMessage.id]}
-                                                                    className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
-                                                                >
-                                                                    {savingNoteIds[entry.assistantMessage.id] ? 'Saving...' : 'Save as Note'}
-                                                                </button>
-                                                                {noteSaveStatuses[entry.assistantMessage.id] && (
-                                                                    <span className={`text-[0.65rem] ${noteSaveStatuses[entry.assistantMessage.id].type === 'success' ? 'text-tera-accent' : 'text-red-400'}`}>
-                                                                        {noteSaveStatuses[entry.assistantMessage.id].message}
-                                                                    </span>
-                                                                )}
-                                                            </>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSaveNote(entry.assistantMessage!)}
+                                                            disabled={savingNoteIds[entry.assistantMessage.id]}
+                                                            className="rounded-full border border-tera-border bg-tera-muted px-2.5 py-1 text-[0.65rem] font-semibold text-tera-secondary transition hover:-translate-y-px hover:border-tera-accent hover:text-tera-accent disabled:cursor-not-allowed disabled:opacity-60"
+                                                        >
+                                                            {savingNoteIds[entry.assistantMessage.id] ? 'Saving...' : 'Save as Note'}
+                                                        </button>
+                                                        {noteSaveStatuses[entry.assistantMessage.id] && (
+                                                            <span className={`text-[0.65rem] ${noteSaveStatuses[entry.assistantMessage.id].type === 'success' ? 'text-tera-accent' : 'text-red-400'}`}>
+                                                                {noteSaveStatuses[entry.assistantMessage.id].message}
+                                                            </span>
                                                         )}
                                                     </div>
                                                     <VoiceControls text={entry.assistantMessage.content} messageId={entry.id} />
@@ -1338,8 +1292,8 @@ export default function PromptShell({
                             )}
 
                             <div className="flex items-end gap-1">
-                                {showStop && <button onClick={handleStop} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:-translate-y-px hover:bg-white/95"><StopIcon /></button>}
-                                {showSend && <button onClick={handleSubmit} className="composer-action-button flex h-10 w-10 items-center justify-center rounded-full border border-tera-border bg-white text-[#08101a] transition hover:bg-white/95"><SendIcon /></button>}
+                                {showStop && <button onClick={handleStop} aria-label="Stop generating" className="composer-send-button"><StopIcon /></button>}
+                                {showSend && <button onClick={handleSubmit} aria-label="Send message" className="composer-send-button"><SendIcon /></button>}
                                 {showMic && <button onClick={toggleListening} className={`composer-action-button ${isListening ? 'border-red-400/40 bg-red-500/18 text-red-300 animate-pulse' : ''}`}><MicIcon /></button>}
                             </div>
                         </div>
@@ -1360,10 +1314,11 @@ export default function PromptShell({
                                             <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Response mode</p>
                                             <div className="space-y-px">
                                                 {([
-                                                    { key: 'ask', label: 'Ask', hint: 'Direct answers and concise guidance.', icon: <AskIcon /> },
-                                                    { key: 'study', label: 'Study', hint: 'Step-by-step explanations with checkpoints.', icon: <StudyIcon /> },
-                                                    { key: 'quiz', label: 'Quiz', hint: 'Practice questions and quick feedback.', icon: <QuizIcon /> },
-                                                    { key: 'summarize', label: 'Summarize', hint: 'Condense long text into clear takeaways.', icon: <SummarizeIcon /> },
+                                                    { key: 'general', label: 'General', hint: 'Direct answers and concise guidance.', icon: <GeneralIcon /> },
+                                                    { key: 'code', label: 'Code', hint: 'Build, debug, and review code.', icon: <CodeIcon /> },
+                                                    { key: 'write', label: 'Write', hint: 'Draft, edit, and create content.', icon: <WriteIcon /> },
+                                                    { key: 'search', label: 'Search', hint: 'Research with web sources and citations.', icon: <SearchIcon /> },
+                                                    { key: 'build', label: 'Build', hint: 'Create projects, plans, and roadmaps.', icon: <BuildIcon /> },
                                                     ...(user?.subscriptionPlan === 'pro' || user?.subscriptionPlan === 'plus'
                                                         ? [{ key: 'research', label: 'Deep Research', hint: 'Web-backed research with citations.', icon: <IconResearch /> }]
                                                         : []),

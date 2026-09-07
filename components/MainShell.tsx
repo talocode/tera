@@ -5,15 +5,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Sidebar, { navigation } from './Sidebar'
 import PromptShell from './PromptShell'
-import type { TeacherTool } from './ToolCard'
-import { teacherTools, studentTools, learnerTools, UniversalTool, slugify } from '@/lib/tools-data'
+import type { Tool } from './ToolCard'
+import { tools, learnerTools, UniversalTool, slugify } from '@/lib/tools-data'
 import { signIn } from 'next-auth/react'
 import { useAuth } from './AuthProvider'
 import { useSearchParams, usePathname } from 'next/navigation'
 
 function MainShellContent() {
   const router = useRouter()
-  const [selectedTool, setSelectedTool] = useState<TeacherTool>(UniversalTool)
+  const [selectedTool, setSelectedTool] = useState<Tool>(UniversalTool)
   const [menuOpen, setMenuOpen] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [authDialog, setAuthDialog] = useState<'signIn' | 'signUp' | null>(null)
@@ -41,7 +41,7 @@ function MainShellContent() {
   useEffect(() => {
     if (urlTool) {
       const toolSlug = urlTool.toLowerCase()
-      const allTools = [...teacherTools, ...studentTools, ...learnerTools]
+      const allTools = [...tools, ...learnerTools]
       const foundTool = allTools.find(t => slugify(t.name) === toolSlug)
 
       if (foundTool) {
