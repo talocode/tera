@@ -87,15 +87,12 @@ export default async function BlockchainLabPage() {
         {/* REAL HOLD-TO-EARN FIRST */}
         <TcodeHoldToEarn />
 
-        {/* ORYNTH BADGE SLOT — paste the provided badge snippet here */}
-        <a href="https://orynth.dev/projects/talocode-8992" target="_blank" rel="noopener noreferrer">
-          <img
-            src="https://orynth.dev/api/badge/talocode-8992?theme=light&style=default"
-            alt="Featured on Orynth"
-            width="260"
-            height="80"
-          />
-        </a>
+        <p className="text-sm text-tera-secondary">
+          Official mint and claim rules:{' '}
+          <a href="https://talocode.site/tcode.html" className="text-tera-accent underline" target="_blank" rel="noopener noreferrer">
+            talocode.site/tcode.html
+          </a>
+        </p>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="rounded-xl bg-blue-500/10 px-4 py-3">

@@ -31,8 +31,10 @@ export function challengeMessage({ userId, nonce, expiresAt }: { userId: string;
 export function tcodePublicConfig() {
   return {
     token: 'TCODE',
+    name: 'Talocode',
     mint: TCODE_MINT,
     chain: 'solana-mainnet',
+    tokenPage: 'https://talocode.site/tcode.html',
     period: 'calendar-month-utc',
     link: 'Sign a challenge to prove you own the wallet. One Solana address maps to one Tera account. Claim once per UTC month.',
     tiers: TCODE_TIERS.map((tier) => ({

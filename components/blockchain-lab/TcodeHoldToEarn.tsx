@@ -160,7 +160,10 @@ export default function TcodeHoldToEarn() {
           <h3 className="text-lg font-semibold text-tera-primary">Hold $TCODE, earn monthly credits</h3>
           <p className="mt-1 text-sm text-tera-secondary">
             Link your Solana wallet once. Every UTC month, your $TCODE balance on-chain unlocks a credit grant into
-            your Tera balance. No tokens are moved.
+            your Tera balance. No tokens are moved.{' '}
+            <a href="https://talocode.site/tcode.html" className="text-tera-accent underline" target="_blank" rel="noopener noreferrer">
+              Official mint
+            </a>
           </p>
         </div>
       </div>

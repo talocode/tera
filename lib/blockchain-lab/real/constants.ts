@@ -5,7 +5,7 @@ export const TCODE_MINT = '6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory'
 
 export const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number; name: string }> = {
   [USDC_MINT]: { symbol: 'USDC', decimals: 6, name: 'USD Coin' },
-  [TCODE_MINT]: { symbol: 'TCODE', decimals: 6, name: 'Tera Code Token' },
+  [TCODE_MINT]: { symbol: 'TCODE', decimals: 6, name: 'Talocode' },
 }
 
 export const SOL_DECIMALS = 9
