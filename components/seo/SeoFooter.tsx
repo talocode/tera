@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import VerifiedRevenue from './VerifiedRevenue'
 
 const resourceLinks = [
   { href: '/', label: 'Home' },
@@ -17,7 +18,8 @@ const siteLinks = [
 export default function SeoFooter() {
   return (
     <footer className="mt-10 border-t border-tera-border/60 pt-8">
-      <div className="grid gap-8 md:grid-cols-2">
+      <VerifiedRevenue />
+      <div className="mt-8 grid gap-8 md:grid-cols-2">
         <div>
           <p className="tera-eyebrow">Resources</p>
           <ul className="mt-4 space-y-2 text-sm text-tera-secondary">

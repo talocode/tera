@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
+import VerifiedRevenue from '@/components/seo/VerifiedRevenue'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import { PLAN_CONFIGS } from '@/lib/plan-config'
 
@@ -380,6 +381,8 @@ export default function PricingPage() {
             </div>
           </div>
         </section>
+
+        <VerifiedRevenue className="mt-8" />
       </div>
     </div>
   )
