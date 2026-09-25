@@ -29,7 +29,7 @@ TeraAI is an AI platform powered by Talocode Cloud. Code, write, research, and b
 - [Start building](${SITE_URL}/new)
 - [Pricing](${SITE_URL}/pricing)
 - [About TeraAI](${SITE_URL}/about)
-`,"""",
+`,
   },
   {
     path: '/about',
@@ -52,7 +52,7 @@ TeraAI is an AI platform powered by Talocode Cloud. Code, write, research, and b
 2. Use research when current, cited information is needed.
 3. Continue with follow-ups, notes, and revisions.
 4. Return through your saved workspace history.
-`,"""",
+`,
   },
   {
     path: '/',
@@ -69,7 +69,7 @@ TeraAI is an AI platform powered by Talocode Cloud. Choose from five work modes:
 - Write — Draft, edit, and create polished content.
 - Search — Research with cited web answers.
 - Build — Plan projects and create roadmaps.
-`,"""",
+`,
   },
   {
     path: '/ai-research-assistant',
@@ -80,7 +80,7 @@ TeraAI is an AI platform powered by Talocode Cloud. Choose from five work modes:
 TeraAI supports research workflows by helping users frame questions, compare sources, organize notes, and turn findings into next steps.
 
 When current information matters, use cited research outputs and verify primary sources before relying on a conclusion.
-`,"""",
+`,
   },
   {
     path: '/pricing',
@@ -91,7 +91,7 @@ When current information matters, use cited research outputs and verify primary 
 Visit the pricing page for current plans and account options. Plans and availability can change, so the HTML pricing page is the source of truth.
 
 [View current pricing](${SITE_URL}/pricing)
-`,"""",
+`,
   },
   {
     path: '/help',
@@ -102,7 +102,7 @@ Visit the pricing page for current plans and account options. Plans and availabi
 For account, billing, or product support, visit the help page or contact [admin@teraai.chat](mailto:admin@teraai.chat).
 
 [Open help](${SITE_URL}/help)
-`,"""",
+`,
   },
 ]
 
