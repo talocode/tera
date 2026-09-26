@@ -25,7 +25,7 @@ interface ParsedTransaction {
 
 interface WalletApi {
   connect(options?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: { toString(): string } }>;
-  signMessage(message: Uint8Array | string, encoding?: string): Promise<{ signature: Uint8Array }>;
+  signMessage(message: Uint8Array, display?: 'utf8' | 'hex'): Promise<{ signature: Uint8Array }>;
   publicKey: { toString(): string } | null;
   on(event: string, handler: (args?: any) => void): void;
 }
@@ -112,7 +112,10 @@ export default function RealSolanaWallet() {
       const challenge = await challengeRes.json();
       if (!challenge.ok) throw new Error(challenge.error || 'Could not create a signing challenge.');
 
-      const signed = await window.solana.signMessage(challenge.message, 'utf8');
+      // Phantom takes bytes here, not a string. Handing it the challenge text made
+      // it throw "Expected Uint8Array". TextEncoder produces the same bytes the
+      // server rebuilds with Buffer.from(message, 'utf8'), so the signature verifies.
+      const signed = await window.solana.signMessage(new TextEncoder().encode(challenge.message), 'utf8');
       const linkRes = await fetch('/api/tcode/link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

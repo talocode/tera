@@ -21,7 +21,7 @@ interface WalletApi {
     options?: { skipPreflight?: boolean },
   ): Promise<string>;
   signTransaction?(transaction: Uint8Array): Promise<{ transaction: Uint8Array }>;
-  signMessage(message: Uint8Array | string, encoding?: string): Promise<{ signature: Uint8Array }>;
+  signMessage(message: Uint8Array, display?: 'utf8' | 'hex'): Promise<{ signature: Uint8Array }>;
   publicKey: { toString(): string } | null;
   on(event: string, handler: (args?: any) => void): void;
 }
