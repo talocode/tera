@@ -3,6 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
+import QuickSwitcher from './QuickSwitcher'
 import { useAuth } from './AuthProvider'
 import { useTheme } from './ThemeProvider'
 
