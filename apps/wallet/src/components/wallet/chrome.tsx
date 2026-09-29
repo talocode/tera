@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@/nav";
 import { ArrowDownLeft, ArrowUpRight, House, Settings, Activity } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { clusterLabel } from "@/wallet/network";
 import { useWallet } from "@/wallet/store";
 
@@ -14,6 +14,14 @@ const NAV = [
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
+function useEmbedded() {
+  const [embedded, setEmbedded] = useState(false);
+  useEffect(() => {
+    setEmbedded(new URLSearchParams(window.location.search).get("embed") === "1");
+  }, []);
+  return embedded;
+}
+
 export function Frame({
   children,
   nav = false,
@@ -26,6 +34,7 @@ export function Frame({
   subtitle?: string;
 }) {
   const cluster = useWallet((state) => state.cluster);
+  const embedded = useEmbedded();
   useEffect(() => {
     if (!nav) return;
     let timer = window.setTimeout(() => useWallet.getState().lock(), LOCK_MS);
@@ -42,7 +51,7 @@ export function Frame({
   return (
     <div className="min-h-screen bg-bg text-fg">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl">
-        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col justify-between border-r border-line px-8 py-10 lg:flex">
+        <aside className={embedded ? "hidden" : "sticky top-0 hidden h-screen w-72 shrink-0 flex-col justify-between border-r border-line px-8 py-10 lg:flex"}>
           <div>
             <Brand />
             <p className="mt-6 text-sm leading-6 text-muted">
@@ -52,7 +61,7 @@ export function Frame({
           <p className="text-xs uppercase tracking-[0.16em] text-muted">{clusterLabel(cluster)}</p>
         </aside>
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-28 pt-6 lg:px-8 lg:pb-10">
-          <div className="mb-6 flex items-center justify-between lg:hidden">
+          <div className={`mb-6 flex items-center justify-between ${embedded ? "" : "lg:hidden"}`}>
             <Brand />
             <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
               {cluster === "mainnet-beta" ? "Mainnet" : "Devnet"}
@@ -75,8 +84,8 @@ export function Frame({
 function Brand() {
   return (
     <div className="flex items-center gap-3">
-      <span className="grid size-10 place-items-center rounded-2xl bg-primary text-sm font-semibold text-primary-ink">
-        T
+      <span className="grid size-10 place-items-center overflow-hidden rounded-xl bg-white">
+        <img src="/images/TERA_LOGO_ONLY.png" alt="Tera" className="size-7 object-contain" />
       </span>
       <div>
         <p className="text-sm font-semibold tracking-wide">Tera Wallet</p>

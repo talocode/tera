@@ -21,10 +21,6 @@ const nextConfig = {
         source: '/v1/:path*',
         destination: '/api/v1/:path*',
       },
-      {
-        source: '/wallet',
-        destination: '/wallet/index.html',
-      },
     ]
   },
 }

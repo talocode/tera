@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import { useAuth } from './AuthProvider'
 import QuickSwitcher from './QuickSwitcher'
@@ -10,11 +11,18 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname()
   const [sidebarPinned, setSidebarPinned] = useState(false)
   const [sidebarHovered, setSidebarHovered] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const { user, signOut, userReady } = useAuth()
   const sidebarExpanded = sidebarPinned || sidebarHovered
+
+  useEffect(() => {
+    if (pathname?.startsWith('/wallet') || pathname?.startsWith('/docs') || pathname?.startsWith('/news')) {
+      setSidebarPinned(true)
+    }
+  }, [pathname])
 
   const handleNewChat = () => {
     if (typeof window !== 'undefined') {
@@ -51,6 +59,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <path d="M4 17h10" />
               </svg>
             </button>
+            <a href="/" className="pointer-events-auto grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-white" aria-label="Tera home">
+              <img src="/images/TERA_LOGO_ONLY.png" alt="" className="h-7 w-7 object-contain" />
+            </a>
             <button
               type="button"
               className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-tera-secondary transition-colors hover:bg-tera-highlight hover:text-tera-primary"

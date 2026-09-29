@@ -41,6 +41,8 @@ export const navigation: NavItem[] = [
   { label: 'Skills', icon: 'apps', href: '/skills' },
   { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
   { label: 'Wallet', icon: 'wallet', href: '/wallet' },
+  { label: 'Docs', icon: 'docs', href: '/docs/wallet' },
+  { label: 'News', icon: 'news', href: '/news' },
   { label: 'Usage', icon: 'usage', href: '/settings/usage' },
   { label: 'Settings', icon: 'settings', href: '/settings' },
 ]
@@ -122,6 +124,24 @@ const IconSettings = () => (
   </svg>
 )
 
+const IconDocs = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 3.5h7l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20V5a1.5 1.5 0 0 1 1.5-1.5Z" />
+    <path d="M14 3.5V8h4" />
+    <path d="M9 12h6" />
+    <path d="M9 16h6" />
+  </svg>
+)
+
+const IconNews = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 5.5h11v13H5z" />
+    <path d="M16 9h3v9.5H8" />
+    <path d="M8 9h5" />
+    <path d="M8 12.5h5" />
+  </svg>
+)
+
 const IconWallet = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 7.5h16v11H4z" />
@@ -161,6 +181,8 @@ const getIcon = (iconName: string): React.ReactNode => {
     settings: IconSettings,
     lab: IconLab,
     wallet: IconWallet,
+    docs: IconDocs,
+    news: IconNews,
     usage: IconUsage,
   }
   const Icon = icons[iconName]
@@ -260,9 +282,9 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
                 ? pathname?.startsWith('/new')
-                : pathname === item.href || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab')) || (item.href.startsWith('/settings/usage') && pathname?.startsWith('/settings/usage'))
+                : pathname === item.href || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab')) || (item.href.startsWith('/settings/usage') && pathname?.startsWith('/settings/usage')) || (item.href.startsWith('/wallet') && pathname?.startsWith('/wallet')) || (item.href.startsWith('/docs') && pathname?.startsWith('/docs')) || (item.href.startsWith('/news') && pathname?.startsWith('/news'))
 
-              const Tag = item.href === '/wallet' ? 'a' : Link
+              const Tag = Link
               return (
                 <Tag
                   key={item.label}

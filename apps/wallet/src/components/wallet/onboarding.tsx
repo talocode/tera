@@ -26,6 +26,14 @@ export function LandingScreen() {
           I already have a recovery phrase
         </Button>
       </div>
+      <div className="mt-6 flex gap-4 text-sm">
+        <a className="text-accent" href="https://teraai.chat/docs/wallet" target="_top" rel="noreferrer">
+          Docs
+        </a>
+        <a className="text-accent" href="https://teraai.chat/news" target="_top" rel="noreferrer">
+          News
+        </a>
+      </div>
       <ul className="mt-8 space-y-3 text-sm text-muted">
         <li>SOL and SPL tokens, including $TCODE on mainnet.</li>
         <li>Signing happens in the browser. There is no custody server.</li>
