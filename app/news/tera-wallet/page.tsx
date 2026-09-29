@@ -21,6 +21,15 @@ export default function TeraWalletNewsPage() {
             <Link href="/wallet" className="tera-button-primary">Open Tera Wallet</Link>
             <Link href="/docs/wallet" className="tera-button-secondary">Read the docs</Link>
           </div>
+          <video
+            className="mt-8 w-full overflow-hidden rounded-2xl border border-tera-border bg-black"
+            controls
+            playsInline
+            preload="metadata"
+            src="/videos/tera-wallet-launch.mp4"
+          >
+            A walkthrough of Tera Wallet on teraai.chat.
+          </video>
           <div className="mt-10 max-w-3xl space-y-5 text-sm leading-7 text-tera-secondary md:text-base">
             <p>
               Create a 12-word wallet or import a 12 or 24 word phrase. The first Solana account is derived at m/44'/501'/0'/0', the same path used by Phantom and the Solana CLI. You confirm three words before the phrase is encrypted on this device with your passcode.
