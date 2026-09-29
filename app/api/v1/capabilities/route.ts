@@ -47,6 +47,14 @@ export async function GET() {
         routes: ['/v1/coding/write', '/v1/tera/coding/write'],
       },
       {
+        id: 'wallet',
+        object: 'tera.capability',
+        description: 'Self-custodial Solana wallet for SOL, SPL tokens, and official $TCODE. Public address lookup only. Never send a seed or private key.',
+        credits: 0,
+        methods: ['GET', 'POST'],
+        routes: ['/v1/wallet', '/v1/tera/wallet'],
+      },
+      {
         id: 'chat.completions',
         object: 'tera.capability',
         description: 'General-purpose chat completions powered by Mistral.',

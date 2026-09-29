@@ -131,11 +131,19 @@ def llm(messages, max_tokens=800, user_id=None):
     if key:
         r = requests.post(f"{BASE_URL}/v1/tera/chat/completions",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json={"messages": messages, "max_tokens": max_tokens})
-    else:
-        r = requests.post(MISTRAL,
-            headers={"Authorization": f"Bearer {MISTRAL_KEY}", "Content-Type": "application/json"},
-            json={"model": "mistral-small-latest", "messages": messages, "max_tokens": max_tokens})
+            json={"messages": messages, "max_tokens": max_tokens},
+            timeout=45)
+        if r.ok:
+            content = r.json().get("choices", [{}])[0].get("message", {}).get("content")
+            if content:
+                return content
+        if not MISTRAL_KEY:
+            r.raise_for_status()
+    r = requests.post(MISTRAL,
+        headers={"Authorization": f"Bearer {MISTRAL_KEY}", "Content-Type": "application/json"},
+        json={"model": "mistral-small-latest", "messages": messages, "max_tokens": max_tokens},
+        timeout=45)
+    r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"]
 
 # ---------------------------------------------------------------------------
@@ -284,6 +292,11 @@ def talo(path, body=None, method="POST", user_id=None):
 # Capability registry
 # ---------------------------------------------------------------------------
 CAPABILITIES = {
+    "wallet": {
+        "name": "Tera Wallet",
+        "desc": "Self-custodial Solana wallet for SOL and official $TCODE. Keys stay in the browser.",
+        "triggers": ["wallet", "tera wallet", "solana wallet", "tcode balance", "$tcode", "receive address"],
+    },
     "chat": {
         "name": "Chat",
         "desc": "General conversation, Q&A, brainstorming, reasoning",
@@ -468,7 +481,9 @@ ROUTER_PROMPT = lambda text: (
 
 def route_intent(text):
     text_lower = text.lower().strip()
-    for key, cap in CAPABILITIES.items():
+    ordered = ["wallet"] + [key for key in CAPABILITIES if key != "wallet"]
+    for key in ordered:
+        cap = CAPABILITIES[key]
         for t in cap.get("triggers", []):
             if t in text_lower:
                 return key
@@ -494,6 +509,33 @@ def call_capability(key, user_text, user_id=None):
 def handle_capability(chat_id, key, user_text):
     cap = CAPABILITIES[key]
     tg("sendChatAction", {"chat_id": chat_id, "action": "typing"})
+
+    if key == "wallet":
+        if re.search(r"seed|mnemonic|private key|secret key|passcode|recovery phrase", user_text, re.I):
+            tg("sendMessage", {"chat_id": chat_id, "text": "Do not send a recovery phrase, private key, or passcode. Tera Wallet is self-custodial. Open it at https://teraai.chat/wallet", "parse_mode": "Markdown"})
+            return True
+        mint = "6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory"
+        balance = ""
+        match = re.search(r"[1-9A-HJ-NP-Za-km-z]{32,44}", user_text)
+        if match:
+            try:
+                res = requests.post(f"{BASE_URL}/v1/tera/wallet", json={"address": match.group(0)}, timeout=20)
+                data = res.json()
+                result = data.get("result") or {}
+                if res.ok and "sol" in result:
+                    balance = f"\n\n`{result.get('address')}`\nSOL: {result.get('sol')}\n$TCODE: {result.get('tcode')}"
+                else:
+                    balance = "\n\nCould not read that address from Solana just now."
+            except Exception:
+                balance = "\n\nCould not read that address from Solana just now."
+        tg("sendMessage", {"chat_id": chat_id, "text": (
+            "*Tera Wallet* is a self-custodial Solana wallet. Keys stay in the browser. Tera cannot reset them.\n\n"
+            "Open: https://teraai.chat/wallet\n"
+            "Docs: https://teraai.chat/docs/wallet\n"
+            f"Official $TCODE mint: `{mint}` (6 decimals)"
+            f"{balance}"
+        ), "parse_mode": "Markdown"})
+        return True
 
     if key == "webcontext":
         if not FIRECRAWL_KEY:

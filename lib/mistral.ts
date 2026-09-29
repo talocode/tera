@@ -352,9 +352,9 @@ export async function generatePlatformResponse({
     const message = error instanceof Error ? error.message : String(error)
     console.error('Core AI Generation Error:', message)
 
-    if (/429|Service Unavailable|503|502/.test(message)) {
+    if (/429|Service Unavailable|503|502|504|unavailable/.test(message)) {
       return {
-        text: 'System: AI service high traffic. Please try again in a moment.',
+        text: 'Tera is busy for a moment. Please send that again.',
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       }
     }

@@ -168,9 +168,9 @@ export default function UserMenu({ user, expanded, onSignOut }: UserMenuProps) {
       <button
         type="button"
         onClick={() => setDropdownOpen((current) => !current)}
-        className={`flex w-full items-center gap-3 rounded-[16px] border border-tera-border bg-tera-muted/60 text-left transition hover:bg-tera-highlight ${expanded ? 'px-3 py-2.5' : 'justify-center px-0 py-2.5'}`}
+        className={`flex w-full items-center gap-2.5 rounded-xl border border-tera-border bg-tera-muted/60 text-left transition hover:bg-tera-highlight ${expanded ? 'px-2.5 py-2' : 'justify-center px-0 py-2'}`}
       >
-        <UserAvatar src={profileImage} name={name} size="md" />
+        <UserAvatar src={profileImage} name={name} size="sm" />
 
         {expanded && (
           <>

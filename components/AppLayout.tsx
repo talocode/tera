@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import { useAuth } from './AuthProvider'
-import QuickSwitcher from './QuickSwitcher'
+import { useTheme } from './ThemeProvider'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -16,6 +16,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarHovered, setSidebarHovered] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const { user, signOut, userReady } = useAuth()
+  const { theme } = useTheme()
   const sidebarExpanded = sidebarPinned || sidebarHovered
 
   useEffect(() => {
@@ -59,8 +60,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <path d="M4 17h10" />
               </svg>
             </button>
-            <a href="/" className="pointer-events-auto grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-white" aria-label="Tera home">
-              <img src="/images/TERA_LOGO_ONLY.png" alt="" className="h-7 w-7 object-contain" />
+            <a href="/" className={`pointer-events-auto grid h-9 w-9 place-items-center overflow-hidden rounded-xl border border-tera-border ${theme === 'light' ? 'bg-white' : 'bg-[#0a0a0a]'}`} aria-label="Tera home">
+              <img src="/images/TERA_LOGO_ONLY.png" alt="" className={`h-5 w-5 object-contain ${theme === 'light' ? '' : 'invert'}`} />
             </a>
             <button
               type="button"

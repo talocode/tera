@@ -81,14 +81,28 @@ export function Frame({
   );
 }
 
+function useSiteTheme() {
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  useEffect(() => {
+    const read = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+    setTheme(read());
+    const observer = new MutationObserver(() => setTheme(read()));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+  return theme;
+}
+
 function Brand() {
+  const theme = useSiteTheme();
+  const light = theme === "light";
   return (
     <div className="flex items-center gap-3">
-      <span className="grid size-10 place-items-center overflow-hidden rounded-xl bg-white">
-        <img src="/images/TERA_LOGO_ONLY.png" alt="Tera" className="size-7 object-contain" />
+      <span className={`grid size-10 place-items-center overflow-hidden rounded-xl border ${light ? "border-black/10 bg-white" : "border-white/20 bg-[#0a0a0a]"}`}>
+        <img src="/images/TERA_LOGO_ONLY.png" alt="Tera" className={`size-7 object-contain ${light ? "" : "invert"}`} />
       </span>
       <div>
-        <p className="text-sm font-semibold tracking-wide">Tera Wallet</p>
+        <p className="text-sm font-semibold tracking-wide text-fg">Tera Wallet</p>
         <p className="text-xs text-muted">Non-custodial</p>
       </div>
     </div>

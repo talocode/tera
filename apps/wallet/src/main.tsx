@@ -21,6 +21,18 @@ import { subscribe, readRoute } from "@/nav";
 import "@/wallet/polyfill";
 import "./styles.css";
 
+function applyTheme(value: string | null) {
+  const theme = value === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = theme;
+}
+
+applyTheme(new URLSearchParams(window.location.search).get("theme"));
+window.addEventListener("message", (event) => {
+  if (event.origin !== window.location.origin) return;
+  const data = event.data as { type?: string; theme?: string } | null;
+  if (data?.type === "tera-theme") applyTheme(data.theme ?? null);
+});
+
 function readLocation() {
   return readRoute();
 }

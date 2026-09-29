@@ -11,7 +11,12 @@ export async function GET(request: NextRequest) {
     }
 
     const view = await getLiveWalletView(session.user.id);
-    const transactions = await getParsedTransactionList(session.user.id, 12);
+    let transactions: Awaited<ReturnType<typeof getParsedTransactionList>> = [];
+    try {
+      transactions = await getParsedTransactionList(session.user.id, 12);
+    } catch (historyError) {
+      console.error('Live wallet history unavailable:', historyError);
+    }
 
     return NextResponse.json({ wallet: view, transactions });
   } catch (error) {

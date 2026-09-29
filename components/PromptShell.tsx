@@ -1251,7 +1251,7 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                         <div className="flex items-center gap-1">
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
                                     <div className="relative h-5 w-5">
-                                        <Image src={theme === 'light' ? '/images/TERA_LOGO_ONLY1.png' : '/images/TERA_LOGO_ONLY.png'} alt="Tera" fill className="object-contain" />
+                                        <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className={`object-contain ${theme === 'light' ? '' : 'invert'}`} />
                                     </div>
                                 </button>
                             </div>
@@ -1304,11 +1304,11 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                     type="button"
                                     aria-label="Close composer menu"
                                     onClick={closeComposerMenu}
-                                    className="fixed inset-0 z-[58] bg-black/60 backdrop-blur-sm"
+                                    className="fixed inset-0 z-[58] cursor-default bg-transparent"
                                 />
 
-                                <div className="absolute left-0 right-0 bottom-full z-[59] mb-3 mx-auto w-full max-w-[380px] px-2 sm:px-0 sm:left-0 sm:right-auto sm:w-[min(380px,calc(100vw-1rem))]">
-                                    <div className="overflow-hidden rounded-[20px] sm:rounded-[24px] border border-tera-border bg-tera-panel/98 text-tera-primary shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+                                <div className="absolute bottom-full left-0 z-[59] mb-2 w-[min(300px,calc(100vw-1.5rem))]">
+                                    <div className="max-h-[min(58vh,340px)] overflow-y-auto rounded-2xl border border-tera-border bg-tera-panel text-tera-primary shadow-soft-lg">
 
                                         <div className="px-2 sm:px-3 pt-3 pb-1">
                                             <p className="px-1 pb-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-tera-secondary/70">Response mode</p>
@@ -1333,7 +1333,7 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                             type="button"
                                                             onClick={() => handleResponseModeSelect(item.key)}
                                                             className={[
-                                                                'flex w-full items-center gap-3 rounded-[12px] sm:rounded-[14px] px-3 py-3 sm:py-2.5 text-left transition-all duration-150',
+                                                                'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-all duration-150',
                                                                 isActive
                                                                     ? 'bg-tera-primary/10 text-tera-primary ring-1 ring-inset ring-tera-primary/20'
                                                                     : 'text-tera-secondary active:bg-white/[0.06] sm:hover:bg-white/[0.08] sm:hover:text-tera-primary',
@@ -1341,7 +1341,7 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                         >
                                                             <span
                                                                 className={[
-                                                                    'flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border transition-colors',
+                                                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors [&>svg]:h-3.5 [&>svg]:w-3.5',
                                                                     isActive
                                                                         ? 'border-tera-primary/20 bg-tera-primary text-tera-bg'
                                                                         : 'border-tera-border bg-tera-bg text-tera-secondary',
@@ -1350,9 +1350,9 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                                 {item.icon}
                                                             </span>
                                                             <span className="min-w-0 flex-1">
-                                                                <span className="block text-[0.94rem] sm:text-[0.88rem] font-medium">{item.label}</span>
+                                                                <span className="block text-[13px] font-medium leading-4">{item.label}</span>
                                                                 <span className={[
-                                                                    'mt-px block text-[0.75rem] sm:text-[0.72rem] leading-4',
+                                                                    'mt-0.5 block text-[11px] leading-4',
                                                                     isActive ? 'text-tera-secondary/80' : 'text-tera-secondary/60',
                                                                 ].join(' ')}>
                                                                     {item.hint}
@@ -1380,9 +1380,9 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                         setAttachmentOpen(false)
                                                         openSearchHistory()
                                                     }}
-                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-[13px] font-medium text-tera-secondary transition-all duration-150 hover:bg-tera-highlight hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-tera-border bg-tera-bg text-tera-secondary [&>svg]:h-3.5 [&>svg]:w-3.5">
                                                         <HistoryIcon />
                                                     </span>
                                                     History & bookmarks
@@ -1390,9 +1390,9 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('file')}
-                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-[13px] font-medium text-tera-secondary transition-all duration-150 hover:bg-tera-highlight hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-tera-border bg-tera-bg text-tera-secondary [&>svg]:h-3.5 [&>svg]:w-3.5">
                                                         <AttachmentIcon />
                                                     </span>
                                                     Upload photos & files
@@ -1400,9 +1400,9 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('image')}
-                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-[13px] font-medium text-tera-secondary transition-all duration-150 hover:bg-tera-highlight hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-tera-border bg-tera-bg text-tera-secondary [&>svg]:h-3.5 [&>svg]:w-3.5">
                                                         <ScanIcon />
                                                     </span>
                                                     Take screenshot
@@ -1410,9 +1410,9 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFileSelect('camera')}
-                                                    className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left text-[15px] font-medium text-tera-secondary transition-all duration-150 active:bg-white/[0.06] sm:rounded-[14px] sm:py-2.5 sm:hover:bg-white/[0.08] sm:hover:text-tera-primary"
+                                                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-[13px] font-medium text-tera-secondary transition-all duration-150 hover:bg-tera-highlight hover:text-tera-primary"
                                                 >
-                                                        <span className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-[10px] border border-tera-border bg-tera-bg text-tera-secondary">
+                                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-tera-border bg-tera-bg text-tera-secondary [&>svg]:h-3.5 [&>svg]:w-3.5">
                                                         <CameraIcon />
                                                     </span>
                                                     Take photo

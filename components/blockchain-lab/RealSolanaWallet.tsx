@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { makeExplorerUrl, shortKey } from '@/lib/blockchain-lab/real/constants';
 
 interface WalletView {
@@ -23,17 +23,49 @@ interface ParsedTransaction {
   solTransfers: { from: string; to: string; lamports: number }[];
 }
 
-interface WalletApi {
+interface SolanaProvider {
+  isPhantom?: boolean;
   connect(options?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: { toString(): string } }>;
-  signMessage(message: Uint8Array, display?: 'utf8' | 'hex'): Promise<{ signature: Uint8Array }>;
+  signMessage(message: Uint8Array, display?: 'utf8' | 'hex'): Promise<{ signature: Uint8Array | string } | Uint8Array | string>;
   publicKey: { toString(): string } | null;
-  on(event: string, handler: (args?: any) => void): void;
+  on?(event: string, handler: (args?: any) => void): void;
 }
 
 declare global {
   interface Window {
-    solana?: WalletApi;
+    solana?: SolanaProvider;
+    phantom?: { solana?: SolanaProvider };
+    solflare?: SolanaProvider;
+    backpack?: SolanaProvider;
   }
+}
+
+function injectedProvider(): SolanaProvider | null {
+  if (typeof window === 'undefined') return null;
+  const candidates = [window.phantom?.solana, window.solflare, window.backpack, window.solana].filter(Boolean) as SolanaProvider[];
+  return candidates.find((provider) => provider.isPhantom) || candidates[0] || null;
+}
+
+function waitForProvider(ms = 2500): Promise<SolanaProvider | null> {
+  const existing = injectedProvider();
+  if (existing) return Promise.resolve(existing);
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      const provider = injectedProvider();
+      if (provider || Date.now() - started > ms) {
+        window.clearInterval(timer);
+        resolve(provider);
+      }
+    }, 200);
+  });
+}
+
+function signatureToWire(signature: Uint8Array | string | { signature?: Uint8Array | string }): string {
+  const raw = signature && typeof signature === 'object' && 'signature' in signature ? signature.signature : signature;
+  if (!raw) throw new Error('The wallet did not return a signature.');
+  if (typeof raw === 'string') return raw;
+  return bytesToBase64(raw);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -55,14 +87,22 @@ export default function RealSolanaWallet() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const providerRef = useRef<SolanaProvider | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.solana) {
-      setProvider('yes');
-      if (window.solana.publicKey) setWalletAddress(window.solana.publicKey.toString());
-    } else {
-      setProvider('no');
-    }
+    let cancelled = false;
+    waitForProvider().then((provider) => {
+      if (cancelled) return;
+      providerRef.current = provider;
+      setProvider(provider ? 'yes' : 'no');
+      if (provider?.publicKey) setWalletAddress(provider.publicKey.toString());
+      provider?.on?.('accountChanged', (next: { toString(): string } | null) => {
+        setWalletAddress(next ? next.toString() : null);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -96,38 +136,46 @@ export default function RealSolanaWallet() {
   }
 
   async function connectAndLink() {
-    if (!window.solana) {
-      setError('No browser wallet detected. Install a Solana wallet extension and reload.');
+    const provider = providerRef.current || await waitForProvider(4000);
+    providerRef.current = provider;
+    if (!provider) {
+      setProvider('no');
+      setError('No Solana wallet extension found. Install Phantom, Solflare, or Backpack, then reload this page.');
       return;
     }
+    setProvider('yes');
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
-      const { publicKey } = await window.solana.connect();
+      const { publicKey } = await provider.connect();
       const address = publicKey.toString();
       setWalletAddress(address);
 
       const challengeRes = await fetch('/api/tcode/challenge', { method: 'POST' });
       const challenge = await challengeRes.json();
-      if (!challenge.ok) throw new Error(challenge.error || 'Could not create a signing challenge.');
+      if (!challengeRes.ok || !challenge.ok) throw new Error(challenge.error || 'Could not create a signing challenge.');
 
-      // Phantom takes bytes here, not a string. Handing it the challenge text made
-      // it throw "Expected Uint8Array". TextEncoder produces the same bytes the
-      // server rebuilds with Buffer.from(message, 'utf8'), so the signature verifies.
-      const signed = await window.solana.signMessage(new TextEncoder().encode(challenge.message), 'utf8');
+      const message = new TextEncoder().encode(challenge.message);
+      let signed: Awaited<ReturnType<SolanaProvider['signMessage']>>;
+      try {
+        signed = await provider.signMessage(message, 'utf8');
+      } catch {
+        signed = await provider.signMessage(message);
+      }
       const linkRes = await fetch('/api/tcode/link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address, signature: bytesToBase64(signed.signature), nonce: challenge.nonce }),
+        body: JSON.stringify({ walletAddress: address, signature: signatureToWire(signed), nonce: challenge.nonce }),
       });
       const linked = await linkRes.json();
-      if (!linked.ok) throw new Error(linked.error || 'Wallet link failed.');
+      if (!linkRes.ok || !linked.ok) throw new Error(linked.error || 'Wallet link failed.');
 
       setNotice('Wallet linked to your Tera account.');
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not connect wallet.');
+      const message = err instanceof Error ? err.message : 'Could not connect wallet.';
+      setError(message.includes('User rejected') ? 'Connection cancelled in the wallet.' : message);
     } finally {
       setBusy(false);
     }
@@ -142,14 +190,16 @@ export default function RealSolanaWallet() {
         </p>
 
         {provider === 'no' && (
-          <div className="mt-4 rounded-lg bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
-            No browser wallet detected. Install a Solana wallet extension (Phantom, Backpack, or Solflare) to connect.
+          <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            No browser wallet detected yet. Install{' '}
+            <a className="underline" href="https://phantom.app/download" target="_blank" rel="noopener noreferrer">Phantom</a>,{' '}
+            Solflare, or Backpack, then connect.
           </div>
         )}
 
-        {!walletAddress && provider === 'yes' && (
-          <button type="button" onClick={connectAndLink} disabled={busy} className="tera-button-primary mt-4">
-            {busy ? 'Connecting...' : 'Connect and link wallet'}
+        {!wallet && (
+          <button type="button" onClick={connectAndLink} disabled={busy || loading} className="tera-button-primary mt-4">
+            {busy ? 'Connecting...' : loading ? 'Checking wallet...' : 'Connect Solana wallet'}
           </button>
         )}
 

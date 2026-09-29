@@ -33,7 +33,7 @@ export interface TalocodeChatResult {
   meta?: Record<string, unknown>
 }
 
-async function retryFetch(url: string, options: RequestInit, retries = 2, delay = 1200): Promise<Response> {
+async function retryFetch(url: string, options: RequestInit, retries = 3, delay = 700): Promise<Response> {
   let response: Response
   try {
     response = await fetch(url, options)
@@ -45,13 +45,46 @@ async function retryFetch(url: string, options: RequestInit, retries = 2, delay 
 
   if ([429, 502, 503, 504].includes(response.status)) {
     if (retries <= 0) {
-      throw new Error(`Talocode upstream unavailable: ${response.status}`)
+      const error: Error & { status?: number } = new Error(`Talocode upstream unavailable: ${response.status}`)
+      error.status = response.status
+      throw error
     }
-    await new Promise((resolve) => setTimeout(resolve, delay))
+    const retryAfter = Number(response.headers.get('retry-after'))
+    const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 4000) : delay
+    await new Promise((resolve) => setTimeout(resolve, wait))
     return retryFetch(url, options, retries - 1, delay * 2)
   }
 
   return response
+}
+
+async function mistralChatCompletion(opts: TalocodeChatOptions): Promise<TalocodeChatResult | null> {
+  const key = process.env.MISTRAL_API_KEY
+  if (!key) return null
+  const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: process.env.MISTRAL_MODEL || 'mistral-small-latest',
+      messages: opts.messages,
+      temperature: opts.temperature ?? 0.4,
+      top_p: opts.top_p,
+      max_tokens: opts.max_tokens ?? 4000,
+    }),
+  })
+  if (!response.ok) return null
+  const data = await response.json()
+  if (!data?.choices?.[0]?.message) return null
+  return data as TalocodeChatResult
+}
+
+function isOverloaded(error: unknown): boolean {
+  const status = typeof error === 'object' && error && 'status' in error ? Number((error as { status?: number }).status) : 0
+  const message = error instanceof Error ? error.message : String(error)
+  return [429, 502, 503, 504].includes(status) || /429|502|503|504|unavailable|high traffic|rate limit/i.test(message)
 }
 
 function missingKeyError(): Error & { status?: number } {
@@ -62,6 +95,8 @@ function missingKeyError(): Error & { status?: number } {
 
 export async function talocodeChatCompletion(opts: TalocodeChatOptions): Promise<TalocodeChatResult> {
   if (!TALOCODE_API_KEY) {
+    const fallback = await mistralChatCompletion(opts)
+    if (fallback) return fallback
     throw missingKeyError()
   }
 
@@ -75,29 +110,37 @@ export async function talocodeChatCompletion(opts: TalocodeChatOptions): Promise
   if (opts.stream != null) body.stream = opts.stream
   if (opts.response_format != null) body.response_format = opts.response_format
 
-  const response = await retryFetch(`${TALOCODE_BASE_URL}/v1/tera/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${TALOCODE_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-  })
+  try {
+    const response = await retryFetch(`${TALOCODE_BASE_URL}/v1/tera/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TALOCODE_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    })
 
-  if (!response.ok) {
-    let message = `Talocode API error: ${response.status}`
-    try {
-      const data = await response.json()
-      if (data?.error?.message) message = `${message} (${data.error.message})`
-    } catch {
-      // ignore parse errors
+    if (!response.ok) {
+      let message = `Talocode API error: ${response.status}`
+      try {
+        const data = await response.json()
+        if (data?.error?.message) message = `${message} (${data.error.message})`
+      } catch {
+        // ignore parse errors
+      }
+      const error: Error & { status?: number } = new Error(message)
+      error.status = response.status
+      throw error
     }
-    const error: Error & { status?: number } = new Error(message)
-    error.status = response.status
+
+    return response.json()
+  } catch (error) {
+    if (isOverloaded(error)) {
+      const fallback = await mistralChatCompletion(opts)
+      if (fallback) return fallback
+    }
     throw error
   }
-
-  return response.json()
 }
 
 export async function talocodeChatContent(opts: TalocodeChatOptions): Promise<string> {

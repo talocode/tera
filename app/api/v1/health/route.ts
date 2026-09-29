@@ -21,6 +21,8 @@ export async function GET() {
       '/v1/tera/coding/write',
       '/v1/chat/completions',
       '/v1/tera/chat/completions',
+      '/v1/wallet',
+      '/v1/tera/wallet',
     ],
     timestamp: new Date().toISOString(),
   }

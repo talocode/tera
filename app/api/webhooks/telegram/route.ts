@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSolanaAddress } from '@/lib/tcode/crypto'
+import { readPublicWallet, TERA_WALLET_PUBLIC } from '@/lib/blockchain-lab/real/public-wallet'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -73,8 +75,13 @@ async function llm(
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages, max_tokens: maxTokens }),
     })
-    const data = await res.json()
-    return data.choices?.[0]?.message?.content || ''
+    if (res.ok) {
+      const data = await res.json()
+      const text = data.choices?.[0]?.message?.content
+      if (text) return text
+    } else if (!MISTRAL_KEY) {
+      throw new Error(`AI service unavailable (${res.status})`)
+    }
   }
   if (MISTRAL_KEY) {
     const res = await fetch(MISTRAL_API, {
@@ -83,6 +90,7 @@ async function llm(
       body: JSON.stringify({ model: 'mistral-small-latest', messages, max_tokens: maxTokens }),
     })
     const data = await res.json()
+    if (!res.ok) throw new Error(data?.error?.message || 'AI service unavailable')
     return data.choices?.[0]?.message?.content || ''
   }
   throw new Error('No API key configured')
@@ -97,6 +105,7 @@ function validateKey(key: string): Promise<boolean> {
 // Capability keywords
 const CAPABILITIES: Record<string, { name: string; desc: string; triggers: string[]; credit?: number }> = {
   chat: { name: 'Chat', desc: 'General conversation', triggers: ['chat', 'talk', 'ask', 'what', 'why', 'how', 'think', 'tell me'] },
+  wallet: { name: 'Tera Wallet', desc: 'Self-custodial Solana wallet for SOL and official $TCODE. Open teraai.chat/wallet. Never send a seed.', triggers: ['wallet', 'tera wallet', 'solana wallet', 'tcode balance', '$tcode', 'receive address'] },
   coding: { name: 'Code', desc: 'Write, explain, review, debug code', triggers: ['code', 'write code', 'program', 'script', 'function', 'debug', 'implement', 'build a'] },
   writing: { name: 'Write', desc: 'Draft, rewrite, compose', triggers: ['write', 'draft', 'rewrite', 'compose', 'article', 'blog', 'essay'] },
   search: { name: 'SearchLane', desc: 'Web search, news, deep research', triggers: ['search', 'find', 'look up', 'research', 'google', 'news about'], credit: 5 },
@@ -126,7 +135,9 @@ const CAPABILITIES: Record<string, { name: string; desc: string; triggers: strin
 
 function routeIntent(text: string, chatId?: string): string {
   const lower = text.toLowerCase()
-  for (const [key, cap] of Object.entries(CAPABILITIES)) {
+  const ordered = ['wallet', ...Object.keys(CAPABILITIES).filter((key) => key !== 'wallet')]
+  for (const key of ordered) {
+    const cap = CAPABILITIES[key]
     for (const t of cap.triggers) {
       if (lower.includes(t)) return key
     }
@@ -189,7 +200,7 @@ async function handleMessage(chatId: number, text: string, username: string) {
 
   // Commands
   if (text === '/start') {
-    return sendMsg(chatId, `Hello ${username}! I'm *TeraAI* — the Talocode AI infrastructure agent. I can help with coding, writing, search, browsing, trading, content, and more. Try /caps to see everything I can do.`)
+    return sendMsg(chatId, `Hello ${username}! I'm *TeraAI* — the Talocode AI infrastructure agent. I can help with coding, writing, search, Tera Wallet, and more. Try /caps to see everything I can do.`)
   }
 
   if (text === '/caps' || text === '/capabilities') {
@@ -258,6 +269,7 @@ async function handleMessage(chatId: number, text: string, username: string) {
       + '• "browse https://example.com"\n'
       + '• "analyze my trading portfolio"\n'
       + '• "generate a video brief for a product launch"\n'
+      + '• "open my tera wallet"\n'
       + '• "scan this code for secrets"\n\n'
       + `TALOCODE_API_KEY: ${keyStatus}`
     )
@@ -273,6 +285,29 @@ async function handleMessage(chatId: number, text: string, username: string) {
   await tg('sendChatAction', { chat_id: chatId, action: 'typing' })
 
   // Handle capability
+  if (intent === 'wallet') {
+    if (/seed|mnemonic|private key|secret key|passcode|recovery phrase/i.test(text)) {
+      return sendMsg(chatId, 'Do not send a recovery phrase, private key, or passcode. Tera Wallet is self-custodial. Open it at https://teraai.chat/wallet')
+    }
+    const address = text.match(/[1-9A-HJ-NP-Za-km-z]{32,44}/)?.[0]
+    let balance = ''
+    if (address && isSolanaAddress(address)) {
+      try {
+        const view = await readPublicWallet(address)
+        balance = `\n\n\`${address}\`\nSOL: ${view.sol}\n$TCODE: ${view.tcode}`
+      } catch {
+        balance = '\n\nCould not read that address from Solana just now.'
+      }
+    }
+    return sendMsg(
+      chatId,
+      `*Tera Wallet* is a self-custodial Solana wallet. Keys stay in the browser. Tera cannot reset them.\n\n`
+      + `Open: ${TERA_WALLET_PUBLIC.url}\nDocs: ${TERA_WALLET_PUBLIC.docs}\n`
+      + `Official $TCODE mint: \`${TERA_WALLET_PUBLIC.token.mint}\` (${TERA_WALLET_PUBLIC.token.decimals} decimals)`
+      + balance,
+    )
+  }
+
   if (intent === 'memory') {
     try {
       const resp = await llm([

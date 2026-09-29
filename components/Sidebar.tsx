@@ -261,23 +261,23 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
           }
         }}
       >
-        <div className="flex h-full flex-col px-3 py-4">
+        <div className="flex h-full min-h-0 flex-col px-2.5 py-3">
           {/* Logo */}
-          <div className="flex items-center justify-center md:justify-start">
+          <div className="flex shrink-0 items-center justify-center md:justify-start">
             <button
               type="button"
               onClick={onTogglePin}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-tera-border bg-tera-panel/90 shadow-soft transition-all duration-200 hover:-translate-y-px hover:bg-tera-highlight"
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border border-tera-border shadow-soft transition-all duration-200 hover:bg-tera-highlight ${theme === 'light' ? 'bg-white' : 'bg-[#0a0a0a]'}`}
               aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
             >
-              <div className="relative h-6 w-6">
-                <Image src={theme === 'light' ? '/images/TERA_LOGO_ONLY1.png' : '/images/TERA_LOGO_ONLY.png'} alt="Tera" fill className="object-contain" priority />
+              <div className="relative h-5 w-5">
+                <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className={`object-contain ${theme === 'light' ? '' : 'invert'}`} priority />
               </div>
             </button>
           </div>
 
           {/* Nav */}
-          <nav className="mt-6 flex flex-col gap-0.5">
+          <nav className="mt-2 flex shrink-0 flex-col gap-0.5">
             {navigation.map((item) => {
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
@@ -300,16 +300,16 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
                   }}
                   title={item.label}
                   className={[
-                    'flex h-[44px] items-center gap-3 rounded-[14px] px-3 text-[13px] font-medium tracking-[-0.01em] transition-all duration-150',
+                    'flex h-8 items-center gap-2 rounded-xl px-2.5 text-[12px] font-medium tracking-[-0.01em] transition-all duration-150',
                     isActive
                       ? 'bg-tera-primary text-tera-bg shadow-soft'
                       : 'text-tera-secondary hover:bg-tera-panel/70 hover:text-tera-primary',
                   ].join(' ')}
                 >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">{getIcon(item.icon)}</span>
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center [&>svg]:h-4 [&>svg]:w-4">{getIcon(item.icon)}</span>
                   <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                     <span className={[
-                      'whitespace-nowrap text-[13px] transition-all duration-200',
+                      'whitespace-nowrap text-[12px] transition-all duration-200',
                       expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
                     ].join(' ')}
                     >
@@ -323,7 +323,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
 
           {/* Chat History */}
           {user?.id && (
-            <div className="mt-4 flex flex-1 flex-col min-h-0">
+            <div className="mt-3 flex min-h-0 flex-1 flex-col">
               <div className={[
                 'flex items-center gap-2 px-3 mb-2 transition-all duration-200',
                 expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
@@ -365,31 +365,28 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             </div>
           )}
 
-          {/* Bottom: Talocode */}
-          <div className="pt-2">
+          <div className="mt-auto shrink-0 border-t border-tera-border/60 bg-tera-bg pt-2">
             <a
               href="https://talocode.site"
               target="_blank"
               rel="noopener noreferrer"
               title="Talocode"
-              className="flex h-[44px] items-center gap-3 rounded-[14px] px-3 text-[13px] font-medium tracking-[-0.01em] text-tera-secondary transition-all duration-150 hover:bg-tera-panel/70 hover:text-tera-primary"
+              className="flex h-8 items-center gap-2 rounded-xl px-2.5 text-[12px] font-medium tracking-[-0.01em] text-tera-secondary transition-all duration-150 hover:bg-tera-panel/70 hover:text-tera-primary"
             >
-              <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3c-2.5 2-4 4.5-4 8s1.5 6 4 8c2.5-2 4-4.5 4-8s-1.5-6-4-8Z" />
               </svg>
               <span className={[
-                'whitespace-nowrap text-[13px] transition-all duration-200',
+                'whitespace-nowrap text-[12px] transition-all duration-200',
                 expanded ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100',
               ].join(' ')}
               >
                 Talocode
               </span>
             </a>
-          </div>
-
-          {/* Bottom: User */}
-          <div className="pt-3 border-t border-tera-border/50 mt-2">
-            <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
+            <div className="pt-2">
+              <UserMenu user={user || null} expanded={expanded} onSignOut={onSignOut || (() => {})} />
+            </div>
           </div>
         </div>
       </aside>
