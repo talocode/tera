@@ -1,3 +1,7 @@
+## Tera Wallet
+
+Self-custodial Solana wallet for SOL, SPL tokens, and official $TCODE. The app is in [`apps/wallet`](apps/wallet). It does not replace the Tera learning companion. Recovery phrases and private keys stay in the browser and are never sent to a backend. See that folder for install, tests, the security model, and the current limits.
+
 # Tera — Your AI Platform for Building, Coding, Writing, and Creating
 
 > **Build anything. Ship real work. Powered by Talocode Cloud.**
