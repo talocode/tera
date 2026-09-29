@@ -40,6 +40,7 @@ export const navigation: NavItem[] = [
   { label: 'Images', icon: 'images', href: '/images' },
   { label: 'Skills', icon: 'apps', href: '/skills' },
   { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
+  { label: 'Wallet', icon: 'wallet', href: '/wallet' },
   { label: 'Usage', icon: 'usage', href: '/settings/usage' },
   { label: 'Settings', icon: 'settings', href: '/settings' },
 ]
@@ -121,6 +122,14 @@ const IconSettings = () => (
   </svg>
 )
 
+const IconWallet = () => (
+  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 7.5h16v11H4z" />
+    <path d="M4 7.5 6.2 5h11.6L20 7.5" />
+    <path d="M16 13h2.5" />
+  </svg>
+)
+
 const IconLab = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -151,6 +160,7 @@ const getIcon = (iconName: string): React.ReactNode => {
     apps: IconApps,
     settings: IconSettings,
     lab: IconLab,
+    wallet: IconWallet,
     usage: IconUsage,
   }
   const Icon = icons[iconName]
@@ -252,8 +262,9 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
                 ? pathname?.startsWith('/new')
                 : pathname === item.href || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab')) || (item.href.startsWith('/settings/usage') && pathname?.startsWith('/settings/usage'))
 
+              const Tag = item.href === '/wallet' ? 'a' : Link
               return (
-                <Link
+                <Tag
                   key={item.label}
                   href={item.href}
                   onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -283,7 +294,7 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
                       {item.label}
                     </span>
                   </span>
-                </Link>
+                </Tag>
               )
             })}
           </nav>

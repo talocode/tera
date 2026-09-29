@@ -17,16 +17,12 @@ import {
   PasscodeScreen,
   UnlockScreen,
 } from "@/components/wallet/onboarding";
-import { subscribe } from "@/nav";
+import { subscribe, readRoute } from "@/nav";
 import "@/wallet/polyfill";
 import "./styles.css";
 
 function readLocation() {
-  const url = new URL(window.location.href);
-  return {
-    path: url.pathname || "/",
-    mint: url.searchParams.get("mint") ?? undefined,
-  };
+  return readRoute();
 }
 
 function Screen() {
