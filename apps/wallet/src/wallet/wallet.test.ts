@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { formatTokenAmount, maxSolSend, parseTokenAmount, validateSpend } from "./amounts.ts";
 import { deriveEd25519Seed, isValidMnemonic, keypairFromMnemonic, normalizeMnemonic, parseAddress, SOLANA_PATH } from "./keys.ts";
-import { DEFAULT_TCODE_MINT, explorerTx, isCluster, resolveRpc } from "./network.ts";
+import { DEFAULT_TCODE_MINT, explorerTx, isCluster, isRetryableRpcFailure, resolveRpc, rpcEndpoints } from "./network.ts";
 
 const PHRASE =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -81,4 +81,9 @@ test("network helpers keep explorer links on the selected cluster", () => {
     "https://api.mainnet-beta.solana.com",
   );
   assert.equal(resolveRpc("devnet", { rpc: "https://rpc.example/dev" }), "https://api.devnet.solana.com");
+  const mainnet = rpcEndpoints("mainnet-beta");
+  assert.equal(mainnet[0], "https://public.rpc.solanavibestation.com");
+  assert.equal(mainnet.includes("https://api.mainnet-beta.solana.com"), false);
+  assert.equal(isRetryableRpcFailure(403, '{"error":{"code":403,"message":"Access forbidden"}}'), true);
+  assert.equal(isRetryableRpcFailure(200, '{"result":{"value":0}}'), false);
 });

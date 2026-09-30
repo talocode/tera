@@ -23,8 +23,8 @@ import { passcodeError } from "@/wallet/vault";
 function userError(error: unknown): string {
   if (error instanceof Error) {
     const text = error.message || "Something went wrong.";
-    if (/failed to fetch|network|429|503|timeout/i.test(text)) {
-      return "The Solana RPC is unavailable right now. Try again in a moment.";
+    if (/failed to fetch|network|429|403|503|timeout|access forbidden|unavailable/i.test(text)) {
+      return "The Solana network is busy right now. Wait a moment and open the wallet again.";
     }
     return text;
   }

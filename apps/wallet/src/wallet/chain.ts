@@ -17,7 +17,8 @@ import {
 import {
   clusterLabel,
   explorerTx,
-  rpcUrlFor,
+  fetchFirstHealthy,
+  rpcEndpoints,
   tcodeMint,
   type Cluster,
   SOL_DECIMALS,
@@ -49,7 +50,12 @@ export type Activity = {
 };
 
 export function connectionFor(cluster: Cluster): Connection {
-  return new Connection(rpcUrlFor(cluster), "confirmed");
+  const endpoints = rpcEndpoints(cluster);
+  return new Connection(endpoints[0], {
+    commitment: "confirmed",
+    disableRetryOnRateLimit: true,
+    fetch: fetchFirstHealthy(endpoints),
+  });
 }
 
 export function describeMint(mint: string, cluster: Cluster): Pick<Holding, "symbol" | "name" | "trusted"> {
@@ -76,24 +82,30 @@ export async function loadHoldings(connection: Connection, owner: PublicKey, clu
     native: true,
   };
   const tokens: Holding[] = [];
+  let readTokens = false;
   for (const programId of [TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID]) {
-    const response = await connection.getParsedTokenAccountsByOwner(owner, { programId });
-    for (const item of response.value) {
-      const info = item.account.data.parsed?.info;
-      const amount = info?.tokenAmount;
-      if (!info?.mint || !amount) continue;
-      const mint = String(info.mint);
-      const decimals = Number(amount.decimals);
-      const base = BigInt(String(amount.amount));
-      if (base === 0n) continue;
-      const meta = describeMint(mint, cluster);
-      tokens.push({
-        mint,
-        decimals,
-        amount: base,
-        native: false,
-        ...meta,
-      });
+    try {
+      const response = await connection.getParsedTokenAccountsByOwner(owner, { programId });
+      readTokens = true;
+      for (const item of response.value) {
+        const info = item.account.data.parsed?.info;
+        const amount = info?.tokenAmount;
+        if (!info?.mint || !amount) continue;
+        const mint = String(info.mint);
+        const decimals = Number(amount.decimals);
+        const base = BigInt(String(amount.amount));
+        if (base === 0n) continue;
+        const meta = describeMint(mint, cluster);
+        tokens.push({
+          mint,
+          decimals,
+          amount: base,
+          native: false,
+          ...meta,
+        });
+      }
+    } catch {
+      // A blocked token index must not hide the SOL balance that already loaded.
     }
   }
   tokens.sort((a, b) => {
@@ -102,7 +114,7 @@ export async function loadHoldings(connection: Connection, owner: PublicKey, clu
     return a.symbol.localeCompare(b.symbol);
   });
   const tcode = tokens.find((token) => token.mint === tcodeMint());
-  if (!tcode && cluster === "mainnet-beta") {
+  if (!tcode && cluster === "mainnet-beta" && readTokens) {
     tokens.unshift({
       mint: tcodeMint(),
       symbol: "TCODE",

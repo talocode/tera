@@ -10,6 +10,16 @@ const PUBLIC_RPC: Record<Cluster, string> = {
   devnet: "https://api.devnet.solana.com",
 };
 
+/** Official mainnet answers browsers with HTTP 403. These allow CORS and the reads we need. */
+const MAINNET_RPCS = [
+  "https://public.rpc.solanavibestation.com",
+  "https://solana-rpc.publicnode.com",
+  "https://solana.leorpc.com/?api_key=FREE",
+  "https://rpc.solanatracker.io/public",
+] as const;
+
+const DEVNET_RPCS = ["https://api.devnet.solana.com"] as const;
+
 function readEnv(name: string): string | undefined {
   const env = (import.meta as { env?: Record<string, string | undefined> }).env;
   const value = env?.[name];
@@ -39,6 +49,60 @@ export function rpcUrlFor(cluster: Cluster): string {
     cluster: readEnv("VITE_SOLANA_CLUSTER"),
     rpc: readEnv("VITE_SOLANA_RPC_URL"),
   });
+}
+
+/** Ordered RPC list. A matching VITE_SOLANA_RPC_URL is tried first, then public endpoints that do not 403. */
+export function rpcEndpoints(cluster: Cluster): string[] {
+  const selected = rpcUrlFor(cluster);
+  const defaults = cluster === "mainnet-beta" ? MAINNET_RPCS : DEVNET_RPCS;
+  const preferred = selected === PUBLIC_RPC[cluster] ? [] : [selected];
+  return [...new Set([...preferred, ...defaults])];
+}
+
+const RETRYABLE_RPC = /access forbidden|request blocked|not allowed|too many requests|rate limit|api key|personal token|forbidden|unavailable|internal json-rpc|paid plan/i;
+
+export function isRetryableRpcFailure(status: number, body: string): boolean {
+  if (status === 401 || status === 403 || status === 408 || status === 429 || status >= 500) return true;
+  try {
+    const payload = JSON.parse(body) as { error?: { code?: number; message?: string } };
+    if (!payload?.error) return false;
+    const code = Number(payload.error.code);
+    if (code === 403 || code === 429 || code === -32005 || code === -32029 || code === -32601) return true;
+    return RETRYABLE_RPC.test(String(payload.error.message ?? ""));
+  } catch {
+    return RETRYABLE_RPC.test(body);
+  }
+}
+
+/** POST the same JSON-RPC body to each endpoint and return the first usable response. */
+export function fetchFirstHealthy(endpoints: readonly string[]): typeof fetch {
+  return async (_input, init) => {
+    const headers = new Headers(init?.headers);
+    if (!headers.has("content-type")) headers.set("content-type", "application/json");
+    let last: Response | null = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: init?.body ?? undefined,
+          signal: init?.signal ?? undefined,
+        });
+        const text = await response.text();
+        const next = new Response(text, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+        if (!isRetryableRpcFailure(response.status, text)) return next;
+        last = next;
+      } catch (error) {
+        if (init?.signal?.aborted) throw error;
+      }
+    }
+    if (last) return last;
+    throw new Error("The Solana RPC is unavailable right now.");
+  };
 }
 
 export function tcodeMint(): string {

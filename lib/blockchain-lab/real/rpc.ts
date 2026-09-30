@@ -1,5 +1,5 @@
 import { TcodeError } from '@/lib/tcode/crypto'
-import { getSolanaRpcUrl } from '@/lib/tcode/config'
+import { DEFAULT_SOLANA_RPC_URL, getSolanaRpcUrl } from '@/lib/tcode/config'
 
 export interface RpcResponse<T> {
   jsonrpc: '2.0'
@@ -12,11 +12,13 @@ const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
 
 function rpcUrls(): string[] {
-  const urls = [
-    getSolanaRpcUrl(),
-    'https://api.mainnet-beta.solana.com',
+  const configured = getSolanaRpcUrl()
+  const preferred = [
+    'https://public.rpc.solanavibestation.com',
     'https://solana-rpc.publicnode.com',
+    'https://solana.leorpc.com/?api_key=FREE',
   ]
+  const urls = configured === DEFAULT_SOLANA_RPC_URL ? [...preferred, configured] : [configured, ...preferred]
   return [...new Set(urls.filter(Boolean))]
 }
 
