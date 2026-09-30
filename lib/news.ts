@@ -8,6 +8,18 @@ export type NewsPost = {
 
 export const newsPosts: NewsPost[] = [
   {
+    slug: 'wallet-reads',
+    date: '30 September 2026',
+    title: 'Wallet balances no longer fail on unlock',
+    summary: 'Unlocking Tera Wallet was hitting a Solana endpoint that answers the browser with 403. Reads now use public endpoints that respond, and an empty wallet stays empty.',
+    body: [
+      'After the passcode, Home asked Solana’s official mainnet endpoint for the balance and for recent activity. That endpoint returns HTTP 403, Access forbidden, to the browser. The wallet showed that error instead of a balance.',
+      'The wallet now tries public mainnet endpoints that allow these reads, and it skips one that answers 403, 429, or “request blocked”. SOL still shows if a token-account index is refused. A zero balance is a real zero. No transactions means an empty activity list, not a fake history.',
+      'The same day, production caught up with the 29 September shell: the mark stays visible in dark and light, the account button stays pinned, the sidebar and composer menu are smaller, the news archive is complete, the lab wallet connect waits for the extension, and the public wallet API is on /v1/wallet. Keys, seeds, and the passcode still never leave the browser.',
+      'One of those publishes had been blocked. The theme change dropped the QuickSwitcher import, so the production build died while rendering /auth/error and Netlify kept the previous deploy. The import is restored. A separate GitHub upload check can stay red when its Netlify token is expired. The live site is the deploy Netlify itself published.',
+    ],
+  },
+  {
     slug: 'tera-wallet',
     date: '29 September 2026',
     title: 'Tera Wallet is live',

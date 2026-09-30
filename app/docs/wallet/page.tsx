@@ -73,7 +73,7 @@ export default function WalletDocsPage() {
           <section>
             <h2 className="text-2xl font-semibold text-tera-primary">Balances</h2>
             <p className="mt-3">
-              Home reads native SOL plus SPL token accounts, including Token-2022 accounts, from the Solana cluster you selected. Amounts are token units, not dollar prices. Official $TCODE is the Solana mainnet mint <span className="break-all text-tera-primary">6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory</span>, 6 decimals, name Talocode. It exists on mainnet. A zero balance is an empty wallet, not a placeholder. Other SPL mints are labeled SPL plus a short mint, not a guessed ticker.
+              Home reads native SOL plus SPL token accounts, including Token-2022 accounts, from the Solana cluster you selected. On mainnet the browser does not start at api.mainnet-beta.solana.com, because that endpoint returns 403 to the page. It tries public endpoints in order and skips one that answers 403, 429, or a blocked method. If a token-account index is refused, SOL still shows. Amounts are token units, not dollar prices. Official $TCODE is the Solana mainnet mint <span className="break-all text-tera-primary">6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory</span>, 6 decimals, name Talocode. It exists on mainnet. A zero balance is an empty wallet, not a placeholder. Other SPL mints are labeled SPL plus a short mint, not a guessed ticker.
             </p>
           </section>
 
@@ -102,14 +102,14 @@ export default function WalletDocsPage() {
           <section>
             <h2 className="text-2xl font-semibold text-tera-primary">Activity</h2>
             <p className="mt-3">
-              Activity lists recent signatures for the address on the selected network. SOL changes and SPL balance changes are decoded when the RPC returns them. Empty history is shown as empty. A busy public RPC can lag or fail, and the screen says so instead of inventing transactions.
+              Activity lists recent signatures for the address on the selected network. SOL changes and SPL balance changes are decoded when the RPC returns them. Empty history is shown as empty. A busy public RPC can lag or fail, and the screen says so instead of inventing transactions. A 403 from one endpoint is not shown as your balance if another endpoint answered.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold text-tera-primary">Networks</h2>
             <p className="mt-3">
-              Settings switches between Solana mainnet and Solana devnet. The keys do not change. The balances do, because they are different networks. An optional RPC is used only for the cluster it was configured for, so a devnet endpoint cannot silently follow you onto mainnet. Public Solana RPC endpoints are rate limited.
+              Settings switches between Solana mainnet and Solana devnet. The keys do not change. The balances do, because they are different networks. An optional RPC is used only for the cluster it was configured for, so a devnet endpoint cannot silently follow you onto mainnet. If that override fails, the wallet continues through the public list for that cluster. Public Solana RPC endpoints are rate limited, and some of them refuse indexed token reads.
             </p>
           </section>
 
