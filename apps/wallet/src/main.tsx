@@ -9,6 +9,7 @@ import {
   SettingsScreen,
   TokenScreen,
 } from "@/components/wallet/session";
+import { SwapScreen } from "@/components/wallet/swap";
 import {
   BackupScreen,
   ConfirmScreen,
@@ -49,6 +50,7 @@ function Screen() {
   if (path === "/home") return <HomeScreen />;
   if (path === "/receive") return <ReceiveScreen />;
   if (path === "/send") return <SendScreen initialMint={mint} />;
+  if (path === "/swap") return <SwapScreen />;
   if (path === "/activity") return <ActivityScreen />;
   if (path === "/settings") return <SettingsScreen />;
   if (path === "/security") return <SecurityScreen />;

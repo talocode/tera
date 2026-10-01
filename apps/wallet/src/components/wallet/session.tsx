@@ -88,6 +88,9 @@ export function HomeScreen() {
           <Link to="/receive" className="grid min-h-11 flex-1 place-items-center rounded-2xl bg-primary text-sm font-semibold text-primary-ink">
             Receive
           </Link>
+          <Link to="/swap" className="grid min-h-11 flex-1 place-items-center rounded-2xl border border-line text-sm font-semibold">
+            Swap
+          </Link>
         </div>
       </Card>
       {cluster !== "mainnet-beta" ? (
