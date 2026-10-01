@@ -17,6 +17,9 @@ import {
 } from "@/wallet/chain";
 import { parseAddress, shortAddress } from "@/wallet/keys";
 import { clusterLabel, explorerAddress, explorerTx, type Cluster } from "@/wallet/network";
+import { loadAddressBook, saveAddressName } from "@/wallet/book";
+import { priorityLamports } from "@/wallet/housekeeping";
+import { fetchOfficialPrices } from "@/wallet/jupiter";
 import { useWallet } from "@/wallet/store";
 import { passcodeError } from "@/wallet/vault";
 
@@ -39,6 +42,7 @@ export function HomeScreen() {
   const [activity, setActivity] = useState<Activity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [prices, setPrices] = useState<{ solUsd: number | null; tcodeUsd: number | null; tcodeLiquidity: number | null } | null>(null);
 
   useEffect(() => {
     if (!keypair) return;
@@ -64,6 +68,11 @@ export function HomeScreen() {
       cancelled = true;
     };
   }, [keypair, cluster]);
+
+  useEffect(() => {
+    if (cluster !== "mainnet-beta") return;
+    void fetchOfficialPrices().then(setPrices).catch(() => setPrices(null));
+  }, [cluster]);
 
   if (!ready || !keypair) return <Frame title="Wallet" nav />;
   const address = keypair.publicKey.toBase58();
@@ -93,6 +102,21 @@ export function HomeScreen() {
           </Link>
         </div>
       </Card>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <Link to="/swap" className="grid min-h-11 place-items-center rounded-2xl border border-line">Swap</Link>
+        <Link to="/limit" className="grid min-h-11 place-items-center rounded-2xl border border-line">Limit</Link>
+        <Link to="/stake" className="grid min-h-11 place-items-center rounded-2xl border border-line">Stake</Link>
+        <Link to="/reclaim" className="grid min-h-11 place-items-center rounded-2xl border border-line">Reclaim SOL</Link>
+        <Link to="/addresses" className="col-span-2 grid min-h-11 place-items-center rounded-2xl border border-line">Address book</Link>
+      </div>
+      {prices ? (
+        <p className="mt-3 text-sm text-muted">
+          SOL {prices.solUsd === null ? "price unavailable" : `$${prices.solUsd.toFixed(2)}`}
+          {" · "}
+          $TCODE {prices.tcodeUsd === null ? "no Jupiter price yet" : `$${prices.tcodeUsd.toPrecision(4)}`}
+          {prices.tcodeLiquidity !== null ? ` · pool liquidity $${Math.round(prices.tcodeLiquidity).toLocaleString()}` : ""}
+        </p>
+      ) : null}
       {cluster !== "mainnet-beta" ? (
         <div className="mt-3">
           <Notice>
@@ -234,6 +258,9 @@ export function SendScreen({ initialMint }: { initialMint?: string }) {
   const [mint, setMint] = useState(initialMint || "SOL");
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
+  const [bookName, setBookName] = useState("");
+  const [priority, setPriority] = useState(0);
+  const [book] = useState(loadAddressBook);
   const [fee, setFee] = useState<bigint | null>(null);
   const [creates, setCreates] = useState(false);
   const [phase, setPhase] = useState<"form" | "review" | "done" | "failed">("form");
@@ -264,7 +291,7 @@ export function SendScreen({ initialMint }: { initialMint?: string }) {
         mint: holding.mint,
         destination: new PublicKey(address),
       });
-      setFee(quote.feeLamports);
+      setFee(quote.feeLamports + priorityLamports(priority));
       setCreates(quote.createsTokenAccount);
       const check = validateSpend({
         raw: amount,
@@ -307,7 +334,9 @@ export function SendScreen({ initialMint }: { initialMint?: string }) {
         destination: new PublicKey(address),
         mint: holding.mint,
         amount: check.base,
+        microLamports: priority,
       });
+      if (bookName.trim()) saveAddressName(address, bookName);
       setSignature(sig);
       setPhase("done");
     } catch (err) {
@@ -345,6 +374,41 @@ export function SendScreen({ initialMint }: { initialMint?: string }) {
             </select>
           </label>
           <Field label="Recipient" value={destination} onChange={setDestination} placeholder="Solana address" />
+          {book.length ? (
+            <label className="block">
+              <span className="mb-2 block text-xs uppercase tracking-[0.14em] text-muted">Saved names</span>
+              <select
+                className="min-h-12 w-full rounded-2xl border border-line bg-surface px-4"
+                value=""
+                onChange={(event) => {
+                  const saved = book.find((item) => item.address === event.target.value);
+                  if (!saved) return;
+                  setDestination(saved.address);
+                  setBookName(saved.name);
+                }}
+              >
+                <option value="">Choose a saved address</option>
+                {book.map((item) => (
+                  <option key={item.address} value={item.address}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <Field label="Name for this address" value={bookName} onChange={setBookName} placeholder="Optional, stored on this device" />
+          <label className="block">
+            <span className="mb-2 block text-xs uppercase tracking-[0.14em] text-muted">Priority fee</span>
+            <select
+              value={priority}
+              onChange={(event) => setPriority(Number(event.target.value))}
+              className="min-h-12 w-full rounded-2xl border border-line bg-surface px-4"
+            >
+              <option value={0}>Standard</option>
+              <option value={50000}>Fast</option>
+              <option value={200000}>Urgent</option>
+            </select>
+          </label>
           <Field label="Amount" value={amount} onChange={setAmount} inputMode="decimal" />
           {holding?.native && sol ? (
             <button
@@ -368,6 +432,10 @@ export function SendScreen({ initialMint }: { initialMint?: string }) {
             <Row label="To" value={shortAddress(parseAddress(destination) ?? destination, 6, 6)} />
             <Row label="Network" value={clusterLabel(cluster)} />
             <Row label="Estimated fee" value={`${formatTokenAmount(fee, 9, 6)} SOL`} />
+            {bookName.trim() ? <Row label="Save as" value={bookName.trim()} /> : null}
+            {holding.mint !== "SOL" && holding.symbol !== "TCODE" ? (
+              <p className="mt-3 text-sm text-danger">Unverified mint. This is not official $TCODE.</p>
+            ) : null}
             {creates ? <p className="mt-3 text-sm text-muted">The fee includes creating the recipient token account.</p> : null}
           </Card>
           <Notice>No dollar price is shown. Review the token mint before you confirm.</Notice>

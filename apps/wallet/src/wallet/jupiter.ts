@@ -20,6 +20,7 @@ export type JupiterQuote = {
   otherAmountThreshold: string;
   priceImpactPct: string;
   slippageBps: number;
+  routePlan?: { swapInfo?: { label?: string } }[];
 };
 
 function uiToBase(raw: string, decimals: number): bigint | null {
@@ -60,10 +61,30 @@ export async function fetchQuote(opts: {
   return body;
 }
 
+export function routeLabels(quote: JupiterQuote): string[] {
+  return (quote.routePlan ?? []).map((step) => step.swapInfo?.label).filter((label): label is string => Boolean(label));
+}
+
+export async function fetchOfficialPrices(): Promise<{ solUsd: number | null; tcodeUsd: number | null; tcodeLiquidity: number | null }> {
+  const response = await fetch("/.netlify/functions/jupiter?action=price");
+  const body = (await response.json()) as {
+    sol?: { usdPrice?: number };
+    tcode?: { usdPrice?: number; liquidity?: number };
+    error?: string;
+  };
+  if (!response.ok) throw new Error(body.error || "Price unavailable.");
+  return {
+    solUsd: body.sol?.usdPrice ?? null,
+    tcodeUsd: body.tcode?.usdPrice ?? null,
+    tcodeLiquidity: body.tcode?.liquidity ?? null,
+  };
+}
+
 export async function signAndSendSwap(opts: {
   connection: Connection;
   signer: Keypair;
   quote: JupiterQuote;
+  prioritizationFeeLamports?: number;
 }): Promise<string> {
   const response = await fetch("/.netlify/functions/jupiter", {
     method: "POST",
@@ -71,6 +92,7 @@ export async function signAndSendSwap(opts: {
     body: JSON.stringify({
       quoteResponse: opts.quote,
       userPublicKey: opts.signer.publicKey.toBase58(),
+      prioritizationFeeLamports: opts.prioritizationFeeLamports || undefined,
     }),
   });
   const body = (await response.json()) as { swapTransaction?: string; error?: string };
@@ -86,6 +108,49 @@ export async function signAndSendSwap(opts: {
   });
   await opts.connection.confirmTransaction(signature, "confirmed");
   return signature;
+}
+
+export async function createLimitOrder(opts: {
+  connection: Connection;
+  signer: Keypair;
+  inputMint: string;
+  outputMint: string;
+  makingAmount: string;
+  takingAmount: string;
+}): Promise<string> {
+  const created = await fetch("/.netlify/functions/jupiter", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "limit",
+      userPublicKey: opts.signer.publicKey.toBase58(),
+      inputMint: opts.inputMint,
+      outputMint: opts.outputMint,
+      makingAmount: opts.makingAmount,
+      takingAmount: opts.takingAmount,
+    }),
+  });
+  const order = (await created.json()) as { transaction?: string; requestId?: string; error?: string };
+  if (!created.ok || !order.transaction || !order.requestId) {
+    throw new Error(order.error || "Jupiter could not build the limit order.");
+  }
+  const raw = Uint8Array.from(atob(order.transaction), (char) => char.charCodeAt(0));
+  const transaction = VersionedTransaction.deserialize(raw);
+  transaction.sign([opts.signer]);
+  const signed = btoa(String.fromCharCode(...transaction.serialize()));
+  const executed = await fetch("/.netlify/functions/jupiter", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "limit-execute",
+      signedTransaction: signed,
+      requestId: order.requestId,
+    }),
+  });
+  const result = (await executed.json()) as { signature?: string; error?: string };
+  if (!executed.ok || !result.signature) throw new Error(result.error || "Limit order was not accepted.");
+  await opts.connection.confirmTransaction(result.signature, "confirmed");
+  return result.signature;
 }
 
 export function outputChoices(holdings: SwapAsset[]): SwapAsset[] {

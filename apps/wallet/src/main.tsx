@@ -9,6 +9,7 @@ import {
   SettingsScreen,
   TokenScreen,
 } from "@/components/wallet/session";
+import { BookScreen, LimitScreen, RentScreen, StakeScreen } from "@/components/wallet/markets";
 import { SwapScreen } from "@/components/wallet/swap";
 import {
   BackupScreen,
@@ -51,6 +52,10 @@ function Screen() {
   if (path === "/receive") return <ReceiveScreen />;
   if (path === "/send") return <SendScreen initialMint={mint} />;
   if (path === "/swap") return <SwapScreen />;
+  if (path === "/limit") return <LimitScreen />;
+  if (path === "/stake") return <StakeScreen />;
+  if (path === "/reclaim") return <RentScreen />;
+  if (path === "/addresses") return <BookScreen />;
   if (path === "/activity") return <ActivityScreen />;
   if (path === "/settings") return <SettingsScreen />;
   if (path === "/security") return <SecurityScreen />;

@@ -25,6 +25,7 @@ import {
   TCODE_DECIMALS,
 } from "./network";
 import { formatTokenAmount } from "./amounts";
+import { withPriority } from "./housekeeping";
 
 const BASE_FEE = 5_000n;
 const TOKEN_ACCOUNT_SIZE = 165;
@@ -163,6 +164,7 @@ export async function submitTransfer(opts: {
   destination: PublicKey;
   mint: string;
   amount: bigint;
+  microLamports?: number;
 }): Promise<string> {
   if (opts.amount > BigInt(Number.MAX_SAFE_INTEGER)) {
     throw new Error("Amount is too large for this client.");
@@ -200,6 +202,7 @@ export async function submitTransfer(opts: {
     }
     tx.add(createTransferInstruction(fromAta, toAta, opts.signer.publicKey, opts.amount, [], programId));
   }
+  withPriority(tx, opts.microLamports ?? 0);
   tx.sign(opts.signer);
   const signature = await opts.connection.sendRawTransaction(tx.serialize(), {
     skipPreflight: false,

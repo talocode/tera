@@ -9,6 +9,7 @@ import {
   TCODE_MINT,
   fetchQuote,
   parseSwapAmount,
+  routeLabels,
   signAndSendSwap,
   type JupiterQuote,
 } from "@/wallet/jupiter";
@@ -26,6 +27,8 @@ export function SwapScreen() {
   const [inputMint, setInputMint] = useState("SOL");
   const [outputMint, setOutputMint] = useState(TCODE_MINT);
   const [amount, setAmount] = useState("");
+  const [slippageBps, setSlippageBps] = useState(50);
+  const [priority, setPriority] = useState(0);
   const [quote, setQuote] = useState<JupiterQuote | null>(null);
   const [phase, setPhase] = useState<"form" | "review" | "done" | "failed">("form");
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +71,7 @@ export function SwapScreen() {
         inputMint: jupMint(input),
         outputMint: output.mint,
         amount: base,
-        slippageBps: 50,
+        slippageBps,
       });
       setQuote(next);
       setPhase("review");
@@ -88,6 +91,7 @@ export function SwapScreen() {
         connection: connectionFor(cluster),
         signer: keypair,
         quote,
+        prioritizationFeeLamports: priority,
       });
       setSignature(sig);
       setPhase("done");
@@ -140,6 +144,30 @@ export function SwapScreen() {
             </select>
           </label>
           <Field label="Amount" value={amount} onChange={setAmount} inputMode="decimal" />
+          <label className="block">
+            <span className="mb-2 block text-xs uppercase tracking-[0.14em] text-muted">Slippage</span>
+            <select
+              value={slippageBps}
+              onChange={(event) => setSlippageBps(Number(event.target.value))}
+              className="min-h-12 w-full rounded-2xl border border-line bg-surface px-4"
+            >
+              <option value={50}>0.50%</option>
+              <option value={100}>1%</option>
+              <option value={200}>2%</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-xs uppercase tracking-[0.14em] text-muted">Priority fee</span>
+            <select
+              value={priority}
+              onChange={(event) => setPriority(Number(event.target.value))}
+              className="min-h-12 w-full rounded-2xl border border-line bg-surface px-4"
+            >
+              <option value={0}>Standard</option>
+              <option value={10000}>Fast, 0.00001 SOL cap</option>
+              <option value={100000}>Urgent, 0.0001 SOL cap</option>
+            </select>
+          </label>
           {error ? <Notice tone="danger">{error}</Notice> : null}
           <Button type="submit" disabled={busy || !input}>
             {busy ? "Quoting…" : "Review quote"}
@@ -153,9 +181,15 @@ export function SwapScreen() {
             <p className="mt-2 text-sm">
               Receive at least {formatTokenAmount(BigInt(quote.otherAmountThreshold), output.decimals, 6)} {output.symbol}
             </p>
-            <p className="mt-2 text-sm text-muted">Slippage cap 0.50%. Price impact {quote.priceImpactPct}%.</p>
+            <p className="mt-2 text-sm text-muted">Slippage cap {(quote.slippageBps / 100).toFixed(2)}%. Price impact {quote.priceImpactPct}%.</p>
+            <p className="mt-2 text-sm text-muted">Route: {routeLabels(quote).join(" → ") || "Jupiter"}</p>
+            {priority ? <p className="mt-2 text-sm text-muted">Priority fee cap {priority} lamports.</p> : null}
           </Card>
-          <Notice>Confirm the mints. Official $TCODE is {TCODE_MINT}.</Notice>
+          {output.mint !== SOL_MINT && output.mint !== TCODE_MINT ? (
+            <Notice tone="danger">Unverified mint. This is not official $TCODE. Trust the mint, not the ticker.</Notice>
+          ) : (
+            <Notice>Official $TCODE mint is {TCODE_MINT}. Tera takes no swap fee. Trading this mint is what adds liquidity to the public pool.</Notice>
+          )}
           {error ? <Notice tone="danger">{error}</Notice> : null}
           <Button disabled={busy} onClick={() => void confirm()}>
             {busy ? "Signing…" : "Sign and send"}
