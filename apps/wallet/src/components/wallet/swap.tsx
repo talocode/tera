@@ -186,9 +186,11 @@ export function SwapScreen() {
             {priority ? <p className="mt-2 text-sm text-muted">Priority fee cap {priority} lamports.</p> : null}
           </Card>
           {output.mint !== SOL_MINT && output.mint !== TCODE_MINT ? (
-            <Notice tone="danger">Unverified mint. This is not official $TCODE. Trust the mint, not the ticker.</Notice>
+            <Notice tone="danger">Unverified mint. This is not official $TCODE. Trust the mint, not the ticker. No Tera fee is taken on this pair.</Notice>
+          ) : input && (jupMint(input) === TCODE_MINT || output.mint === TCODE_MINT) ? (
+            <Notice>0.20% of this swap is paid in official $TCODE to the Talocode fee account. That is a fee, not liquidity added to the pool.</Notice>
           ) : (
-            <Notice>Official $TCODE mint is {TCODE_MINT}. Tera takes no swap fee. Trading this mint is what adds liquidity to the public pool.</Notice>
+            <Notice>No Tera fee on this pair. The fee account can only receive official $TCODE.</Notice>
           )}
           {error ? <Notice tone="danger">{error}</Notice> : null}
           <Button disabled={busy} onClick={() => void confirm()}>

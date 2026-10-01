@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useTheme } from './ThemeProvider'
 
-const WALLET_SRC = 'https://tera-wallet.netlify.app/?embed=1'
+const WALLET_SRC = '/wallet-app/?embed=1'
 
 export default function WalletFrame() {
   const { theme } = useTheme()
@@ -12,7 +12,7 @@ export default function WalletFrame() {
   useEffect(() => {
     const frame = frameRef.current
     if (!frame) return
-    const send = () => frame.contentWindow?.postMessage({ type: 'tera-theme', theme }, 'https://tera-wallet.netlify.app')
+    const send = () => frame.contentWindow?.postMessage({ type: 'tera-theme', theme }, window.location.origin)
     send()
     frame.addEventListener('load', send)
     return () => frame.removeEventListener('load', send)

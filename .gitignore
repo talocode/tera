@@ -53,3 +53,6 @@ coverage/
 
 # Local Netlify folder
 .netlify
+
+# Built into the tera-ai site at /wallet-app during pnpm build
+public/wallet-app/

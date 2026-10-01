@@ -5,6 +5,12 @@ const LIMIT = "https://api.jup.ag/trigger/v1/createOrder";
 const LIMIT_EXECUTE = "https://api.jup.ag/trigger/v1/execute";
 const SOL = "So11111111111111111111111111111111111111112";
 const TCODE = "6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory";
+const TCODE_FEE_ACCOUNT = "4z379ogRNL1TkFY59ZmU6d69SSn3eDN23pZh248peHkc";
+const FEE_BPS = "20";
+
+function chargesTcodeFee(inputMint, outputMint) {
+  return inputMint === TCODE || outputMint === TCODE;
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -35,6 +41,9 @@ export default async (request) => {
       if (!value) return json({ error: `Missing ${name}.` }, 400);
       upstream.searchParams.set(name, value);
     }
+    const inputMint = incoming.searchParams.get("inputMint");
+    const outputMint = incoming.searchParams.get("outputMint");
+    if (chargesTcodeFee(inputMint, outputMint)) upstream.searchParams.set("platformFeeBps", FEE_BPS);
     const response = await fetch(upstream, { headers: { "x-api-key": key } });
     return new Response(await response.text(), {
       status: response.status,
@@ -90,6 +99,8 @@ export default async (request) => {
       dynamicComputeUnitLimit: true,
     };
     if (body.prioritizationFeeLamports) swapBody.prioritizationFeeLamports = body.prioritizationFeeLamports;
+    const quote = body.quoteResponse;
+    if (chargesTcodeFee(quote.inputMint, quote.outputMint)) swapBody.feeAccount = TCODE_FEE_ACCOUNT;
     const response = await fetch(SWAP, {
       method: "POST",
       headers,

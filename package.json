@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm --prefix apps/wallet ci && VITE_BASE=/wallet-app/ npm --prefix apps/wallet run build && rm -rf public/wallet-app && mkdir -p public/wallet-app && cp -a apps/wallet/dist/. public/wallet-app/ && next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
