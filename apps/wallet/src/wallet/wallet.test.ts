@@ -85,5 +85,6 @@ test("network helpers keep explorer links on the selected cluster", () => {
   assert.equal(mainnet[0], "https://public.rpc.solanavibestation.com");
   assert.equal(mainnet.includes("https://api.mainnet-beta.solana.com"), false);
   assert.equal(isRetryableRpcFailure(403, '{"error":{"code":403,"message":"Access forbidden"}}'), true);
+  assert.equal(isRetryableRpcFailure(404, "404 page not found"), true);
   assert.equal(isRetryableRpcFailure(200, '{"result":{"value":0}}'), false);
 });

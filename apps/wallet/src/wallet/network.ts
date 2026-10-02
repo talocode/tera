@@ -62,7 +62,8 @@ export function rpcEndpoints(cluster: Cluster): string[] {
 const RETRYABLE_RPC = /access forbidden|request blocked|not allowed|too many requests|rate limit|api key|personal token|forbidden|unavailable|internal json-rpc|paid plan/i;
 
 export function isRetryableRpcFailure(status: number, body: string): boolean {
-  if (status === 401 || status === 403 || status === 408 || status === 429 || status >= 500) return true;
+  if (status === 404 || status === 401 || status === 403 || status === 408 || status === 429 || status >= 500) return true;
+  if (status < 200 || status >= 300) return true;
   try {
     const payload = JSON.parse(body) as { error?: { code?: number; message?: string } };
     if (!payload?.error) return false;
@@ -100,7 +101,7 @@ export function fetchFirstHealthy(endpoints: readonly string[]): typeof fetch {
         if (init?.signal?.aborted) throw error;
       }
     }
-    if (last) return last;
+    if (last) throw new Error("The Solana network is busy right now. Wait a moment and open the wallet again.");
     throw new Error("The Solana RPC is unavailable right now.");
   };
 }
