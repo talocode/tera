@@ -65,17 +65,25 @@ export function routeLabels(quote: JupiterQuote): string[] {
   return (quote.routePlan ?? []).map((step) => step.swapInfo?.label).filter((label): label is string => Boolean(label));
 }
 
-export async function fetchOfficialPrices(): Promise<{ solUsd: number | null; tcodeUsd: number | null; tcodeLiquidity: number | null }> {
+export async function fetchOfficialPrices(): Promise<{
+  solUsd: number | null;
+  tcodeUsd: number | null;
+  solChange: number | null;
+  tcodeChange: number | null;
+  tcodeLiquidity: number | null;
+}> {
   const response = await fetch("/.netlify/functions/jupiter?action=price");
   const body = (await response.json()) as {
-    sol?: { usdPrice?: number };
-    tcode?: { usdPrice?: number; liquidity?: number };
+    sol?: { usdPrice?: number; priceChange24h?: number };
+    tcode?: { usdPrice?: number; liquidity?: number; priceChange24h?: number };
     error?: string;
   };
   if (!response.ok) throw new Error(body.error || "Price unavailable.");
   return {
     solUsd: body.sol?.usdPrice ?? null,
     tcodeUsd: body.tcode?.usdPrice ?? null,
+    solChange: body.sol?.priceChange24h ?? null,
+    tcodeChange: body.tcode?.priceChange24h ?? null,
     tcodeLiquidity: body.tcode?.liquidity ?? null,
   };
 }

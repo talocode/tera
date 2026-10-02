@@ -42,7 +42,7 @@ export function HomeScreen() {
   const [activity, setActivity] = useState<Activity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [prices, setPrices] = useState<{ solUsd: number | null; tcodeUsd: number | null; tcodeLiquidity: number | null } | null>(null);
+  const [prices, setPrices] = useState<Awaited<ReturnType<typeof fetchOfficialPrices>> | null>(null);
 
   useEffect(() => {
     if (!keypair) return;
@@ -78,44 +78,36 @@ export function HomeScreen() {
   const address = keypair.publicKey.toBase58();
   const sol = holdings?.find((item) => item.native);
   const tcode = holdings?.find((item) => item.symbol === "TCODE");
+  const solValue = sol && prices?.solUsd != null ? usdValue(sol.amount, sol.decimals, prices.solUsd) : null;
+  const tcodeValue = tcode && prices?.tcodeUsd != null ? usdValue(tcode.amount, tcode.decimals, prices.tcodeUsd) : null;
+  const total = (solValue ?? 0) + (tcodeValue ?? 0);
+  const feeShort = sol != null && sol.amount < 2_000_000n && (holdings ?? []).some((item) => !item.native && item.amount > 0n);
   return (
     <Frame nav>
       <DesktopNav />
-      <p className="text-xs uppercase tracking-[0.16em] text-muted">{clusterLabel(cluster)}</p>
-      <h1 className="mt-2 font-display text-4xl">Portfolio</h1>
-      <Card>
-        <p className="text-xs uppercase tracking-[0.14em] text-muted">Address</p>
-        <p className="mt-2 break-all font-medium">{address}</p>
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            className="min-h-11 flex-1 rounded-2xl border border-line text-sm"
-            onClick={() => void navigator.clipboard.writeText(address)}
-          >
-            Copy
-          </button>
-          <Link to="/receive" className="grid min-h-11 flex-1 place-items-center rounded-2xl bg-primary text-sm font-semibold text-primary-ink">
-            Receive
-          </Link>
-          <Link to="/swap" className="grid min-h-11 flex-1 place-items-center rounded-2xl border border-line text-sm font-semibold">
-            Swap
-          </Link>
-        </div>
-      </Card>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-        <Link to="/swap" className="grid min-h-11 place-items-center rounded-2xl border border-line">Swap</Link>
-        <Link to="/limit" className="grid min-h-11 place-items-center rounded-2xl border border-line">Limit</Link>
-        <Link to="/stake" className="grid min-h-11 place-items-center rounded-2xl border border-line">Stake</Link>
-        <Link to="/reclaim" className="grid min-h-11 place-items-center rounded-2xl border border-line">Reclaim SOL</Link>
-        <Link to="/addresses" className="col-span-2 grid min-h-11 place-items-center rounded-2xl border border-line">Address book</Link>
+      <p className="text-xs uppercase tracking-[0.16em] text-muted">Solana · {clusterLabel(cluster)}</p>
+      <p className="mt-3 font-display text-5xl leading-none">
+        {prices && (solValue != null || tcodeValue != null) ? money(total) : holdings ? "—" : ""}
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        {prices && (solValue != null || tcodeValue != null)
+          ? "SOL and official $TCODE only. Other tokens stay as amounts."
+          : "Amounts load from the chain. Dollar prices are only for SOL and official $TCODE."}
+      </p>
+      <div className="mt-5 grid grid-cols-4 gap-2 text-center text-sm">
+        <Link to="/send" className="grid min-h-14 place-items-center rounded-2xl bg-primary font-semibold text-primary-ink">Send</Link>
+        <Link to="/receive" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Receive</Link>
+        <Link to="/swap" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Swap</Link>
+        <Link to="/stake" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Stake</Link>
       </div>
-      {prices ? (
-        <p className="mt-3 text-sm text-muted">
-          SOL {prices.solUsd === null ? "price unavailable" : `$${prices.solUsd.toFixed(2)}`}
-          {" · "}
-          $TCODE {prices.tcodeUsd === null ? "no Jupiter price yet" : `$${prices.tcodeUsd.toPrecision(4)}`}
-          {prices.tcodeLiquidity !== null ? ` · pool liquidity $${Math.round(prices.tcodeLiquidity).toLocaleString()}` : ""}
-        </p>
+      <p className="mt-3 break-all text-xs text-muted">{address}</p>
+      <button type="button" className="mt-1 text-xs text-accent" onClick={() => void navigator.clipboard.writeText(address)}>
+        Copy address
+      </button>
+      {feeShort ? (
+        <div className="mt-3">
+          <Notice>This address holds tokens but almost no SOL. Solana still charges the fee in SOL. Swap or receive a little SOL before you send.</Notice>
+        </div>
       ) : null}
       {cluster !== "mainnet-beta" ? (
         <div className="mt-3">
@@ -131,12 +123,19 @@ export function HomeScreen() {
       ) : null}
       <div className="mt-4 space-y-3">
         {!holdings && !error ? <p className="text-sm text-muted">Loading balances from Solana…</p> : null}
-        {sol ? <TokenRow holding={sol} /> : null}
-        {tcode ? <TokenRow holding={tcode} /> : null}
+        {sol ? <TokenRow holding={sol} usd={solValue} change={prices?.solChange ?? null} /> : null}
+        {tcode ? <TokenRow holding={tcode} usd={tcodeValue} change={prices?.tcodeChange ?? null} /> : null}
         {holdings
           ?.filter((item) => !item.native && item.symbol !== "TCODE")
-          .map((item) => <TokenRow key={item.mint} holding={item} />)}
+          .map((item) => <TokenRow key={item.mint} holding={item} usd={null} change={null} />)}
       </div>
+      <p className="mt-4 text-sm text-muted">
+        <Link to="/limit" className="text-accent">Limit</Link>
+        {" · "}
+        <Link to="/reclaim" className="text-accent">Reclaim SOL</Link>
+        {" · "}
+        <Link to="/addresses" className="text-accent">Address book</Link>
+      </p>
       <div className="mt-6 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Recent activity</h2>
         <Link to="/activity" className="text-sm text-accent">
@@ -155,7 +154,20 @@ export function HomeScreen() {
   );
 }
 
-function TokenRow({ holding }: { holding: Holding }) {
+function money(value: number): string {
+  if (value >= 1000) return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  if (value >= 1) return `$${value.toFixed(2)}`;
+  if (value === 0) return "$0.00";
+  return `$${value.toPrecision(2)}`;
+}
+
+function usdValue(amount: bigint, decimals: number, price: number): number | null {
+  const units = Number(amount) / 10 ** decimals;
+  if (!Number.isFinite(units) || !Number.isFinite(price)) return null;
+  return units * price;
+}
+
+function TokenRow({ holding, usd, change }: { holding: Holding; usd: number | null; change: number | null }) {
   return (
     <Link
       to="/token/$mint"
@@ -166,7 +178,13 @@ function TokenRow({ holding }: { holding: Holding }) {
         <span className="block font-semibold">{holding.symbol}</span>
         <span className="text-sm text-muted">{holding.name}</span>
       </span>
-      <span className="text-right font-medium">{formatTokenAmount(holding.amount, holding.decimals, 6)}</span>
+      <span className="text-right">
+        <span className="block font-medium">{formatTokenAmount(holding.amount, holding.decimals, 6)}</span>
+        <span className="text-sm text-muted">
+          {usd == null ? "No dollar price" : money(usd)}
+          {change == null ? "" : ` · ${change >= 0 ? "+" : ""}${change.toFixed(1)}%`}
+        </span>
+      </span>
     </Link>
   );
 }
