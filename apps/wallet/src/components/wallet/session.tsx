@@ -19,7 +19,8 @@ import { parseAddress, shortAddress } from "@/wallet/keys";
 import { clusterLabel, explorerAddress, explorerTx, type Cluster } from "@/wallet/network";
 import { loadAddressBook, saveAddressName } from "@/wallet/book";
 import { priorityLamports } from "@/wallet/housekeeping";
-import { fetchOfficialPrices } from "@/wallet/jupiter";
+import { fetchLivePrices, priceMint, type LivePrice } from "@/wallet/jupiter";
+import { Sparkline, TokenChart } from "@/components/wallet/chart";
 import { useWallet } from "@/wallet/store";
 import { passcodeError } from "@/wallet/vault";
 
@@ -42,7 +43,7 @@ export function HomeScreen() {
   const [activity, setActivity] = useState<Activity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [prices, setPrices] = useState<Awaited<ReturnType<typeof fetchOfficialPrices>> | null>(null);
+  const [live, setLive] = useState<Record<string, LivePrice>>({});
 
   useEffect(() => {
     if (!keypair) return;
@@ -70,29 +71,47 @@ export function HomeScreen() {
   }, [keypair, cluster]);
 
   useEffect(() => {
-    if (cluster !== "mainnet-beta") return;
-    void fetchOfficialPrices().then(setPrices).catch(() => setPrices(null));
-  }, [cluster]);
+    if (cluster !== "mainnet-beta" || !holdings) return;
+    const mints = holdings.map((item) => item.mint);
+    let stop = false;
+    const load = () => {
+      void fetchLivePrices(mints)
+        .then((rows) => {
+          if (!stop) setLive(rows);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    const timer = window.setInterval(load, 12_000);
+    return () => {
+      stop = true;
+      window.clearInterval(timer);
+    };
+  }, [cluster, holdings]);
 
   if (!ready || !keypair) return <Frame title="Wallet" nav />;
   const address = keypair.publicKey.toBase58();
   const sol = holdings?.find((item) => item.native);
   const tcode = holdings?.find((item) => item.symbol === "TCODE");
-  const solValue = sol && prices?.solUsd != null ? usdValue(sol.amount, sol.decimals, prices.solUsd) : null;
-  const tcodeValue = tcode && prices?.tcodeUsd != null ? usdValue(tcode.amount, tcode.decimals, prices.tcodeUsd) : null;
-  const total = (solValue ?? 0) + (tcodeValue ?? 0);
+  const quoteFor = (mint: string) => (cluster === "mainnet-beta" ? live[priceMint(mint)] : undefined);
+  const valueFor = (holding: Holding) => {
+    const usd = quoteFor(holding.mint)?.usd;
+    return usd == null ? null : usdValue(holding.amount, holding.decimals, usd);
+  };
+  const solValue = sol ? valueFor(sol) : null;
+  const tcodeValue = tcode ? valueFor(tcode) : null;
+  const priced = (holdings ?? []).map(valueFor).filter((value): value is number => value != null);
+  const total = priced.reduce((sum, value) => sum + value, 0);
   const feeShort = sol != null && sol.amount < 2_000_000n && (holdings ?? []).some((item) => !item.native && item.amount > 0n);
   return (
     <Frame nav>
       <DesktopNav />
       <p className="text-xs uppercase tracking-[0.16em] text-muted">Solana · {clusterLabel(cluster)}</p>
       <p className="mt-3 font-display text-5xl leading-none">
-        {prices && (solValue != null || tcodeValue != null) ? money(total) : holdings ? "—" : ""}
+        {priced.length ? money(total) : holdings ? "—" : ""}
       </p>
       <p className="mt-2 text-sm text-muted">
-        {prices && (solValue != null || tcodeValue != null)
-          ? "SOL and official $TCODE only. Other tokens stay as amounts."
-          : "Amounts load from the chain. Dollar prices are only for SOL and official $TCODE."}
+        Jupiter prices only. A token with no recent trade stays unpriced, and the number refreshes every 12 seconds.
       </p>
       <div className="mt-5 grid grid-cols-4 gap-2 text-center text-sm">
         <Link to="/send" className="grid min-h-14 place-items-center rounded-2xl bg-primary font-semibold text-primary-ink">Send</Link>
@@ -123,11 +142,11 @@ export function HomeScreen() {
       ) : null}
       <div className="mt-4 space-y-3">
         {!holdings && !error ? <p className="text-sm text-muted">Loading balances from Solana…</p> : null}
-        {sol ? <TokenRow holding={sol} usd={solValue} change={prices?.solChange ?? null} /> : null}
-        {tcode ? <TokenRow holding={tcode} usd={tcodeValue} change={prices?.tcodeChange ?? null} /> : null}
+        {sol ? <TokenRow holding={sol} usd={solValue} quote={quoteFor(sol.mint)} chart={cluster === "mainnet-beta"} /> : null}
+        {tcode ? <TokenRow holding={tcode} usd={tcodeValue} quote={quoteFor(tcode.mint)} chart={cluster === "mainnet-beta"} /> : null}
         {holdings
           ?.filter((item) => !item.native && item.symbol !== "TCODE")
-          .map((item) => <TokenRow key={item.mint} holding={item} usd={null} change={null} />)}
+          .map((item) => <TokenRow key={item.mint} holding={item} usd={valueFor(item)} quote={quoteFor(item.mint)} chart={cluster === "mainnet-beta"} />)}
       </div>
       <p className="mt-4 text-sm text-muted">
         <Link to="/limit" className="text-accent">Limit</Link>
@@ -167,24 +186,31 @@ function usdValue(amount: bigint, decimals: number, price: number): number | nul
   return units * price;
 }
 
-function TokenRow({ holding, usd, change }: { holding: Holding; usd: number | null; change: number | null }) {
+function TokenRow({ holding, usd, quote, chart }: { holding: Holding; usd: number | null; quote?: LivePrice; chart: boolean }) {
   return (
     <Link
       to="/token/$mint"
       params={{ mint: holding.mint }}
-      className="flex items-center justify-between rounded-card border border-line bg-surface px-4 py-4"
+      className="block rounded-card border border-line bg-surface px-4 py-4"
     >
-      <span>
-        <span className="block font-semibold">{holding.symbol}</span>
-        <span className="text-sm text-muted">{holding.name}</span>
-      </span>
-      <span className="text-right">
-        <span className="block font-medium">{formatTokenAmount(holding.amount, holding.decimals, 6)}</span>
-        <span className="text-sm text-muted">
-          {usd == null ? "No dollar price" : money(usd)}
-          {change == null ? "" : ` · ${change >= 0 ? "+" : ""}${change.toFixed(1)}%`}
+      <span className="flex items-center justify-between gap-3">
+        <span>
+          <span className="block font-semibold">{holding.symbol}</span>
+          <span className="text-sm text-muted">{holding.name}</span>
+        </span>
+        <span className="text-right">
+          <span className="block font-medium">{formatTokenAmount(holding.amount, holding.decimals, 6)}</span>
+          <span className="text-sm text-muted">
+            {usd == null ? "No live price" : money(usd)}
+            {quote?.change == null ? "" : ` · ${quote.change >= 0 ? "+" : ""}${quote.change.toFixed(1)}%`}
+          </span>
         </span>
       </span>
+      {chart ? (
+        <span className="mt-3 block">
+          <Sparkline mint={holding.mint} live={quote?.usd ?? null} />
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -194,6 +220,7 @@ export function TokenScreen({ mint }: { mint: string }) {
   const cluster = useWallet((state) => state.cluster);
   const [holding, setHolding] = useState<Holding | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [quote, setQuote] = useState<LivePrice | null>(null);
   useEffect(() => {
     if (!keypair) return;
     let cancelled = false;
@@ -209,14 +236,39 @@ export function TokenScreen({ mint }: { mint: string }) {
       cancelled = true;
     };
   }, [keypair, cluster, mint]);
+  useEffect(() => {
+    if (cluster !== "mainnet-beta") return;
+    let stop = false;
+    const load = () => {
+      void fetchLivePrices([mint])
+        .then((rows) => {
+          if (!stop) setQuote(rows[priceMint(mint)] ?? null);
+        })
+        .catch(() => undefined);
+    };
+    load();
+    const timer = window.setInterval(load, 12_000);
+    return () => {
+      stop = true;
+      window.clearInterval(timer);
+    };
+  }, [cluster, mint]);
   if (!ready || !keypair) return <Frame title="Token" nav />;
+  const unit = quote?.usd ?? null;
   return (
     <Frame nav title={holding?.symbol ?? "Token"} subtitle={holding?.trusted ? holding.name : "Unverified SPL token. Trust the mint, not the symbol."}>
       <DesktopNav />
       {error ? <Notice tone="danger">{error}</Notice> : null}
+      <p className="font-display text-5xl">{unit == null ? "No live price" : money(unit)}</p>
+      <p className="mt-2 text-sm text-muted">
+        {quote?.change == null ? "24h change unavailable" : `${quote.change >= 0 ? "+" : ""}${quote.change.toFixed(2)}% in 24 hours`}
+      </p>
+      <div className="mt-4">
+        {cluster === "mainnet-beta" ? <TokenChart mint={mint} live={unit} /> : <Notice>Charts use mainnet prices. This wallet is on devnet.</Notice>}
+      </div>
       {holding ? (
-        <div className="space-y-4">
-          <p className="font-display text-5xl">{formatTokenAmount(holding.amount, holding.decimals, 6)}</p>
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-muted">Balance {formatTokenAmount(holding.amount, holding.decimals, 6)} {holding.symbol}</p>
           <Card>
             <p className="text-xs uppercase tracking-[0.14em] text-muted">Mint</p>
             <p className="mt-2 break-all text-sm">{holding.native ? "Native SOL" : holding.mint}</p>
@@ -230,7 +282,7 @@ export function TokenScreen({ mint }: { mint: string }) {
           </Link>
         </div>
       ) : error ? null : (
-        <p className="text-sm text-muted">Looking up this token…</p>
+        <p className="mt-4 text-sm text-muted">Looking up this token…</p>
       )}
     </Frame>
   );

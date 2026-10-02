@@ -65,6 +65,40 @@ export function routeLabels(quote: JupiterQuote): string[] {
   return (quote.routePlan ?? []).map((step) => step.swapInfo?.label).filter((label): label is string => Boolean(label));
 }
 
+export type Candle = { time: number; close: number };
+export type LivePrice = { usd: number | null; change: number | null };
+
+export function priceMint(mint: string): string {
+  return mint === "SOL" ? SOL_MINT : mint;
+}
+
+export async function fetchLivePrices(mints: string[]): Promise<Record<string, LivePrice>> {
+  const ids = [...new Set(mints.map(priceMint))].slice(0, 50);
+  if (!ids.length) return {};
+  const response = await fetch(`/.netlify/functions/jupiter?action=price&ids=${ids.join(",")}`);
+  const body = (await response.json()) as { prices?: Record<string, { usdPrice?: number; priceChange24h?: number }>; error?: string };
+  if (!response.ok) throw new Error(body.error || "Price unavailable.");
+  const prices: Record<string, LivePrice> = {};
+  for (const mint of ids) {
+    const row = body.prices?.[mint];
+    prices[mint] = { usd: row?.usdPrice ?? null, change: row?.priceChange24h ?? null };
+  }
+  return prices;
+}
+
+export async function fetchChart(mint: string, interval: string, candles: number): Promise<Candle[]> {
+  const params = new URLSearchParams({
+    action: "chart",
+    mint: priceMint(mint),
+    interval,
+    candles: String(candles),
+  });
+  const response = await fetch(`/.netlify/functions/jupiter?${params}`);
+  const body = (await response.json()) as { candles?: Candle[]; error?: string };
+  if (!response.ok) throw new Error(body.error || "Chart unavailable.");
+  return Array.isArray(body.candles) ? body.candles : [];
+}
+
 export async function fetchOfficialPrices(): Promise<{
   solUsd: number | null;
   tcodeUsd: number | null;
@@ -72,19 +106,13 @@ export async function fetchOfficialPrices(): Promise<{
   tcodeChange: number | null;
   tcodeLiquidity: number | null;
 }> {
-  const response = await fetch("/.netlify/functions/jupiter?action=price");
-  const body = (await response.json()) as {
-    sol?: { usdPrice?: number; priceChange24h?: number };
-    tcode?: { usdPrice?: number; liquidity?: number; priceChange24h?: number };
-    error?: string;
-  };
-  if (!response.ok) throw new Error(body.error || "Price unavailable.");
+  const prices = await fetchLivePrices([SOL_MINT, TCODE_MINT]);
   return {
-    solUsd: body.sol?.usdPrice ?? null,
-    tcodeUsd: body.tcode?.usdPrice ?? null,
-    solChange: body.sol?.priceChange24h ?? null,
-    tcodeChange: body.tcode?.priceChange24h ?? null,
-    tcodeLiquidity: body.tcode?.liquidity ?? null,
+    solUsd: prices[SOL_MINT]?.usd ?? null,
+    tcodeUsd: prices[TCODE_MINT]?.usd ?? null,
+    solChange: prices[SOL_MINT]?.change ?? null,
+    tcodeChange: prices[TCODE_MINT]?.change ?? null,
+    tcodeLiquidity: null,
   };
 }
 

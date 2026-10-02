@@ -1,6 +1,8 @@
 const QUOTE = "https://api.jup.ag/swap/v1/quote";
 const SWAP = "https://api.jup.ag/swap/v1/swap";
 const PRICE = "https://api.jup.ag/price/v3";
+const CHART = "https://datapi.jup.ag/v2/charts";
+const CHART_INTERVALS = new Set(["1_MINUTE", "5_MINUTE", "15_MINUTE", "1_HOUR", "4_HOUR", "1_DAY"]);
 const LIMIT = "https://api.jup.ag/trigger/v1/createOrder";
 const LIMIT_EXECUTE = "https://api.jup.ag/trigger/v1/execute";
 const SOL = "So11111111111111111111111111111111111111112";
@@ -10,6 +12,14 @@ const FEE_BPS = "20";
 
 function chargesTcodeFee(inputMint, outputMint) {
   return inputMint === TCODE || outputMint === TCODE;
+}
+
+function mintList(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(item))
+    .slice(0, 50);
 }
 
 function json(body, status = 200) {
@@ -26,12 +36,35 @@ export default async (request) => {
   const incoming = new URL(request.url);
 
   if (request.method === "GET" && incoming.searchParams.get("action") === "price") {
-    const response = await fetch(`${PRICE}?ids=${SOL},${TCODE}`, { headers: { "x-api-key": key } });
+    const ids = mintList(incoming.searchParams.get("ids"));
+    const query = (ids.length ? ids : [SOL, TCODE]).join(",");
+    const response = await fetch(`${PRICE}?ids=${query}`, { headers: { "x-api-key": key } });
     const body = await response.json();
     return json({
+      prices: body && typeof body === "object" ? body : {},
       sol: body?.[SOL] ?? null,
       tcode: body?.[TCODE] ?? null,
     }, response.ok ? 200 : response.status);
+  }
+
+  if (request.method === "GET" && incoming.searchParams.get("action") === "chart") {
+    const mint = mintList(incoming.searchParams.get("mint"))[0];
+    const interval = incoming.searchParams.get("interval") || "15_MINUTE";
+    const candles = Math.min(200, Math.max(2, Number(incoming.searchParams.get("candles")) || 96));
+    if (!mint) return json({ error: "Missing mint." }, 400);
+    if (!CHART_INTERVALS.has(interval)) return json({ error: "Unsupported chart interval." }, 400);
+    const upstream = new URL(`${CHART}/${mint}`);
+    upstream.searchParams.set("interval", interval);
+    upstream.searchParams.set("to", String(Date.now()));
+    upstream.searchParams.set("candles", String(candles));
+    const response = await fetch(upstream);
+    const body = await response.json();
+    const points = Array.isArray(body?.candles)
+      ? body.candles
+          .filter((candle) => Number.isFinite(candle?.time) && Number.isFinite(candle?.close))
+          .map((candle) => ({ time: candle.time, close: candle.close }))
+      : [];
+    return json({ candles: points }, response.ok ? 200 : response.status);
   }
 
   if (request.method === "GET") {
