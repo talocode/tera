@@ -9,12 +9,12 @@ import {
   tokensFromRaw,
   verifyEd25519,
 } from './crypto'
+import { rpcCall as solanaRpc } from '@/lib/blockchain-lab/real/rpc'
 import {
   CHALLENGE_TTL_MS,
   TCODE_DECIMALS,
   TCODE_MINT,
   challengeMessage,
-  getSolanaRpcUrl,
   tierFromTokens,
 } from './config'
 
@@ -23,28 +23,11 @@ type LinkRow = {
   linkedAt: string
 }
 
-async function rpcCall(rpcUrl: string, method: string, params: unknown[]) {
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  })
-  if (!response.ok) {
-    throw new TcodeError(503, 'rpc_unavailable', 'Could not read $TCODE holdings from chain')
-  }
-  const payload = await response.json()
-  if (payload.error) {
-    throw new TcodeError(503, 'rpc_unavailable', 'Could not read $TCODE holdings from chain')
-  }
-  return payload.result
-}
-
 export async function fetchTokenRawBalance(owner: string, mint = TCODE_MINT): Promise<string> {
-  const result = await rpcCall(getSolanaRpcUrl(), 'getTokenAccountsByOwner', [
-    owner,
-    { mint },
-    { encoding: 'jsonParsed' },
-  ])
+  const result = await solanaRpc<{ value?: { account?: { data?: { parsed?: { info?: { tokenAmount?: { amount?: string } } } } } }[] }>(
+    'getTokenAccountsByOwner',
+    [owner, { mint }, { encoding: 'jsonParsed' }],
+  )
   const accounts = result?.value || []
   let total = 0n
   for (const account of accounts) {

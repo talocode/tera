@@ -62,20 +62,22 @@ export default function TcodeHoldToEarn() {
     fetch('/api/tcode')
       .then((res) => res.json())
       .then((data) => setConfig(data))
-      .catch(() => setConfig(null))
-      .finally(() => setLoading(false));
+      .catch(() => setConfig(null));
+    fetchHoldings().finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (walletAddress) fetchHoldings();
-  }, [walletAddress]);
 
   async function fetchHoldings() {
     try {
       const res = await fetch('/api/tcode/holdings');
       const data = await res.json();
-      if (data.ok) setHoldings(data);
-      else if (data.error) setError(data.error);
+      if (data.ok) {
+        setHoldings(data);
+        setError(null);
+      } else if (res.status === 404) {
+        setHoldings(null);
+      } else if (data.error) {
+        setError(data.error);
+      }
     } catch {
       setError(null);
     }
@@ -192,7 +194,7 @@ export default function TcodeHoldToEarn() {
         ))}
       </div>
 
-      {walletAddress && holdings && (
+      {holdings ? (
         <div className="mt-4 rounded-lg border border-tera-border bg-tera-elevated p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -210,25 +212,29 @@ export default function TcodeHoldToEarn() {
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-tera-secondary">Current tier</p>
+              <p className="text-xs uppercase tracking-wide text-tera-secondary">This month</p>
               <p className="text-sm text-tera-primary">
-                {holdings.tier ? `${holdings.tier.key} (${holdings.tier.monthlyCredits.toLocaleString()} cr/mo)` : 'Below explorer tier'}
+                {holdings.tier
+                  ? `${holdings.tier.monthlyCredits.toLocaleString()} TeraAI credits`
+                  : 'Hold at least 1 $TCODE to claim'}
               </p>
             </div>
           </div>
           {holdings.claimedThisPeriod ? (
             <p className="mt-3 text-sm text-emerald-400">
-              Monthly credits already claimed for {holdings.period}.
+              {holdings.tier
+                ? `${holdings.tier.monthlyCredits.toLocaleString()} TeraAI credits already claimed for ${holdings.period}.`
+                : `Already claimed for ${holdings.period}.`}
             </p>
+          ) : holdings.tier ? (
+            <button type="button" onClick={claim} disabled={busy} className="tera-button-primary mt-3">
+              {busy ? 'Claiming...' : `Claim ${holdings.tier.monthlyCredits.toLocaleString()} TeraAI credits`}
+            </button>
           ) : (
-            holdings.tier && (
-              <button type="button" onClick={claim} disabled={busy} className="tera-button-primary mt-3">
-                {busy ? 'Claiming...' : `Claim ${holdings.tier.monthlyCredits.toLocaleString()} credits`}
-              </button>
-            )
+            <p className="mt-3 text-sm text-tera-secondary">Hold at least 1 $TCODE in this wallet to unlock 1,000 TeraAI credits.</p>
           )}
         </div>
-      )}
+      ) : null}
 
       {!walletAddress && providerAvailable === true && (
         <button type="button" onClick={connectWallet} className="tera-button-primary mt-4">
