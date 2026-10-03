@@ -38,7 +38,7 @@ export const navigation: NavItem[] = [
   { label: 'New chat', icon: 'chat', href: '/new' },
   { label: 'Search', icon: 'search', href: '/search' },
   { label: 'Images', icon: 'images', href: '/images' },
-  { label: 'Skills', icon: 'apps', href: '/skills' },
+  { label: 'Connectors', icon: 'apps', href: '/connectors' },
   { label: 'Blockchain Lab', icon: 'lab', href: '/lab/blockchain' },
   { label: 'Wallet', icon: 'wallet', href: '/wallet' },
   { label: 'Docs', icon: 'docs', href: '/docs/wallet' },
@@ -262,7 +262,6 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
         }}
       >
         <div className="flex h-full min-h-0 flex-col px-2.5 py-3">
-          {/* Logo */}
           <div className="flex shrink-0 items-center justify-center md:justify-start">
             <button
               type="button"
@@ -276,13 +275,12 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             </button>
           </div>
 
-          {/* Nav */}
           <nav className="mt-2 flex shrink-0 flex-col gap-0.5">
             {navigation.map((item) => {
               const isNewChat = item.href.startsWith('/new')
               const isActive = isNewChat
                 ? pathname?.startsWith('/new')
-                : pathname === item.href || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/skills') && pathname?.startsWith('/skills')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab')) || (item.href.startsWith('/settings/usage') && pathname?.startsWith('/settings/usage')) || (item.href.startsWith('/wallet') && pathname?.startsWith('/wallet')) || (item.href.startsWith('/docs') && pathname?.startsWith('/docs')) || (item.href.startsWith('/news') && pathname?.startsWith('/news'))
+                : pathname === item.href || (item.href.startsWith('/search') && pathname?.startsWith('/search')) || (item.href.startsWith('/connectors') && pathname?.startsWith('/connectors')) || (item.href.startsWith('/lab') && pathname?.startsWith('/lab')) || (item.href.startsWith('/settings/usage') && pathname?.startsWith('/settings/usage')) || (item.href.startsWith('/wallet') && pathname?.startsWith('/wallet')) || (item.href.startsWith('/docs') && pathname?.startsWith('/docs')) || (item.href.startsWith('/news') && pathname?.startsWith('/news'))
 
               const Tag = Link
               return (
@@ -321,7 +319,6 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
             })}
           </nav>
 
-          {/* Chat History */}
           {user?.id && (
             <div className="mt-3 flex min-h-0 flex-1 flex-col">
               <div className={[
