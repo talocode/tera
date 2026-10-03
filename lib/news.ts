@@ -8,6 +8,19 @@ export type NewsPost = {
 
 export const newsPosts: NewsPost[] = [
   {
+    slug: 'tcode-supply-3-oct',
+    date: '3 October 2026',
+    title: '17,856 $TCODE is in wallets. The claim button is live',
+    summary: 'Supply is still 500,000. Wallets hold 17,856. The Meteora launch curve still holds 482,144. A linked Tera wallet can claim monthly credits from that balance.',
+    body: [
+      'Official $TCODE is mint 6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory. Total supply is 500,000. Mint authority and freeze authority are revoked.',
+      'On 3 October 2026, wallets held 17,856 $TCODE. The Meteora launch curve still held 482,144. Circulating supply is what is already in wallets. Do not treat the full 500,000 as freely circulating. There is no open pool yet.',
+      'Tera Wallet can hold that mint. Link the wallet in Blockchain Lab and the lab reads the on-chain balance. If the balance meets a tier, the claim button shows the monthly TeraAI credits. The tokens stay in the wallet. Credits are product usage, not cash. One claim per UTC month.',
+      'Explorer is 1 $TCODE for 1,000 credits. Builder is 100 for 10,000. Ecosystem is 1,000 for 100,000. Partner is 5,000 for 500,000.',
+      'Create the wallet at teraai.chat/wallet. Buy only this mint. The recovery phrase never leaves the browser.',
+    ],
+  },
+  {
     slug: 'wallet-reads',
     date: '30 September 2026',
     title: 'Wallet balances no longer fail on unlock',
