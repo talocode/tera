@@ -30,6 +30,30 @@ function picksFor(phrase: string): number[] {
   return [...indexes].sort((a, b) => a - b);
 }
 
+function reportCreatedWallet(address: string) {
+  const key = `tera-wallet-reported:${address}`;
+  try {
+    if (sessionStorage.getItem(key) === "1") return;
+  } catch {
+    // Session storage can be unavailable. The request is still safe to send.
+  }
+  void fetch("/api/wallet/register", {
+    method: "POST",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ walletAddress: address }),
+  })
+    .then((response) => {
+      if (!response.ok) return;
+      try {
+        sessionStorage.setItem(key, "1");
+      } catch {
+        // Ignore storage failures. The server already has the address.
+      }
+    })
+    .catch(() => undefined);
+}
+
 function wipe(keypair: Keypair | null) {
   if (!keypair) return;
   keypair.secretKey.fill(0);
@@ -66,6 +90,7 @@ export const useWallet = create<WalletState>((set, get) => ({
     const sealed = await sealMnemonic(mnemonic, passcode);
     const vault: VaultRecord = { v: 1, publicKey: keypair.publicKey.toBase58(), ...sealed };
     writeVault(vault);
+    reportCreatedWallet(vault.publicKey);
     set({ vault, keypair, draftMnemonic: null, confirmIndexes: [] });
   },
   unlock: async (passcode: string) => {
@@ -77,6 +102,7 @@ export const useWallet = create<WalletState>((set, get) => ({
       wipe(keypair);
       throw new Error("Saved wallet data does not match this recovery phrase.");
     }
+    reportCreatedWallet(vault.publicKey);
     set({ vault, keypair });
   },
   lock: () => {

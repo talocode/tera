@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { supabaseServer as supabase } from '@/lib/supabase-server'
 import { isAdminUser } from '@/lib/admin'
+import { periodUtc } from '@/lib/tcode/crypto'
 import { supportsUsageLedger } from '@/lib/usage-ledger'
 
 function throwIfSupabaseError(error: any, context: string) {
@@ -26,6 +27,67 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Analytics error:', error)
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
+  }
+}
+
+async function userIdsFor(eventType: string): Promise<Set<string>> {
+  const ids = new Set<string>()
+  const page = 1000
+  for (let from = 0; ; from += page) {
+    const { data, error } = await supabase
+      .from('credit_usage_events')
+      .select('user_id')
+      .eq('event_type', eventType)
+      .range(from, from + page - 1)
+    throwIfSupabaseError(error, eventType)
+    for (const row of data || []) {
+      if (row.user_id) ids.add(row.user_id)
+    }
+    if (!data || data.length < page) break
+  }
+  return ids
+}
+
+async function walletAnalytics() {
+  const period = periodUtc()
+  const [createdIds, linkedIds] = await Promise.all([
+    userIdsFor('tera_wallet'),
+    userIdsFor('tcode_link'),
+  ])
+  const created = new Set([...createdIds, ...linkedIds])
+  const { count: claimedThisMonth, error: claimedError } = await supabase
+    .from('credit_usage_events')
+    .select('*', { count: 'exact', head: true })
+    .eq('event_type', 'tcode_claim')
+    .eq('metadata->>period', period)
+  throwIfSupabaseError(claimedError, 'wallet-claims')
+
+  const { data: recentRows, error: recentError } = await supabase
+    .from('credit_usage_events')
+    .select('user_id, created_at, event_type, metadata')
+    .in('event_type', ['tera_wallet', 'tcode_link', 'tcode_claim'])
+    .order('created_at', { ascending: false })
+    .limit(40)
+  throwIfSupabaseError(recentError, 'wallet-recent')
+
+  const userIds = [...new Set((recentRows || []).map((row: any) => row.user_id).filter(Boolean))]
+  const { data: users, error: usersError } = userIds.length
+    ? await supabase.from('users').select('id, email').in('id', userIds)
+    : { data: [], error: null as any }
+  throwIfSupabaseError(usersError, 'wallet-users')
+  const emailById = new Map((users || []).map((user: any) => [user.id, user.email]))
+
+  return {
+    created: created.size,
+    linked: linkedIds.size,
+    claimedThisMonth: claimedThisMonth || 0,
+    period,
+    recent: (recentRows || []).slice(0, 12).map((row: any) => ({
+      email: emailById.get(row.user_id) || 'Unknown account',
+      event: row.event_type,
+      walletAddress: row.metadata?.walletAddress || '',
+      at: row.created_at,
+    })),
   }
 }
 
@@ -284,6 +346,7 @@ async function getAnalyticsData() {
   const firstMessageSent = eventCounts.first_message_sent.size
   const firstCreditUsed = eventCounts.first_credit_used.size
   const onboardingChoiceBreakdown = choiceCounts
+  const wallets = await walletAnalytics()
 
   return {
     summary: {
@@ -329,5 +392,6 @@ async function getAnalyticsData() {
       creditRate: totalUsers && totalUsers > 0 ? ((firstCreditUsed / totalUsers) * 100).toFixed(1) : '0',
       byChoice: onboardingChoiceBreakdown,
     },
+    wallets,
   }
 }

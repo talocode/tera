@@ -1,7 +1,7 @@
 // Admin utilities
 // Helper functions for admin authentication and authorization
 
-const ADMIN_EMAILS = ['abdulmuizproject@gmail.com']
+const ADMIN_EMAILS = ['abdulmuizproject@gmail.com', 'mhistermuiz@gmail.com']
 
 export function isAdminUser(email: string | undefined): boolean {
   if (!email) return false

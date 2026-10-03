@@ -59,10 +59,15 @@ export function connectionFor(cluster: Cluster): Connection {
   });
 }
 
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
 export function describeMint(mint: string, cluster: Cluster): Pick<Holding, "symbol" | "name" | "trusted"> {
   if (mint === "SOL") return { symbol: "SOL", name: "Solana", trusted: true };
   if (cluster === "mainnet-beta" && mint === tcodeMint()) {
     return { symbol: "TCODE", name: "Talocode", trusted: true };
+  }
+  if (cluster === "mainnet-beta" && mint === USDC_MINT) {
+    return { symbol: "USDC", name: "USD Coin", trusted: true };
   }
   return {
     symbol: "SPL",

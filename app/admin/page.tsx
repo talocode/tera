@@ -47,6 +47,13 @@ interface AnalyticsData {
     creditRate: string
     byChoice: Record<string, number>
   }
+  wallets: {
+    created: number
+    linked: number
+    claimedThisMonth: number
+    period: string
+    recent: Array<{ email: string; event: string; walletAddress: string; at: string }>
+  }
 }
 
 function MetricCard({ title, value, subtext }: { title: string; value: string | number; subtext?: string }) {
@@ -151,6 +158,30 @@ export default function AdminPage() {
               <MetricCard title="Total chats" value={analytics.summary.totalChatSessions} subtext={`${analytics.summary.chatsToday} today`} />
               <MetricCard title="Active users" value={analytics.summary.activeUsersToday} subtext="Today's activity" />
               <MetricCard title="Upgrade rate" value={`${analytics.summary.upgradeRate}%`} subtext={`${analytics.summary.upgradedAfterLimit} after limit`} />
+            </div>
+
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              <MetricCard title="Tera wallets created" value={analytics.wallets.created} subtext="Opened while signed in, plus linked wallets" />
+              <MetricCard title="Linked for monthly credits" value={analytics.wallets.linked} subtext="Blockchain lab hold-to-earn" />
+              <MetricCard title="Claimed this month" value={analytics.wallets.claimedThisMonth} subtext={analytics.wallets.period} />
+            </div>
+
+            <div className="mt-8">
+              <div className="tera-card">
+                <p className="tera-eyebrow">Wallets</p>
+                <h2 className="mt-3 text-xl font-semibold text-tera-primary">Recent wallet activity</h2>
+                <div className="mt-5 space-y-3">
+                  {analytics.wallets.recent.length === 0 ? (
+                    <p className="text-sm text-tera-secondary">No wallet has been recorded yet.</p>
+                  ) : analytics.wallets.recent.map((row) => (
+                    <div key={`${row.event}-${row.email}-${row.at}`} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate text-tera-primary">{row.email}</span>
+                      <span className="shrink-0 text-tera-secondary">{row.event.replace('tcode_', '').replace('tera_', '')}</span>
+                      <span className="shrink-0 font-mono text-xs text-tera-secondary">{row.walletAddress ? `${row.walletAddress.slice(0, 4)}…${row.walletAddress.slice(-4)}` : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="mt-8">
