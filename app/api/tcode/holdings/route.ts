@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { TcodeError } from '@/lib/tcode/crypto';
-import { getHoldings } from '@/lib/tcode/store';
+import { getHoldings, getRefillStatusForUser } from '@/lib/tcode/store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     }
 
     const holdings = await getHoldings(session.user.id);
-    return NextResponse.json({ ok: true, ...holdings });
+    const refill = await getRefillStatusForUser(session.user.id, Math.floor(holdings.tcodeTokens));
+    return NextResponse.json({ ok: true, ...holdings, refill });
   } catch (error) {
     if (error instanceof TcodeError) {
       return NextResponse.json({ ok: false, error: error.message, code: error.code }, { status: error.status });

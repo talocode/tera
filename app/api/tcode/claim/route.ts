@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       period: result.period,
       tier: result.tier,
       tcodeTokens: result.tcodeTokens,
+      clawedBack: result.clawedBack ?? 0,
       receiptId: result.receiptId ?? null,
       beforeBalance,
       afterBalance,

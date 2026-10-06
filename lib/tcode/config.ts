@@ -2,6 +2,10 @@ export const TCODE_MINT = '6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory'
 export const CHALLENGE_TTL_MS = 5 * 60 * 1000
 export const TCODE_DECIMALS = 6
 
+export const TCODE_REFILL_CREDITS = 500
+export const TCODE_REFILL_MAX_PER_PERIOD = 2
+export const TCODE_REFILL_MIN_EXTRA = 1
+
 export const DEFAULT_SOLANA_RPC_URL = 'https://api.mainnet-beta.solana.com'
 
 export function getSolanaRpcUrl(): string {
@@ -24,6 +28,18 @@ export function tierFromTokens(tokens: number): (typeof TCODE_TIERS)[number] | n
   return [...TCODE_TIERS].reverse().find((tier) => whole >= tier.minTCODE) || null
 }
 
+export function refillClawback(
+  currentWhole: number,
+  refills: { balanceAtRefill: number; credits: number }[],
+) {
+  const held = Math.floor(Number(currentWhole) || 0)
+  return refills.reduce((sum, refill) => {
+    const needed = Math.floor(Number(refill.balanceAtRefill) || 0)
+    const credits = Math.max(0, Math.floor(Number(refill.credits) || 0))
+    return held < needed ? sum + credits : sum
+  }, 0)
+}
+
 export function challengeMessage({ userId, nonce, expiresAt }: { userId: string; nonce: string; expiresAt: string }) {
   return ['Tera', `Link wallet to Tera account ${userId}`, `Nonce: ${nonce}`, `Expires: ${expiresAt}`].join('\n')
 }
@@ -42,6 +58,11 @@ export function tcodePublicConfig() {
       minTCODE: tier.minTCODE,
       monthlyCredits: tier.monthlyCredits,
     })),
+    refill: {
+      credits: TCODE_REFILL_CREDITS,
+      maxPerPeriod: TCODE_REFILL_MAX_PER_PERIOD,
+      extraTokens: TCODE_REFILL_MIN_EXTRA,
+    },
     jupiterTokenUrl: JUPITER_TOKEN_URL,
   }
 }

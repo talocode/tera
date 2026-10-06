@@ -9,6 +9,20 @@ interface TcodeConfig {
   link: string;
   tiers: { key: string; minTCODE: number; monthlyCredits: number }[];
   jupiterTokenUrl: string;
+  refill?: { credits: number; maxPerPeriod: number; extraTokens: number };
+}
+
+interface RefillStatus {
+  credits: number;
+  maxPerPeriod: number;
+  usedThisPeriod: number;
+  remainingThisPeriod: number;
+  baselineTokens: number | null;
+  requiredTokens: number | null;
+  eligible: boolean;
+  reason: string;
+  period: string;
+  creditsRemaining: number | null;
 }
 
 interface Holdings {
@@ -20,6 +34,7 @@ interface Holdings {
   period: string;
   claimedThisPeriod: boolean;
   linkedAt: string | null;
+  refill?: RefillStatus;
 }
 
 interface WalletApi {
@@ -109,9 +124,6 @@ export default function TcodeHoldToEarn() {
       const challenge = await challengeRes.json();
       if (!challenge.ok) throw new Error(challenge.error || 'Could not create challenge.');
 
-      // Phantom takes bytes here, not a string. Handing it the challenge text made
-      // it throw "Expected Uint8Array". TextEncoder produces the same bytes the
-      // server rebuilds with Buffer.from(message, 'utf8'), so the signature verifies.
       const signed = await window.solana.signMessage(new TextEncoder().encode(challenge.message), 'utf8');
       const signatureBase64 = bytesToBase64(signed.signature);
 
@@ -147,6 +159,8 @@ export default function TcodeHoldToEarn() {
         setMessage(`You already claimed ${data.tier?.monthlyCredits || 0} credits this month.`);
       } else if (data.reason === 'below_tier') {
         setError('Hold at least 1 $TCODE to claim. See tiers below.');
+      } else if (data.clawedBack > 0) {
+        setMessage(`Claimed ${data.granted} credits. ${data.clawedBack} were dropped because refill tokens were no longer in the wallet.`);
       } else {
         setMessage(`Claimed ${data.granted} credits into your Tera balance.`);
       }
@@ -157,6 +171,44 @@ export default function TcodeHoldToEarn() {
       setBusy(false);
     }
   }
+
+  async function refill() {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/tcode/refill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Refill failed.');
+      if (data.reason === 'granted') {
+        setMessage(`Refilled ${data.granted} credits. The extra $TCODE has to still be in this wallet at the next monthly claim.`);
+      } else if (data.reason === 'need_more_tokens') {
+        setError(`Hold at least ${data.requiredTokens} official $TCODE to refill.`);
+      } else if (data.reason === 'has_credits') {
+        setError('Refill opens when your credit balance is 0.');
+      } else if (data.reason === 'limit') {
+        setError('You already used both refills this month.');
+      } else if (data.reason === 'claim_first') {
+        setError('Claim this month first.');
+      } else {
+        setError('Refill is not available.');
+      }
+      await fetchHoldings();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not refill credits.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const refillStatus = holdings?.refill;
+  const heldLabel = holdings
+    ? holdings.tcodeTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })
+    : '0';
 
   return (
     <div className="rounded-xl border border-tera-border bg-tera-panel p-6">
@@ -205,11 +257,7 @@ export default function TcodeHoldToEarn() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-tera-secondary">$TCODE held on-chain</p>
-              <p className="font-mono text-sm text-tera-primary">
-                {holdings.tcodeTokens.toLocaleString(undefined, {
-                  maximumFractionDigits: 2,
-                })}
-              </p>
+              <p className="font-mono text-sm text-tera-primary">{heldLabel}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-tera-secondary">This month</p>
@@ -233,6 +281,29 @@ export default function TcodeHoldToEarn() {
           ) : (
             <p className="mt-3 text-sm text-tera-secondary">Hold at least 1 $TCODE in this wallet to unlock 1,000 TeraAI credits.</p>
           )}
+
+          {refillStatus && refillStatus.reason !== 'claim_first' && refillStatus.reason !== 'below_mint' && refillStatus.reason !== 'credits_unknown' ? (
+            <div className="mt-4 border-t border-tera-border pt-4">
+              <p className="text-sm font-medium text-tera-primary">Refill</p>
+              <p className="mt-1 text-sm text-tera-secondary">
+                {refillStatus.reason === 'eligible' && refillStatus.requiredTokens != null
+                  ? `You are at 0 credits. Hold ${refillStatus.requiredTokens.toLocaleString()} official $TCODE to add 500 now. You hold ${heldLabel}. ${refillStatus.usedThisPeriod} of ${refillStatus.maxPerPeriod} refills used.`
+                  : refillStatus.reason === 'need_more_tokens' && refillStatus.requiredTokens != null
+                    ? `Refill needs ${refillStatus.requiredTokens.toLocaleString()} official $TCODE in this wallet. You hold ${heldLabel}. It pays 500 credits, twice this month. The monthly tiers do not change.`
+                    : refillStatus.reason === 'limit'
+                      ? `Both refills are already used for ${refillStatus.period}.`
+                      : 'Refill opens when your credit balance hits 0. One more official $TCODE pays 500 credits, twice a month.'}
+              </p>
+              <p className="mt-1 text-xs text-tera-secondary">
+                The extra tokens have to still be in this wallet at the next monthly claim, or that grant drops by what the refill paid.
+              </p>
+              {refillStatus.eligible ? (
+                <button type="button" onClick={refill} disabled={busy} className="tera-button-primary mt-3">
+                  {busy ? 'Refilling...' : 'Refill 500 credits'}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
