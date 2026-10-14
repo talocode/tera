@@ -13,6 +13,7 @@ export function getSolanaRpcUrl(): string {
 }
 
 export const JUPITER_TOKEN_URL = `https://jup.ag/tokens/${TCODE_MINT}`
+export const ORB_TOKEN_URL = `https://orbmarkets.io/token/${TCODE_MINT}`
 
 export const TCODE_TIERS = [
   { key: 'explorer', minTCODE: 1, monthlyCredits: 1000 },
@@ -64,5 +65,6 @@ export function tcodePublicConfig() {
       extraTokens: TCODE_REFILL_MIN_EXTRA,
     },
     jupiterTokenUrl: JUPITER_TOKEN_URL,
+    orbTokenUrl: ORB_TOKEN_URL,
   }
 }

@@ -9,6 +9,7 @@ interface TcodeConfig {
   link: string;
   tiers: { key: string; minTCODE: number; monthlyCredits: number }[];
   jupiterTokenUrl: string;
+  orbTokenUrl?: string;
   refill?: { credits: number; maxPerPeriod: number; extraTokens: number };
 }
 
@@ -316,16 +317,39 @@ export default function TcodeHoldToEarn() {
       {message && <p className="mt-3 text-sm text-emerald-400">{message}</p>}
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 
-      {config?.jupiterTokenUrl && (
-        <a
-          href={config.jupiterTokenUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="tera-button-secondary mt-4 inline-block"
-        >
-          Buy $TCODE on Jupiter
-        </a>
+      {config?.orbTokenUrl && (
+        <iframe
+          src={config.orbTokenUrl}
+          title="Live TCODE market on Orb"
+          className="mt-4 w-full rounded-xl border border-white/10 bg-black"
+          style={{ height: 640 }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
       )}
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        {config?.orbTokenUrl && (
+          <a
+            href={config.orbTokenUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tera-button-secondary inline-block"
+          >
+            Live market on Orb
+          </a>
+        )}
+        {config?.jupiterTokenUrl && (
+          <a
+            href={config.jupiterTokenUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tera-button-secondary inline-block"
+          >
+            Buy $TCODE on Jupiter
+          </a>
+        )}
+      </div>
 
       <p className="mt-4 text-xs text-tera-secondary">{config?.link || ''}</p>
     </div>
