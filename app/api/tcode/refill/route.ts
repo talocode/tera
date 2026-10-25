@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { addPurchasedCredits } from '@/lib/free-plan-credits';
+import { addHoldCredits } from '@/lib/free-plan-credits';
 import { supabaseServer } from '@/lib/supabase-server';
 import { TcodeError } from '@/lib/tcode/crypto';
 import { refillCredits } from '@/lib/tcode/store';
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const result = await refillCredits(session.user.id)
 
     if (result.granted > 0) {
-      const granted = await addPurchasedCredits(session.user.id, result.granted)
+      const granted = await addHoldCredits(session.user.id, result.granted)
       if (!granted) {
         if (result.receiptId) {
           await supabaseServer.from('credit_usage_events').delete().eq('id', result.receiptId)
@@ -66,11 +66,11 @@ async function getCreditBalance(userId: string): Promise<number | null> {
   try {
     const { data } = await supabaseServer
       .from('users')
-      .select('purchased_credits_balance')
+      .select('promotional_credits')
       .eq('id', userId)
       .maybeSingle()
     if (!data) return null
-    return Math.max(0, Number(data.purchased_credits_balance || 0))
+    return Math.max(0, Number(data.promotional_credits || 0))
   } catch {
     return null
   }

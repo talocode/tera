@@ -340,11 +340,22 @@ export async function incrementUserCredits(userId: string, cost: number): Promis
     }
     remaining -= promotionalToConsume
 
-    const purchasedToConsume = Math.min(record.purchasedCredits, remaining)
-    if (record.hasCreditLedger) {
-      updatePayload.purchased_credits_balance = Math.max(0, record.purchasedCredits - purchasedToConsume)
+    // A paid top-up is reserved for the verified call. Chat may spend only the
+    // part of this column that is not backed by a Lemon Squeezy order.
+    let paidReserved = record.purchasedCredits
+    try {
+      paidReserved = await getPaidCreditsRemaining(userId)
+    } catch (reserveError) {
+      console.error('[paid_credit_reserve_failed]', { userId, reserveError })
+      paidReserved = record.purchasedCredits
     }
-    remaining -= purchasedToConsume
+    const reserved = Math.min(record.purchasedCredits, Math.max(0, paidReserved))
+    const holdInColumn = Math.max(0, record.purchasedCredits - reserved)
+    const holdToConsume = Math.min(holdInColumn, remaining)
+    if (record.hasCreditLedger && holdToConsume > 0) {
+      updatePayload.purchased_credits_balance = record.purchasedCredits - holdToConsume
+    }
+    remaining -= holdToConsume
 
     const monthlyToConsume = remaining
 
@@ -453,5 +464,105 @@ export async function applyPurchasedCreditTopup(
       error,
     })
     throw error
+  }
+}
+
+async function sumPaidTopups(userId: string): Promise<number | null> {
+  const { data, error } = await supabaseServer
+    .from('purchased_credit_topup_fulfillments')
+    .select('credits')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('[paid_topup_read_failed]', { userId, error })
+    return null
+  }
+
+  return (data || []).reduce((sum: number, row: { credits?: number | null }) => (
+    sum + Math.max(0, Number(row.credits || 0))
+  ), 0)
+}
+
+async function sumVerifiedSpends(userId: string): Promise<number | null> {
+  const { data, error } = await supabaseServer
+    .from('usage_ledger')
+    .select('credits_charged')
+    .eq('user_id', userId)
+    .contains('metadata', { kind: 'verified_call' })
+
+  if (error) {
+    console.error('[verified_spend_read_failed]', { userId, error })
+    return null
+  }
+
+  return (data || []).reduce((sum: number, row: { credits_charged?: number | null }) => (
+    sum + Math.max(0, Number(row.credits_charged || 0))
+  ), 0)
+}
+
+/** Credits backed by a Lemon Squeezy top-up and not yet spent on a verified call. */
+export async function getPaidCreditsRemaining(userId: string): Promise<number> {
+  const record = await getUserCreditRecord(userId)
+  const column = Math.max(0, record?.purchasedCredits || 0)
+  const topped = await sumPaidTopups(userId)
+  const spent = await sumVerifiedSpends(userId)
+  if (topped == null || spent == null) {
+    throw new Error('Unable to read paid credit ledger')
+  }
+  return Math.max(0, Math.min(column, topped - spent))
+}
+
+export async function spendPaidCredits(userId: string, cost: number): Promise<boolean> {
+  const charge = Math.max(1, Math.floor(Number(cost || 0)))
+  try {
+    const record = await getUserCreditRecord(userId)
+    if (!record?.hasCreditLedger) return false
+    const available = await getPaidCreditsRemaining(userId)
+    if (available < charge) return false
+    const next = record.purchasedCredits - charge
+    const { data, error } = await supabaseServer
+      .from('users')
+      .update({ purchased_credits_balance: next })
+      .eq('id', userId)
+      .eq('purchased_credits_balance', record.purchasedCredits)
+      .select('id')
+    if (error || !data?.length) {
+      console.error('[paid_credit_spend_failed]', { userId, charge, error })
+      return false
+    }
+    return true
+  } catch (error) {
+    console.error('[paid_credit_spend_failed]', { userId, charge, error })
+    return false
+  }
+}
+
+/** Hold-to-earn credits. These are not a purchase and cannot run the verified call. */
+export async function addHoldCredits(userId: string, creditsToAdd: number): Promise<boolean> {
+  const credits = Math.max(0, Math.floor(Number(creditsToAdd || 0)))
+  if (credits <= 0) return false
+  try {
+    const { data, error } = await supabaseServer
+      .from('users')
+      .select('promotional_credits')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) {
+      console.error('[hold_credit_read_failed]', { userId, error })
+      return false
+    }
+    const next = Math.max(0, Number(data?.promotional_credits || 0)) + credits
+    const { error: updateError } = await supabaseServer
+      .from('users')
+      .update({ promotional_credits: next })
+      .eq('id', userId)
+    if (updateError) {
+      console.error('[hold_credit_update_failed]', { userId, credits, error: updateError })
+      return false
+    }
+    return true
+  } catch (error) {
+    console.error('[hold_credit_failed]', { userId, credits, error })
+    return false
   }
 }
