@@ -2,36 +2,35 @@
 
 import { useState, type FormEvent } from 'react'
 
+type Receipt = {
+  id?: string
+  loaded?: boolean
+  answer?: string | null
+  source?: string
+  creditsCharged?: number
+  error?: string
+}
+
 export default function VerifyPage() {
-  const [prompt, setPrompt] = useState('')
+  const [question, setQuestion] = useState('')
+  const [sourceUrl, setSourceUrl] = useState('')
   const [pending, setPending] = useState(false)
-  const [message, setMessage] = useState('')
-  const [source, setSource] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<Receipt | null>(null)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setPending(true)
-    setMessage('')
-    setSource(null)
+    setReceipt(null)
     try {
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ question, sourceUrl }),
       })
       const data = await response.json()
-      if (response.status === 402) {
-        setMessage(data.error || 'A paid top-up is required.')
-        return
-      }
-      if (!response.ok) {
-        setMessage(data.error || 'The verified call did not run.')
-        return
-      }
-      setMessage(data.answer || '')
-      setSource(data.source || null)
+      setReceipt(data)
     } catch {
-      setMessage('The verified call did not run.')
+      setReceipt({ error: 'The verified call did not run.' })
     } finally {
       setPending(false)
     }
@@ -41,18 +40,26 @@ export default function VerifyPage() {
     <main style={{ maxWidth: 720, margin: '48px auto', padding: '0 20px', fontFamily: 'Georgia, serif', color: '#161616' }}>
       <h1 style={{ fontSize: 32, lineHeight: 1.2 }}>Verified call</h1>
       <p style={{ fontSize: 18, lineHeight: 1.5 }}>
-        One question. Tera answers only if a source loads. This is the only call a paid top-up runs. A hold does not run it. The minimum top-up is $5.
+        One question and one public source. One paid credit is spent only if that source loads and the answer is taken from it. A source that fails returns an id and costs nothing. A hold does not run it. The minimum top-up is $5. The limit is 10 calls a minute.
       </p>
       <form onSubmit={onSubmit}>
         <textarea
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          rows={6}
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          rows={5}
           required
           minLength={8}
           maxLength={2000}
-          placeholder="Ask one question you want checked against a source."
+          placeholder="Ask one question."
           style={{ width: '100%', fontSize: 16, padding: 12 }}
+        />
+        <input
+          value={sourceUrl}
+          onChange={(event) => setSourceUrl(event.target.value)}
+          required
+          type="url"
+          placeholder="https:// source URL"
+          style={{ width: '100%', fontSize: 16, padding: 12, marginTop: 12 }}
         />
         <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
           <button type="submit" disabled={pending} style={{ fontSize: 16, padding: '10px 16px' }}>
@@ -61,8 +68,16 @@ export default function VerifyPage() {
           <a href="/pricing" style={{ fontSize: 16, padding: '10px 0' }}>Buy a $5 top-up</a>
         </div>
       </form>
-      {message ? <p style={{ fontSize: 18, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{message}</p> : null}
-      {source ? <p><a href={source}>{source}</a></p> : null}
+      {receipt?.error ? <p style={{ fontSize: 18 }}>{receipt.error}</p> : null}
+      {receipt?.id ? (
+        <div style={{ fontSize: 18, lineHeight: 1.5 }}>
+          <p>Receipt {receipt.id}</p>
+          <p>{receipt.loaded ? 'Source loaded.' : 'Source did not load.'} Credits spent: {receipt.creditsCharged ?? 0}.</p>
+          {receipt.answer ? <p style={{ whiteSpace: 'pre-wrap' }}>{receipt.answer}</p> : null}
+          {receipt.source ? <p><a href={receipt.source}>{receipt.source}</a></p> : null}
+          <p><a href={`/api/verify/${receipt.id}`}>Open the receipt</a></p>
+        </div>
+      ) : null}
     </main>
   )
 }
