@@ -36,29 +36,31 @@ function userError(error: unknown): string {
 }
 
 export function HomeScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, address, keypair } = useWalletReady("address");
   const cluster = useWallet((state) => state.cluster);
+  const watchOnly = useWallet((state) => Boolean(state.watch) && !state.vault);
   const lock = useWallet((state) => state.lock);
   const [holdings, setHoldings] = useState<Holding[] | null>(null);
   const [activity, setActivity] = useState<Activity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [live, setLive] = useState<Record<string, LivePrice>>({});
+  const owner = address ? new PublicKey(address) : null;
 
   useEffect(() => {
-    if (!keypair) return;
+    if (!owner) return;
     const connection = connectionFor(cluster);
     let cancelled = false;
     setHoldings(null);
     setError(null);
-    void loadHoldings(connection, keypair.publicKey, cluster)
+    void loadHoldings(connection, owner, cluster)
       .then((rows) => {
         if (!cancelled) setHoldings(rows);
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(userError(err));
       });
-    void loadActivity(connection, keypair.publicKey, cluster)
+    void loadActivity(connection, owner, cluster)
       .then((rows) => {
         if (!cancelled) setActivity(rows);
       })
@@ -68,7 +70,7 @@ export function HomeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [keypair, cluster]);
+  }, [address, cluster]);
 
   useEffect(() => {
     if (cluster !== "mainnet-beta" || !holdings) return;
@@ -89,8 +91,7 @@ export function HomeScreen() {
     };
   }, [cluster, holdings]);
 
-  if (!ready || !keypair) return <Frame title="Wallet" nav />;
-  const address = keypair.publicKey.toBase58();
+  if (!ready || !address) return <Frame title="Wallet" nav />;
   const sol = holdings?.find((item) => item.native);
   const tcode = holdings?.find((item) => item.symbol === "TCODE");
   const quoteFor = (mint: string) => (cluster === "mainnet-beta" ? live[priceMint(mint)] : undefined);
@@ -126,6 +127,11 @@ export function HomeScreen() {
       {feeShort ? (
         <div className="mt-3">
           <Notice>This address holds tokens but almost no SOL. Solana still charges the fee in SOL. Swap or receive a little SOL before you send.</Notice>
+        </div>
+      ) : null}
+      {watchOnly ? (
+        <div className="mt-3">
+          <Notice>The signing key for this address is not on this device. You can receive and read balances. Import the phrase only when you are about to sign.</Notice>
         </div>
       ) : null}
       {cluster !== "mainnet-beta" ? (
@@ -165,9 +171,13 @@ export function HomeScreen() {
         <ActivityList items={activity?.slice(0, 4) ?? []} error={historyError} loading={activity === null && !historyError} />
       </div>
       <div className="mt-6">
-        <Button tone="ghost" onClick={lock}>
-          Lock wallet
-        </Button>
+        {keypair ? (
+          <Button tone="ghost" onClick={lock}>
+            Lock wallet
+          </Button>
+        ) : (
+          <p className="text-sm text-muted">The signing key is locked. Looking at this page did not unlock it.</p>
+        )}
       </div>
     </Frame>
   );
@@ -216,15 +226,15 @@ function TokenRow({ holding, usd, quote, chart }: { holding: Holding; usd: numbe
 }
 
 export function TokenScreen({ mint }: { mint: string }) {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, address } = useWalletReady("address");
   const cluster = useWallet((state) => state.cluster);
   const [holding, setHolding] = useState<Holding | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [quote, setQuote] = useState<LivePrice | null>(null);
   useEffect(() => {
-    if (!keypair) return;
+    if (!address) return;
     let cancelled = false;
-    void loadHoldings(connectionFor(cluster), keypair.publicKey, cluster)
+    void loadHoldings(connectionFor(cluster), new PublicKey(address), cluster)
       .then((rows) => {
         if (cancelled) return;
         setHolding(rows.find((row) => row.mint === mint) ?? null);
@@ -235,7 +245,7 @@ export function TokenScreen({ mint }: { mint: string }) {
     return () => {
       cancelled = true;
     };
-  }, [keypair, cluster, mint]);
+  }, [address, cluster, mint]);
   useEffect(() => {
     if (cluster !== "mainnet-beta") return;
     let stop = false;
@@ -253,7 +263,7 @@ export function TokenScreen({ mint }: { mint: string }) {
       window.clearInterval(timer);
     };
   }, [cluster, mint]);
-  if (!ready || !keypair) return <Frame title="Token" nav />;
+  if (!ready || !address) return <Frame title="Token" nav />;
   const unit = quote?.usd ?? null;
   return (
     <Frame nav title={holding?.symbol ?? "Token"} subtitle={holding?.trusted ? holding.name : "Unverified SPL token. Trust the mint, not the symbol."}>
@@ -289,15 +299,14 @@ export function TokenScreen({ mint }: { mint: string }) {
 }
 
 export function ReceiveScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, address } = useWalletReady("address");
   const cluster = useWallet((state) => state.cluster);
   const [svg, setSvg] = useState("");
-  const address = keypair?.publicKey.toBase58() ?? "";
   useEffect(() => {
     if (!address) return;
     void QRCode.toString(address, { type: "svg", margin: 1, color: { dark: "#edf6f1", light: "#00000000" } }).then(setSvg);
   }, [address]);
-  if (!ready || !keypair) return <Frame title="Receive" nav />;
+  if (!ready || !address) return <Frame title="Receive" nav />;
   return (
     <Frame nav title="Receive" subtitle={networkWarning(cluster)}>
       <DesktopNav />
@@ -322,7 +331,7 @@ export function ReceiveScreen() {
 }
 
 export function SendScreen({ initialMint }: { initialMint?: string }) {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, keypair, watchOnly } = useWalletReady("unlocked");
   const cluster = useWallet((state) => state.cluster);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [mint, setMint] = useState(initialMint || "SOL");
@@ -417,7 +426,7 @@ export function SendScreen({ initialMint }: { initialMint?: string }) {
     }
   }
 
-  if (!ready || !keypair) return <Frame title="Send" nav />;
+  if (!ready || !keypair) return watchOnly ? <KeyOff title="Send" /> : <Frame title="Send" nav />;
   return (
     <Frame nav title="Send" subtitle={`Network: ${clusterLabel(cluster)}`}>
       <DesktopNav />
@@ -549,17 +558,17 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export function ActivityScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, address } = useWalletReady("address");
   const cluster = useWallet((state) => state.cluster);
   const [items, setItems] = useState<Activity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (!keypair) return;
-    void loadActivity(connectionFor(cluster), keypair.publicKey, cluster)
+    if (!address) return;
+    void loadActivity(connectionFor(cluster), new PublicKey(address), cluster)
       .then(setItems)
       .catch((err: unknown) => setError(userError(err)));
-  }, [keypair, cluster]);
-  if (!ready || !keypair) return <Frame title="Activity" nav />;
+  }, [address, cluster]);
+  if (!ready || !address) return <Frame title="Activity" nav />;
   return (
     <Frame nav title="Activity" subtitle="Recent signatures for this address. History can lag if the RPC is busy.">
       <DesktopNav />
@@ -592,15 +601,31 @@ function ActivityList({ items, error, loading }: { items: Activity[]; error: str
   );
 }
 
+export function KeyOff({ title }: { title: string }) {
+  return (
+    <Frame nav title={title} subtitle="This address is locked by a key that is not on this device.">
+      <DesktopNav />
+      <Notice>
+        Satoshi's coins were not taken because the private keys were never sitting on a laptop that opens attachments. Tera cannot sign for you, and this browser does not have the phrase. Import it only for the moment you sign, then lock the wallet.
+      </Notice>
+      <div className="mt-4">
+        <Link to="/import" className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-primary-ink">
+          Import the phrase to sign
+        </Link>
+      </div>
+    </Frame>
+  );
+}
+
 export function SettingsScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, address, keypair } = useWalletReady("address");
   const cluster = useWallet((state) => state.cluster);
   const setCluster = useWallet((state) => state.setCluster);
   const lock = useWallet((state) => state.lock);
   const forget = useWallet((state) => state.forgetWallet);
   const navigate = useNavigate();
   const [confirmForget, setConfirmForget] = useState(false);
-  if (!ready || !keypair) return <Frame title="Settings" nav />;
+  if (!ready || !address) return <Frame title="Settings" nav />;
   return (
     <Frame nav title="Settings" subtitle="Network choice changes which balances and transactions you see. It does not change your keys.">
       <DesktopNav />
@@ -624,9 +649,11 @@ export function SettingsScreen() {
         <Link to="/security" className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-line text-sm">
           Security
         </Link>
-        <Button tone="ghost" onClick={lock}>
-          Lock
-        </Button>
+        {keypair ? (
+          <Button tone="ghost" onClick={lock}>
+            Lock
+          </Button>
+        ) : null}
         {confirmForget ? (
           <Button
             tone="danger"
@@ -648,43 +675,54 @@ export function SettingsScreen() {
 }
 
 export function SecurityScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, address } = useWalletReady("address");
+  const vault = useWallet((state) => state.vault);
   const reveal = useWallet((state) => state.revealPhrase);
+  const takeKeyOffDevice = useWallet((state) => state.takeKeyOffDevice);
   const [passcode, setPasscode] = useState("");
   const [phrase, setPhrase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [wroteItDown, setWroteItDown] = useState(false);
+  const [busy, setBusy] = useState(false);
   const words = useMemo(() => phrase?.split(" ") ?? [], [phrase]);
-  if (!ready || !keypair) return <Frame title="Security" nav />;
+  if (!ready || !address) return <Frame title="Security" nav />;
   return (
     <Frame
       nav
       title="Security"
-      subtitle="Tera Wallet is self-custodial. The recovery phrase is encrypted with your passcode and stored only in this browser."
+      subtitle="Each address is locked by its own key. Tera stores the public address and nothing else."
     >
       <DesktopNav />
       <div className="space-y-3 text-sm leading-6 text-muted">
-        <p>Private keys are not sent to Tera, analytics, or a backend.</p>
-        <p>A browser passcode can be copied by malware on this device. Use a hardware wallet for larger amounts.</p>
+        <p>The phrase is not sent to Tera, analytics, or a backend. A hacked server cannot sign for this address.</p>
+        <p>Looking at a balance uses the public key only. The signing key locks when this tab is hidden, and after two minutes of no use.</p>
+        <p>A key that stays in this browser can still be copied by malware on the device. That is a laptop problem, not a math problem.</p>
       </div>
-      <form
-        className="mt-6 space-y-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const issue = passcodeError(passcode);
-          if (issue) return setError(issue);
-          setError(null);
-          void reveal(passcode)
-            .then((value) => {
-              setPasscode("");
-              setPhrase(value);
-            })
-            .catch((err: unknown) => setError(userError(err)));
-        }}
-      >
-        <Field label="Passcode to reveal phrase" type="password" value={passcode} onChange={setPasscode} autoComplete="current-password" />
-        {error ? <Notice tone="danger">{error}</Notice> : null}
-        <Button type="submit">Show recovery phrase</Button>
-      </form>
+      {vault ? (
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const issue = passcodeError(passcode);
+            if (issue) return setError(issue);
+            setError(null);
+            void reveal(passcode)
+              .then((value) => {
+                setPasscode("");
+                setPhrase(value);
+              })
+              .catch((err: unknown) => setError(userError(err)));
+          }}
+        >
+          <Field label="Passcode to reveal phrase" type="password" value={passcode} onChange={setPasscode} autoComplete="current-password" />
+          {error ? <Notice tone="danger">{error}</Notice> : null}
+          <Button type="submit">Show recovery phrase</Button>
+        </form>
+      ) : (
+        <div className="mt-6">
+          <Notice>The signing key is not on this device. Import the phrase only when you are about to sign.</Notice>
+        </div>
+      )}
       {phrase ? (
         <div className="mt-4 space-y-3">
           <Notice tone="danger">Anyone with these words controls the wallet. Hide this before you leave the screen.</Notice>
@@ -700,6 +738,34 @@ export function SecurityScreen() {
             Hide phrase
           </Button>
         </div>
+      ) : null}
+      {vault ? (
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!wroteItDown) return setError("Write the 12 or 24 words on paper first. This device will forget them.");
+            const issue = passcodeError(passcode);
+            if (issue) return setError(issue);
+            setBusy(true);
+            setError(null);
+            void takeKeyOffDevice(passcode)
+              .then(() => {
+                setPasscode("");
+                setPhrase(null);
+              })
+              .catch((err: unknown) => setError(userError(err)))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" checked={wroteItDown} onChange={(event) => setWroteItDown(event.target.checked)} />
+            <span>I have the recovery phrase written on paper. It is not only a screenshot on this device.</span>
+          </label>
+          <Button type="submit" tone="danger" disabled={busy}>
+            {busy ? "Removing the key…" : "Take the signing key off this device"}
+          </Button>
+        </form>
       ) : null}
     </Frame>
   );

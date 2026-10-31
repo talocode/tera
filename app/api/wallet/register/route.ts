@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { isSolanaAddress } from '@/lib/tcode/crypto'
 import { supabaseServer } from '@/lib/supabase-server'
+import { assertNoWalletSecrets } from '@/lib/blockchain-lab/real/public-wallet'
+import { TcodeError } from '@/lib/tcode/crypto'
 
 export async function POST(request: NextRequest) {
   const session = await auth()
@@ -10,7 +12,20 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null)
-  const walletAddress = String(body?.walletAddress || '').trim()
+  try {
+    assertNoWalletSecrets(body)
+  } catch (error) {
+    const message = error instanceof TcodeError ? error.message : 'Tera Wallet is self-custodial. Do not send a seed, private key, or passcode.'
+    return NextResponse.json({ ok: false, error: message }, { status: 400 })
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ ok: false, error: 'walletAddress must be a Solana address' }, { status: 400 })
+  }
+  const extra = Object.keys(body).filter((key) => key !== 'walletAddress')
+  if (extra.length) {
+    return NextResponse.json({ ok: false, error: 'Only a public address is accepted.' }, { status: 400 })
+  }
+  const walletAddress = String(body.walletAddress || '').trim()
   if (!isSolanaAddress(walletAddress)) {
     return NextResponse.json({ ok: false, error: 'walletAddress must be a Solana address' }, { status: 400 })
   }

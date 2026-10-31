@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@/nav";
 import { Button, Card, DesktopNav, Field, Frame, Notice } from "@/components/wallet/chrome";
+import { KeyOff } from "@/components/wallet/session";
 import { useWalletReady } from "@/components/wallet/use-wallet-ready";
 import { formatTokenAmount } from "@/wallet/amounts";
 import { connectionFor, loadHoldings, type Holding } from "@/wallet/chain";
@@ -21,7 +22,7 @@ function jupMint(holding: Holding): string {
 }
 
 export function SwapScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, keypair, watchOnly } = useWalletReady("unlocked");
   const cluster = useWallet((state) => state.cluster);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [inputMint, setInputMint] = useState("SOL");
@@ -103,7 +104,7 @@ export function SwapScreen() {
     }
   }
 
-  if (!ready || !keypair) return <Frame title="Swap" nav />;
+  if (!ready || !keypair) return watchOnly ? <KeyOff title="Swap" /> : <Frame title="Swap" nav />;
   return (
     <Frame nav title="Swap" subtitle="Jupiter quote. You sign locally. Tera never sees the phrase.">
       <DesktopNav />

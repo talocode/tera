@@ -8,7 +8,9 @@ Self-custodial Solana wallet for the Tera ecosystem. You hold the recovery phras
 - Import a 12 or 24 word recovery phrase
 - Derive Solana account 0 at `m/44'/501'/0'/0'`
 - Encrypt the phrase in this browser with a passcode (PBKDF2-SHA256 + AES-GCM)
-- Lock, unlock, and auto-lock after five idle minutes
+- Lock when the tab is hidden, and after two minutes with no use
+- Looking at a balance uses the public key only. It does not unlock the signing key
+- Optional: keep only the public address on this device, so the browser cannot sign
 - Show the public address, copy it, and render a QR code
 - Read native SOL and SPL token balances, including Token-2022 accounts
 - Show official mainnet **$TCODE** (`6ptxwABxQz8zMhwhiPeVgRgWjGMdVcEBFBv8v8C3ory`, 6 decimals)
@@ -75,6 +77,8 @@ Public Solana RPC endpoints are rate limited. A dedicated RPC is optional and sh
 - After backup, the phrase is encrypted and the draft is dropped from memory on save
 - Unlock decrypts it only into component state. Lock overwrites the secret key bytes and drops the reference
 - Reveal-phrase is a separate passcode check on the Security screen
+- Taking the key off the device deletes the ciphertext and leaves the public address. The written phrase still controls the funds
+- The register API accepts a public address and rejects a phrase, a key, or a passcode
 - Addresses are validated with `@solana/web3.js` `PublicKey` before a transfer is built
 - Sends are blocked when the amount or fee exceeds the on-chain balance
 - Removing the wallet deletes the ciphertext from this browser. It does not destroy funds. The phrase still controls them

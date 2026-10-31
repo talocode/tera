@@ -1,4 +1,4 @@
-import { isCluster, type Cluster, defaultCluster } from "./network";
+import { isCluster, type Cluster, defaultCluster } from "./network.ts";
 
 const VAULT_KEY = "tera.wallet.vault.v1";
 const CLUSTER_KEY = "tera.wallet.cluster.v1";
@@ -103,6 +103,40 @@ export function writeVault(record: VaultRecord) {
 
 export function destroyVault() {
   localStorage.removeItem(VAULT_KEY);
+}
+
+const WATCH_KEY = "tera.wallet.watch.v1";
+
+export type WatchRecord = {
+  v: 1;
+  publicKey: string;
+};
+
+/** A public address with no ciphertext. The signing key is not on this device. */
+export function publicWatch(publicKey: string): WatchRecord {
+  if (!publicKey || publicKey.length < 32) throw new Error("That is not a Solana address.");
+  return { v: 1, publicKey };
+}
+
+export function readWatch(): WatchRecord | null {
+  if (typeof localStorage === "undefined") return null;
+  const raw = localStorage.getItem(WATCH_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as WatchRecord & { ciphertext?: string };
+    if (parsed?.v !== 1 || typeof parsed.publicKey !== "string" || parsed.ciphertext) return null;
+    return publicWatch(parsed.publicKey);
+  } catch {
+    return null;
+  }
+}
+
+export function writeWatch(record: WatchRecord) {
+  localStorage.setItem(WATCH_KEY, JSON.stringify(publicWatch(record.publicKey)));
+}
+
+export function destroyWatch() {
+  localStorage.removeItem(WATCH_KEY);
 }
 
 export function readCluster(): Cluster {

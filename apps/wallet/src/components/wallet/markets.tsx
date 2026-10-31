@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@/nav";
 import { Button, Card, DesktopNav, Field, Frame, Notice } from "@/components/wallet/chrome";
+import { KeyOff } from "@/components/wallet/session";
 import { useWalletReady } from "@/components/wallet/use-wallet-ready";
 import { formatTokenAmount } from "@/wallet/amounts";
 import { loadAddressBook, saveAddressName, type AddressName } from "@/wallet/book";
@@ -34,7 +35,7 @@ function Done({ signature, cluster }: { signature: string; cluster: Parameters<t
 }
 
 export function RentScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, keypair, watchOnly } = useWalletReady("unlocked");
   const cluster = useWallet((state) => state.cluster);
   const [rows, setRows] = useState<EmptyAccount[] | null>(null);
   const [phase, setPhase] = useState<"form" | "review" | "done">("form");
@@ -72,7 +73,7 @@ export function RentScreen() {
     }
   }
 
-  if (!ready || !keypair) return <Frame title="Reclaim" nav />;
+  if (!ready || !keypair) return watchOnly ? <KeyOff title="Reclaim" /> : <Frame title="Reclaim" nav />;
   return (
     <Frame nav title="Reclaim SOL" subtitle="Closes empty token accounts and returns the rent to this wallet.">
       <DesktopNav />
@@ -105,7 +106,7 @@ export function RentScreen() {
 }
 
 export function StakeScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, keypair, watchOnly } = useWalletReady("unlocked");
   const cluster = useWallet((state) => state.cluster);
   const [validators, setValidators] = useState<ValidatorChoice[]>([]);
   const [vote, setVote] = useState("");
@@ -153,7 +154,7 @@ export function StakeScreen() {
     }
   }
 
-  if (!ready || !keypair) return <Frame title="Stake" nav />;
+  if (!ready || !keypair) return watchOnly ? <KeyOff title="Stake" /> : <Frame title="Stake" nav />;
   return (
     <Frame nav title="Stake SOL" subtitle="Native stake. You remain the withdrawer. Tera does not hold the stake account.">
       <DesktopNav />
@@ -203,7 +204,7 @@ export function StakeScreen() {
 }
 
 export function LimitScreen() {
-  const { ready, keypair } = useWalletReady("unlocked");
+  const { ready, keypair, watchOnly } = useWalletReady("unlocked");
   const cluster = useWallet((state) => state.cluster);
   const [pay, setPay] = useState("SOL");
   const [making, setMaking] = useState("");
@@ -239,7 +240,7 @@ export function LimitScreen() {
     }
   }
 
-  if (!ready || !keypair) return <Frame title="Limit" nav />;
+  if (!ready || !keypair) return watchOnly ? <KeyOff title="Limit" /> : <Frame title="Limit" nav />;
   return (
     <Frame nav title="Limit" subtitle="SOL and official $TCODE only. Jupiter fills it when the pool rate matches. You sign the deposit.">
       <DesktopNav />

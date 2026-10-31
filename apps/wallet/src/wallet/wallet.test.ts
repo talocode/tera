@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { publicWatch } from "./vault.ts";
 import { formatTokenAmount, maxSolSend, parseTokenAmount, validateSpend } from "./amounts.ts";
 import { deriveEd25519Seed, isValidMnemonic, keypairFromMnemonic, normalizeMnemonic, parseAddress, SOLANA_PATH } from "./keys.ts";
 import { DEFAULT_TCODE_MINT, explorerTx, isCluster, isRetryableRpcFailure, resolveRpc, rpcEndpoints } from "./network.ts";
 
 const PHRASE =
   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
+test("a watch record is only a public key", () => {
+  const record = publicWatch("So11111111111111111111111111111111111111112");
+  assert.deepEqual(record, { v: 1, publicKey: "So11111111111111111111111111111111111111112" });
+  assert.equal("ciphertext" in record, false);
+  assert.throws(() => publicWatch(""), /not a Solana address/);
+});
 
 test("mnemonic validation accepts a standard phrase and rejects junk", () => {
   assert.equal(isValidMnemonic(PHRASE), true);

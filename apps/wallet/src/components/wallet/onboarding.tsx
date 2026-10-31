@@ -118,6 +118,7 @@ export function ConfirmScreen() {
 export function PasscodeScreen() {
   const { ready, draft } = useWalletReady("draft");
   const save = useWallet((state) => state.saveWithPasscode);
+  const saveWatchOnly = useWallet((state) => state.saveWatchOnly);
   const navigate = useNavigate();
   const [passcode, setPasscode] = useState("");
   const [again, setAgain] = useState("");
@@ -127,7 +128,7 @@ export function PasscodeScreen() {
   return (
     <Frame
       title="Lock this device."
-      subtitle="The passcode encrypts the recovery phrase in local storage. A weak passcode is not the same as a hardware wallet."
+      subtitle="A passcode encrypts the phrase on this device. You can also leave the key off the device. Tera cannot recover either choice."
     >
       <form
         className="space-y-4"
@@ -148,7 +149,23 @@ export function PasscodeScreen() {
         <Field label="Confirm passcode" type="password" value={again} onChange={setAgain} autoComplete="new-password" />
         {error ? <Notice tone="danger">{error}</Notice> : null}
         <Button type="submit" disabled={busy}>
-          {busy ? "Encrypting…" : "Open wallet"}
+          {busy ? "Encrypting…" : "Save the key on this device"}
+        </Button>
+        <Button
+          type="button"
+          tone="ghost"
+          disabled={busy}
+          onClick={() => {
+            setError(null);
+            try {
+              saveWatchOnly();
+              void navigate({ to: "/home" });
+            } catch (err: unknown) {
+              setError(err instanceof Error ? err.message : "Could not keep the key off this device.");
+            }
+          }}
+        >
+          Keep the key off this device
         </Button>
       </form>
     </Frame>
