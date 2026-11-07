@@ -12,6 +12,7 @@ import { saveBookmark } from '@/app/actions/search'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import type { ProfileUsageSummary } from '@/lib/profile-usage'
 import LiveCodePreview from './LiveCodePreview'
+import { extractPreviewSources } from '@/lib/live-preview'
 
 type User = {
     id: string
@@ -988,6 +989,13 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
     const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
 
     const imageLoadingSteps = ['Receiving your image', 'Analyzing visual content', 'Extracting details', 'Writing response']
+    const previewOffsets = new Map<string, number>()
+    let previewCursor = 0
+    for (const entry of conversations) {
+        previewOffsets.set(entry.id, previewCursor)
+        if (entry.assistantMessage?.content) previewCursor += extractPreviewSources(entry.assistantMessage.content).length
+    }
+    const streamingPreviewOffset = previewCursor
 
     return (
         <div className="relative flex h-full w-full flex-col overflow-hidden bg-transparent text-tera-primary">
@@ -1061,24 +1069,34 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                         <div className="w-full">
                                             <div className="overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
                                                 <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
-                                                    {parseContent(entry.assistantMessage.content).map((block, idx) => {
+                                                    {(() => {
+                                                        let previewIndex = previewOffsets.get(entry.id) ?? 0
+                                                        return parseContent(entry.assistantMessage.content).map((block, idx) => {
                                                         if (block.type === 'tera-ui') return <div key={idx} className="w-full my-4 animate-in fade-in slide-in-from-bottom-2 duration-300"><Renderer spec={block.spec} registry={teraRegistry} /></div>
-                                                        if (block.type === 'universal-visual') return <UniversalVisualRenderer key={idx} code={block.code} language={block.language} title={block.title} />
+                                                        if (block.type === 'universal-visual') {
+                                                            if (extractPreviewSources(`\`\`\`${block.language}\n${block.code}\n\`\`\``).length > 0) previewIndex += 1
+                                                            return <UniversalVisualRenderer key={idx} code={block.code} language={block.language} title={block.title} />
+                                                        }
                                                         if (block.type === 'chart') return <ChartRenderer key={idx} config={block.config} />
                                                         if (block.type === 'spreadsheet') return <SpreadsheetRenderer key={idx} config={block.config} userId={user?.id} />
                                                         if (block.type === 'mermaid') return <MermaidRenderer key={idx} chart={block.chart} />
-                                                        if (block.type === 'code') return (
+                                                        if (block.type === 'code') {
+                                                            const index = previewIndex
+                                                            if (extractPreviewSources(`\`\`\`${block.language}\n${block.code}\n\`\`\``).length > 0) previewIndex += 1
+                                                            return (
                                                             <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 dark:bg-[#08101a]/90 light:bg-gray-900 animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-soft-lg">
                                                                 <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
                                                                     <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">{block.language || 'code'}</span>
                                                                     <button onClick={() => navigator.clipboard.writeText(block.code)} className="p-1.5 text-white/40 hover:text-tera-neon transition-colors flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75H19.5A2.25 2.25 0 0121.75 6v10.5A2.25 2.25 0 0119.5 18.75h-2.25m-16.5 0h2.25m0 0v2.25m0-2.25v-8.25m0 0H3.75A2.25 2.25 0 015.25 5.25H7.5" /></svg></button>
                                                                 </div>
                                                                 <pre className="p-3 md:p-4 font-mono text-xs md:text-sm overflow-x-auto text-tera-primary dark:text-tera-neon w-full"><code>{block.code}</code></pre>
-                                                                <LiveCodePreview code={block.code} language={block.language} partial={block.partial} />
+                                                                <LiveCodePreview code={block.code} language={block.language} partial={block.partial} sessionId={currentSessionId} previewIndex={index} />
                                                             </div>
-                                                        )
+                                                            )
+                                                        }
                                                         return block.type === 'text' ? <div key={idx} className="w-full animate-in fade-in duration-300"><MarkdownRenderer content={block.content} /></div> : null
-                                                    })}
+                                                    })
+                                                    })()}
                                                 </div>
                                                 {entry.assistantMessage.citations && entry.assistantMessage.citations.length > 0 && (
                                                     <div className="mt-4 rounded-[22px] border border-tera-border bg-black/10 px-4 py-3 shadow-soft">
@@ -1172,18 +1190,25 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                             <div className="w-full overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
                                 <p className="mb-3 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">Writing</p>
                                 <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
-                                    {parseContent(streamingText).map((block, idx) => {
-                                        if (block.type === 'code') return (
+                                    {(() => {
+                                        let previewIndex = streamingPreviewOffset
+                                        return parseContent(streamingText).map((block, idx) => {
+                                        if (block.type === 'code') {
+                                            const index = previewIndex
+                                            if (extractPreviewSources(`\`\`\`${block.language}\n${block.code}\n\`\`\``).length > 0) previewIndex += 1
+                                            return (
                                             <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 shadow-soft-lg">
                                                 <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
                                                     <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">{block.language || 'code'}</span>
                                                 </div>
                                                 <pre className="p-3 md:p-4 font-mono text-xs md:text-sm overflow-x-auto text-tera-primary dark:text-tera-neon w-full"><code>{block.code}</code></pre>
-                                                <LiveCodePreview code={block.code} language={block.language} partial={block.partial} />
+                                                <LiveCodePreview code={block.code} language={block.language} partial={block.partial} sessionId={currentSessionId} previewIndex={index} />
                                             </div>
-                                        )
+                                            )
+                                        }
                                         return block.type === 'text' ? <div key={idx}><MarkdownRenderer content={block.content} /></div> : null
-                                    })}
+                                    })
+                                    })()}
                                 </div>
                             </div>
                         </div>
