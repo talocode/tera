@@ -52,6 +52,7 @@ function Screen() {
   if (path === "/receive") return <ReceiveScreen />;
   if (path === "/send") return <SendScreen initialMint={mint} />;
   if (path === "/swap") return <SwapScreen />;
+  if (path === "/buy") return <SwapScreen mode="buy" />;
   if (path === "/limit") return <LimitScreen />;
   if (path === "/stake") return <StakeScreen />;
   if (path === "/reclaim") return <RentScreen />;

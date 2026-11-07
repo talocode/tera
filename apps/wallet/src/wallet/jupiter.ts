@@ -4,6 +4,8 @@ import { DEFAULT_TCODE_MINT, SOL_DECIMALS, TCODE_DECIMALS } from "@/wallet/netwo
 
 export const SOL_MINT = "So11111111111111111111111111111111111111112";
 export const TCODE_MINT = DEFAULT_TCODE_MINT;
+export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+export const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 export type SwapAsset = {
   mint: string;

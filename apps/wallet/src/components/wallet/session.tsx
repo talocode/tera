@@ -114,8 +114,14 @@ export function HomeScreen() {
       <p className="mt-2 text-sm text-muted">
         Jupiter prices only. A token with no recent trade stays unpriced, and the number refreshes every 12 seconds.
       </p>
-      <div className="mt-5 grid grid-cols-4 gap-2 text-center text-sm">
-        <Link to="/send" className="grid min-h-14 place-items-center rounded-2xl bg-primary font-semibold text-primary-ink">Send</Link>
+      <Link to="/buy" className="mt-5 grid min-h-14 place-items-center rounded-2xl bg-primary font-semibold text-primary-ink">
+        Buy
+      </Link>
+      <p className="mt-2 text-sm text-muted">
+        Buy official $TCODE, or another token, into this wallet. Holding $TCODE here is what earns Tera credits when the balance runs out.
+      </p>
+      <div className="mt-4 grid grid-cols-4 gap-2 text-center text-sm">
+        <Link to="/send" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Send</Link>
         <Link to="/receive" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Receive</Link>
         <Link to="/swap" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Swap</Link>
         <Link to="/stake" className="grid min-h-14 place-items-center rounded-2xl border border-line font-semibold">Stake</Link>
