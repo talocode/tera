@@ -11,7 +11,7 @@ import { fetchCreditUsage, fetchUserUsageSummary } from '@/app/actions/user'
 import { saveBookmark } from '@/app/actions/search'
 import { CREDITS_PER_USD } from '@/lib/credit-topup'
 import type { ProfileUsageSummary } from '@/lib/profile-usage'
-import { shouldRecommendDeepResearch, shouldUseRealTimeWeb } from '@/lib/smart-query-detector'
+import LiveCodePreview from './LiveCodePreview'
 
 type User = {
     id: string
@@ -194,25 +194,27 @@ type ContentBlock =
     | { type: 'text', content: string, isHeader: boolean }
     | { type: 'chart', config: any }
     | { type: 'mermaid', chart: string }
-    | { type: 'code', language: string, code: string }
+    | { type: 'code', language: string, code: string, partial?: boolean }
     | { type: 'spreadsheet', config: any }
     | { type: 'universal-visual', code: string, language: string, title: string }
     | { type: 'tera-ui', spec: any }
 
 const parseContent = (content: string): ContentBlock[] => {
     const blocks: ContentBlock[] = []
-    let contentToProcess = content
+    const openFence = (content.match(/```/g)?.length ?? 0) % 2 === 1
+    const contentToProcess = openFence ? `${content}\n\`\`\`` : content
 
     const parts = contentToProcess.split(/(```[\s\S]*?```)/g)
 
-    parts.forEach(part => {
+    parts.forEach((part, partIndex) => {
         if (!part.trim()) return
 
         if (part.startsWith('```')) {
-            const match = part.match(/```(\w+)?(?::(\w+))?\n([\s\S]*?)```/)
+            const match = part.match(/```(\w+)?(?::(\w+))?\n?([\s\S]*?)```/)
             if (match) {
                 const [, lang, type, code] = match
                 const cleanCode = code ? code.trim() : ''
+                const partial = openFence && !parts.slice(partIndex + 1).some((later) => later.startsWith('```'))
 
                 if (type === 'tera-ui' || (lang === 'json' && type === 'tera-ui')) {
                     try {
@@ -228,10 +230,9 @@ const parseContent = (content: string): ContentBlock[] => {
 
                 const isChart = (c: string) => (c.includes('"data"') && c.includes('"type"')) || (c.includes('"series"'))
                 const isSpreadsheet = (c: string) => c.includes('"action"') && (c.includes('"data"') || c.includes('"title"')) && !c.includes('"questions"')
-                const isHTML = (c: string) => c.includes('<!DOCTYPE') || c.includes('<html') || c.includes('<body')
                 const isVisualization = (c: string) => c.includes('THREE.') || c.includes('requestAnimationFrame') || c.includes('canvas.getContext')
 
-                if (type === 'visual' || isHTML(cleanCode) || isVisualization(cleanCode) || ['html', 'svg', 'canvas', 'jsx', 'javascript', 'js'].includes(lang || '')) {
+                if (type === 'visual' || isVisualization(cleanCode)) {
                     blocks.push({
                         type: 'universal-visual',
                         code: cleanCode,
@@ -246,7 +247,7 @@ const parseContent = (content: string): ContentBlock[] => {
                         const config = JSON.parse(jsonStr)
                         blocks.push({ type: 'spreadsheet', config })
                     } catch (e) {
-                        blocks.push({ type: 'code', language: lang || 'json', code: cleanCode })
+                        blocks.push({ type: 'code', language: lang || 'json', code: cleanCode, partial })
                     }
                 } else if ((lang === 'json' && type === 'chart') || isChart(cleanCode)) {
                     try {
@@ -256,15 +257,15 @@ const parseContent = (content: string): ContentBlock[] => {
                         const hasSeries = config.series && Array.isArray(config.series) && config.series.length > 0
 
                         if (!hasData && !hasSeries) {
-                            blocks.push({ type: 'code', language: 'json', code: cleanCode })
+                            blocks.push({ type: 'code', language: 'json', code: cleanCode, partial })
                         } else {
                             blocks.push({ type: 'chart', config })
                         }
                     } catch (e) {
-                        blocks.push({ type: 'code', language: lang || 'json', code: cleanCode })
+                        blocks.push({ type: 'code', language: lang || 'json', code: cleanCode, partial })
                     }
                 } else {
-                    blocks.push({ type: 'code', language: lang || 'text', code: cleanCode })
+                    blocks.push({ type: 'code', language: lang || 'text', code: cleanCode, partial })
                 }
                 return
             }
@@ -985,38 +986,6 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
     const lowCreditThreshold = creditUsage ? Math.max(5, Math.round((creditUsage.total || 0) * 0.15)) : 0
     const lowCredits = !!creditUsage && creditUsage.remaining > 0 && creditUsage.remaining <= lowCreditThreshold
     const lowUploads = !!usageSummary && !usageSummary.uploads.isUnlimited && usageSummary.uploads.remaining > 0 && usageSummary.uploads.remaining <= Math.max(1, Math.round((usageSummary.uploads.limit as number) * 0.25))
-    const loadingSteps = (() => {
-        const promptText = prompt.trim().toLowerCase()
-        const requestSummary = prompt.trim()
-            ? `Working on: ${prompt.trim().slice(0, 90)}${prompt.trim().length > 90 ? '…' : ''}`
-            : 'Working on your request'
-
-        if (researchMode || promptText.includes('research') || promptText.includes('source') || promptText.includes('citation') || promptText.includes('web')) {
-            return [requestSummary, 'Searching web sources', 'Checking citations', 'Writing the response']
-        }
-
-        if (promptText.includes('image') || promptText.includes('visual') || promptText.includes('chart') || promptText.includes('diagram') || promptText.includes('draw')) {
-            return [requestSummary, 'Planning the visual', 'Generating the output', 'Polishing the result']
-        }
-
-        if (promptText.includes('code') || promptText.includes('function') || promptText.includes('script') || promptText.includes('debug') || promptText.includes('api')) {
-            return [requestSummary, 'Inspecting the request', 'Reasoning through the implementation', 'Preparing the answer']
-        }
-
-        if (promptText.includes('write') || promptText.includes('essay') || promptText.includes('story') || promptText.includes('draft')) {
-            return [requestSummary, 'Reading your request', 'Drafting the response', 'Refining the wording']
-        }
-
-        if (promptText.includes('build') || promptText.includes('plan') || promptText.includes('project') || promptText.includes('roadmap')) {
-            return [requestSummary, 'Planning the build', 'Breaking down tasks', 'Executing the plan']
-        }
-
-        if (promptText.includes('search') || promptText.includes('find') || promptText.includes('look')) {
-            return [requestSummary, 'Searching sources', 'Evaluating results', 'Compiling findings']
-        }
-
-        return [requestSummary, 'Reading your request', 'Calling the model', 'Saving the response']
-    })()
 
     const imageLoadingSteps = ['Receiving your image', 'Analyzing visual content', 'Extracting details', 'Writing response']
 
@@ -1105,6 +1074,7 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                                                                     <button onClick={() => navigator.clipboard.writeText(block.code)} className="p-1.5 text-white/40 hover:text-tera-neon transition-colors flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3.75H19.5A2.25 2.25 0 0121.75 6v10.5A2.25 2.25 0 0119.5 18.75h-2.25m-16.5 0h2.25m0 0v2.25m0-2.25v-8.25m0 0H3.75A2.25 2.25 0 015.25 5.25H7.5" /></svg></button>
                                                                 </div>
                                                                 <pre className="p-3 md:p-4 font-mono text-xs md:text-sm overflow-x-auto text-tera-primary dark:text-tera-neon w-full"><code>{block.code}</code></pre>
+                                                                <LiveCodePreview code={block.code} language={block.language} partial={block.partial} />
                                                             </div>
                                                         )
                                                         return block.type === 'text' ? <div key={idx} className="w-full animate-in fade-in duration-300"><MarkdownRenderer content={block.content} /></div> : null
@@ -1198,36 +1168,22 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                         </div>
                     ))}
                     {isStreaming && streamingText && (
-                        <div className="flex justify-start animate-in fade-in duration-300">
-                            <div className="max-w-[92%] md:max-w-[85%]">
-                                <div className="rounded-[24px] border border-tera-border bg-tera-panel/80 px-4 py-4 text-tera-primary/70 shadow-soft-lg backdrop-blur-xl md:px-6 md:py-5">
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-tera-border bg-[#08101a]">
-                                            <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className="object-contain p-2" priority />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="relative">
-                                                    <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-tera-secondary border-t-transparent" />
+                        <div className="flex justify-start w-full animate-in fade-in duration-300">
+                            <div className="w-full overflow-x-auto overflow-y-hidden rounded-[28px] border border-tera-border bg-tera-panel/90 px-4 py-4 text-tera-primary md:px-6 md:py-5">
+                                <p className="mb-3 text-[0.62rem] uppercase tracking-[0.22em] text-tera-secondary">Writing</p>
+                                <div className="space-y-4 w-full break-words overflow-hidden text-[0.94rem] md:text-[0.98rem]">
+                                    {parseContent(streamingText).map((block, idx) => {
+                                        if (block.type === 'code') return (
+                                            <div key={idx} className="my-4 w-full overflow-hidden rounded-[22px] border border-tera-border bg-[#08101a]/90 shadow-soft-lg">
+                                                <div className="flex items-center justify-between gap-2 border-b border-tera-border bg-black/10 px-3 py-2 md:px-4">
+                                                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wider truncate">{block.language || 'code'}</span>
                                                 </div>
-                                                <span className="text-sm font-medium leading-6 animate-pulse md:text-[0.98rem]">{thinkingMessage}</span>
+                                                <pre className="p-3 md:p-4 font-mono text-xs md:text-sm overflow-x-auto text-tera-primary dark:text-tera-neon w-full"><code>{block.code}</code></pre>
+                                                <LiveCodePreview code={block.code} language={block.language} partial={block.partial} />
                                             </div>
-                                            <p className="mt-1 text-xs text-tera-secondary">{loadingSteps[0]}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 grid gap-2 md:grid-cols-2">
-                                        {loadingSteps.slice(1).map((step, index) => (
-                                            <div
-                                                key={step}
-                                                className="flex items-center gap-2 rounded-[14px] border border-tera-border bg-tera-muted px-3 py-2 text-xs text-tera-secondary"
-                                            >
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-tera-border bg-tera-bg text-[0.62rem] font-semibold text-tera-primary">
-                                                    {String(index + 2).padStart(2, '0')}
-                                                </span>
-                                                <span>{step}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                        )
+                                        return block.type === 'text' ? <div key={idx}><MarkdownRenderer content={block.content} /></div> : null
+                                    })}
                                 </div>
                             </div>
                         </div>

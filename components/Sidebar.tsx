@@ -49,6 +49,7 @@ export const navigation: NavItem[] = [
 
 interface SidebarProps {
   pinned: boolean
+  visible?: boolean
   mobileOpen?: boolean
   onTogglePin: () => void
   onHoverChange?: (hovered: boolean) => void
@@ -203,9 +204,9 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHoverChange, onCloseMobile, onNewChat, user, userReady, onSignOut }: SidebarProps) {
+export default function Sidebar({ pinned, visible = false, mobileOpen = false, onHoverChange, onCloseMobile, onNewChat, user, userReady, onSignOut }: SidebarProps) {
   const pathname = usePathname()
-  const expanded = pinned || mobileOpen
+  const expanded = visible || pinned || mobileOpen
   const { theme } = useTheme()
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -246,33 +247,28 @@ export default function Sidebar({ pinned, mobileOpen = false, onTogglePin, onHov
 
       <aside
         className={[
-          'group fixed inset-y-0 left-0 z-50 flex h-screen flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary transition-[width,transform] duration-150 ease-out',
-          mobileOpen ? 'translate-x-0 w-[286px]' : '-translate-x-full md:translate-x-0',
-          expanded ? 'md:w-[240px]' : 'md:w-[68px] md:hover:w-[240px]',
+          'group fixed inset-y-0 left-0 z-50 flex h-screen w-[240px] flex-col overflow-hidden border-r border-tera-border bg-tera-bg text-tera-primary transition-transform duration-150 ease-out',
+          mobileOpen || visible ? 'translate-x-0' : '-translate-x-full',
+          mobileOpen ? 'w-[286px]' : 'w-[240px]',
         ].join(' ')}
         onMouseEnter={() => {
-          if (!pinned && !mobileOpen) {
-            onHoverChange?.(true)
-          }
+          if (!pinned && !mobileOpen) onHoverChange?.(true)
         }}
         onMouseLeave={() => {
-          if (!pinned && !mobileOpen) {
-            onHoverChange?.(false)
-          }
+          if (!pinned && !mobileOpen) onHoverChange?.(false)
         }}
       >
-        <div className="flex h-full min-h-0 flex-col px-2.5 py-3">
-          <div className="flex shrink-0 items-center justify-center md:justify-start">
-            <button
-              type="button"
-              onClick={onTogglePin}
+        <div className="flex h-full min-h-0 flex-col px-2.5 py-3 pt-16">
+          <div className="flex shrink-0 items-center justify-start">
+            <Link
+              href="/"
               className={`flex h-9 w-9 items-center justify-center rounded-xl border border-tera-border shadow-soft transition-all duration-200 hover:bg-tera-highlight ${theme === 'light' ? 'bg-white' : 'bg-[#0a0a0a]'}`}
-              aria-label={pinned ? 'Collapse sidebar' : 'Expand sidebar'}
+              aria-label="Tera home"
             >
               <div className="relative h-5 w-5">
                 <Image src="/images/TERA_LOGO_ONLY.png" alt="Tera" fill className={`object-contain ${theme === 'light' ? '' : 'invert'}`} priority />
               </div>
-            </button>
+            </Link>
           </div>
 
           <nav className="mt-2 flex shrink-0 flex-col gap-0.5">
