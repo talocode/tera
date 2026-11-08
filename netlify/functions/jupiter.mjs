@@ -78,7 +78,32 @@ export default async (request) => {
     const outputMint = incoming.searchParams.get("outputMint");
     if (chargesTcodeFee(inputMint, outputMint)) upstream.searchParams.set("platformFeeBps", FEE_BPS);
     const response = await fetch(upstream, { headers: { "x-api-key": key } });
-    return new Response(await response.text(), {
+    const text = await response.text();
+    if (!response.ok && /not tradable/i.test(text)) {
+      const orderUrl = new URL("https://api.jup.ag/swap/v2/order");
+      orderUrl.searchParams.set("inputMint", inputMint);
+      orderUrl.searchParams.set("outputMint", outputMint);
+      orderUrl.searchParams.set("amount", incoming.searchParams.get("amount"));
+      orderUrl.searchParams.set("slippageBps", incoming.searchParams.get("slippageBps") || "50");
+      const orderResponse = await fetch(orderUrl, { headers: { "x-api-key": key } });
+      const order = await orderResponse.json().catch(() => ({}));
+      if (!orderResponse.ok || !order.outAmount) {
+        return json({ error: order.error || order.errorMessage || "Jupiter could not quote that pair." }, 400);
+      }
+      return json({
+        inputMint: order.inputMint,
+        outputMint: order.outputMint,
+        inAmount: order.inAmount,
+        outAmount: order.outAmount,
+        otherAmountThreshold: order.otherAmountThreshold,
+        priceImpactPct: String(order.priceImpactPct ?? "0"),
+        slippageBps: order.slippageBps,
+        routePlan: order.routePlan,
+        via: "order",
+        feeBps: 0,
+      });
+    }
+    return new Response(text, {
       status: response.status,
       headers: { "content-type": "application/json" },
     });
@@ -121,6 +146,35 @@ export default async (request) => {
         status: response.status,
         headers: { "content-type": "application/json" },
       });
+    }
+    if (body?.action === "order") {
+      if (!body.inputMint || !body.outputMint || !body.amount || !body.userPublicKey) {
+        return json({ error: "Missing the buy details." }, 400);
+      }
+      const orderUrl = new URL("https://api.jup.ag/swap/v2/order");
+      orderUrl.searchParams.set("inputMint", body.inputMint);
+      orderUrl.searchParams.set("outputMint", body.outputMint);
+      orderUrl.searchParams.set("amount", String(body.amount));
+      orderUrl.searchParams.set("taker", body.userPublicKey);
+      orderUrl.searchParams.set("slippageBps", String(body.slippageBps || 50));
+      const orderResponse = await fetch(orderUrl, { headers: { "x-api-key": key } });
+      const order = await orderResponse.json().catch(() => ({}));
+      if (!orderResponse.ok || !order.transaction) {
+        return json({ error: order.errorMessage || order.error || "Jupiter could not build this buy." }, 400);
+      }
+      return json({ transaction: order.transaction, requestId: order.requestId });
+    }
+    if (body?.action === "order-execute") {
+      const response = await fetch("https://api.jup.ag/swap/v2/execute", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ signedTransaction: body.signedTransaction, requestId: body.requestId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error || result.status === "Failed") {
+        return json({ error: result.error || result.errorMessage || "The buy did not land." }, 400);
+      }
+      return json({ signature: result.signature });
     }
     if (!body?.quoteResponse || typeof body.userPublicKey !== "string") {
       return json({ error: "Missing quote or wallet address." }, 400);

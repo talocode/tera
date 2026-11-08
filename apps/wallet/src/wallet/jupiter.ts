@@ -23,6 +23,8 @@ export type JupiterQuote = {
   priceImpactPct: string;
   slippageBps: number;
   routePlan?: { swapInfo?: { label?: string } }[];
+  via?: "order";
+  feeBps?: number;
 };
 
 function uiToBase(raw: string, decimals: number): bigint | null {
@@ -124,6 +126,39 @@ export async function signAndSendSwap(opts: {
   quote: JupiterQuote;
   prioritizationFeeLamports?: number;
 }): Promise<string> {
+  if (opts.quote.via === "order") {
+    const built = await fetch("/.netlify/functions/jupiter", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "order",
+        inputMint: opts.quote.inputMint,
+        outputMint: opts.quote.outputMint,
+        amount: opts.quote.inAmount,
+        slippageBps: opts.quote.slippageBps,
+        userPublicKey: opts.signer.publicKey.toBase58(),
+      }),
+    });
+    const order = (await built.json()) as { transaction?: string; requestId?: string; error?: string };
+    if (!built.ok || !order.transaction || !order.requestId) {
+      throw new Error(order.error || "Jupiter could not build this buy.");
+    }
+    const raw = Uint8Array.from(atob(order.transaction), (char) => char.charCodeAt(0));
+    const transaction = VersionedTransaction.deserialize(raw);
+    transaction.sign([opts.signer]);
+    const signed = btoa(String.fromCharCode(...transaction.serialize()));
+    const executed = await fetch("/.netlify/functions/jupiter", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "order-execute", signedTransaction: signed, requestId: order.requestId }),
+    });
+    const result = (await executed.json()) as { signature?: string; error?: string };
+    if (!executed.ok || !result.signature) {
+      throw new Error(result.error || "The buy did not land.");
+    }
+    await opts.connection.confirmTransaction(result.signature, "confirmed");
+    return result.signature;
+  }
   const response = await fetch("/.netlify/functions/jupiter", {
     method: "POST",
     headers: { "content-type": "application/json" },

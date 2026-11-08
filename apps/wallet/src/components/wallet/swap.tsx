@@ -245,7 +245,9 @@ export function SwapScreen({ mode = "swap" }: { mode?: "swap" | "buy" }) {
             <p className="mt-2 text-sm text-muted">Route: {routeLabels(quote).join(" → ") || "Jupiter"}</p>
             {priority ? <p className="mt-2 text-sm text-muted">Priority fee cap {priority} lamports.</p> : null}
           </Card>
-          {boughtMint !== SOL_MINT && boughtMint !== TCODE_MINT && boughtMint !== USDC_MINT && boughtMint !== USDT_MINT ? (
+          {quote.via === "order" && (boughtMint === TCODE_MINT || jupMint(input) === TCODE_MINT) ? (
+            <Notice>Official $TCODE trades on a Meteora bonding curve. Jupiter's standard swap rejects that mint, so this buy uses the curve. No 0.20% Tera fee is taken on this route. The tokens still arrive in this wallet.</Notice>
+          ) : boughtMint !== SOL_MINT && boughtMint !== TCODE_MINT && boughtMint !== USDC_MINT && boughtMint !== USDT_MINT ? (
             <Notice tone="danger">Unverified mint. This is not official $TCODE. Trust the mint, not the ticker. No Tera fee is taken on this pair. It does not earn Tera credits.</Notice>
           ) : boughtMint === TCODE_MINT || jupMint(input) === TCODE_MINT ? (
             <Notice>0.20% of this swap is paid in official $TCODE to the Talocode fee account. Credits come from holding $TCODE after it arrives, not from the purchase itself.</Notice>
