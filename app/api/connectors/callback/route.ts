@@ -4,6 +4,9 @@ export async function GET(request: Request) {
   const incoming = new URL(request.url)
   const code = incoming.searchParams.get('code')
   const state = incoming.searchParams.get('state')
+  if (code && state === 'skills') {
+    return NextResponse.redirect(new URL('/connectors?connected=skills', request.url))
+  }
   const cookie = request.headers.get('cookie') || ''
   const raw = cookie.split('; ').find((part) => part.startsWith('tera_mcp='))?.slice('tera_mcp='.length)
   if (!code || !raw) return NextResponse.redirect(new URL('/connectors?error=consent', request.url))
