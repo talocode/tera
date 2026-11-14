@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const code = incoming.searchParams.get('code')
   const state = incoming.searchParams.get('state')
   if (code && state === 'skills') {
-    return NextResponse.redirect(new URL('/connectors?connected=skills', request.url))
+    return NextResponse.redirect('https://tera-ai.netlify.app/connectors?connected=skills')
   }
   const cookie = request.headers.get('cookie') || ''
   const raw = cookie.split('; ').find((part) => part.startsWith('tera_mcp='))?.slice('tera_mcp='.length)
