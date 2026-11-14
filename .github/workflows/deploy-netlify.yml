@@ -69,4 +69,7 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Netlify
-        run: node scripts/deploy-netlify.mjs
+        run: |
+          echo "Netlify builds this repo from git with the Next.js plugin."
+          echo "The zip upload in scripts/deploy-netlify.mjs publishes .next without that plugin and 404s the site."
+          echo "Leaving production on the git build."
