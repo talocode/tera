@@ -1,8 +1,10 @@
 import SkillMarketplace from '@/components/SkillMarketplace'
 import { getSelectedSkill, getSkillsMarketplaceData, filterMarketplaceSkills, paginateSkills } from '@/lib/skills-marketplace'
 
+const cloudConsent = 'https://dashboard.talocode.site/oauth/authorize?redirect_uri=https%3A%2F%2Ftera-ai.netlify.app%2Fapi%2Fconnectors%2Fcallback&state=skills'
+
 const connectors = [
-  { name: 'Talocode Cloud', platform: 'skills', detail: 'Skills call every Talocode product API through the Cloud MCP server after you agree.', href: 'https://dashboard.talocode.site/oauth/authorize?redirect_uri=https://teraai.chat/api/connectors/callback&state=skills' },
+  { name: 'Talocode Cloud', platform: 'skills', detail: 'Skills call every Talocode product API through the Cloud MCP server after you agree.', href: cloudConsent },
   { name: 'X', platform: 'x', detail: 'Connect opens the platform MCP consent screen.', href: '/api/connectors/connect?platform=x' },
   { name: 'xAI', platform: 'xai', detail: 'Connect opens the platform MCP consent screen.', href: '/api/connectors/connect?platform=xai' },
   { name: 'GitHub', platform: 'github', detail: 'Connect opens the platform MCP consent screen.', href: '/api/connectors/connect?platform=github' },
@@ -44,7 +46,7 @@ export default async function ConnectorsPage({ searchParams }: { searchParams: P
         </div>
       ) : (
         <div className="mt-6">
-          <p className="mb-4 text-sm"><a href="https://dashboard.talocode.site/oauth/authorize?redirect_uri=https://teraai.chat/api/connectors/callback&state=skills">Connect Talocode Cloud for skills</a></p>
+          <p className="mb-4 text-sm"><a href={cloudConsent}>Connect Talocode Cloud for skills</a></p>
           <SkillMarketplace query={query} source={source} page={pagination.page} totalPages={pagination.totalPages} totalResults={filteredSkills.length} totalSkills={data.stats.total} selectedSkill={selectedSkill} results={pagination.slice} stats={data.stats} />
         </div>
       )}
