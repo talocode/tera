@@ -414,6 +414,7 @@ export default function PromptShell({
     const showInitialPrompt = !historyLoading && conversations.length === 0
     const [isListening, setIsListening] = useState(false)
     const recognitionRef = useRef<any>(null)
+    const forkContextRef = useRef('')
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId || null)
     const [upgradePromptType, setUpgradePromptType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
     const [limitModalType, setLimitModalType] = useState<'chats' | 'file-uploads' | 'research-mode' | 'credits' | null>(null)
@@ -573,6 +574,21 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
         setChatMode('general')
         setSelectedMode('chat')
         setHistoryLoading(false)
+        if (sessionId && typeof window !== 'undefined') {
+            const rawSeed = window.sessionStorage.getItem(`tera-fork:${sessionId}`)
+            if (rawSeed) {
+                try {
+                    const seed = JSON.parse(rawSeed) as { context?: string; entries?: ConversationEntry[] }
+                    if (seed.context) forkContextRef.current = seed.context
+                    if (seed.entries && seed.entries.length > 0) {
+                        setConversations(seed.entries)
+                        setConversationActive(true)
+                    }
+                } catch {
+                    window.sessionStorage.removeItem(`tera-fork:${sessionId}`)
+                }
+            }
+        }
     }, [initialPrompt, sessionId, tool.name])
 
     useEffect(() => {
@@ -723,6 +739,12 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
         }
 
         const outgoingChatMode = useResearchFlow ? mapSurfaceModeToChatMode(mode) : mode
+        let apiPrompt = messageToSend
+        if (forkContextRef.current) {
+            apiPrompt = `${forkContextRef.current}\n\nContinue from that exchange, but try a different approach.\n\n${messageToSend}`
+            forkContextRef.current = ''
+            if (currentSessionId) window.sessionStorage.removeItem(`tera-fork:${currentSessionId}`)
+        }
         const userMessage: Message = { id: `${entryId}-user`, role: 'user', content: messageToSend, attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined, timestamp: Date.now(), chatMode: outgoingChatMode }
         
         setConversations((prev) => editingMessageId ? prev.map(e => e.id === editingMessageId ? { ...e, userMessage, assistantMessage: undefined } : e) : [...prev, { id: entryId, userMessage }])
@@ -734,7 +756,7 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                 setThinkingMessage(getThinkingMessage(messageToSend, useResearchFlow, attachmentsToSend.some(a => a.type === 'image')))
                 setLoadingHasImages(attachmentsToSend.some(a => a.type === 'image'))
                 const result = await generateAnswer({
-                    prompt: messageToSend,
+                    prompt: apiPrompt,
                     tool: tool.name,
                     authorId: user?.id ?? '',
                     authorEmail: user?.email ?? undefined,
@@ -847,11 +869,61 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
         setThinkingMessage('Tera is Thinking...')
     }
 
+    const clipText = (value: string) => {
+        const clean = value.replace(/\s+/g, ' ').trim()
+        return clean.length > 1200 ? `${clean.slice(0, 1200)}…` : clean
+    }
+
+    const parkSideQuestion = () => {
+        const raw = prompt.trim().replace(/^\/btw\b/i, '').trim()
+        if (!raw) {
+            setAttachmentMessage('Type the side question, then press Side. Or start the message with /btw.')
+            return
+        }
+        const nextId = crypto.randomUUID()
+        setPrompt('')
+        clearPromptDraft(currentSessionId)
+        setConversations((prev) => [...prev, {
+            id: createId(),
+            userMessage: { id: createId(), role: 'user', content: `Side question, parked: ${raw}`, timestamp: Date.now() },
+            assistantMessage: { id: createId(), role: 'tera', content: 'I opened that in a new chat so this one stays on the question you were already working.', timestamp: Date.now() },
+        }])
+        setConversationActive(true)
+        router.push(`/new/${nextId}?prompt=${encodeURIComponent(raw)}&autoSend=1`)
+    }
+
+    const forkChat = () => {
+        const last = [...conversations].reverse().find((entry) => entry.userMessage?.content || entry.assistantMessage?.content)
+        if (!last) {
+            setAttachmentMessage('Nothing to fork yet.')
+            return
+        }
+        const nextId = crypto.randomUUID()
+        const context = [
+            'Earlier exchange:',
+            last.userMessage?.content ? `User: ${clipText(last.userMessage.content)}` : '',
+            last.assistantMessage?.content ? `Tera: ${clipText(last.assistantMessage.content)}` : '',
+        ].filter(Boolean).join('\n')
+        window.sessionStorage.setItem(`tera-fork:${nextId}`, JSON.stringify({ context, entries: [last] }))
+        const extra = prompt.trim().replace(/^\/fork\b/i, '').trim()
+        setPrompt('')
+        clearPromptDraft(currentSessionId)
+        router.push(extra ? `/new/${nextId}?prompt=${encodeURIComponent(extra)}&autoSend=1` : `/new/${nextId}`)
+    }
+
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault()
         if (status === 'loading') return
         const messageToSend = prompt.trim()
         if (!messageToSend && pendingAttachments.length === 0) return
+        if (/^\/btw\b/i.test(messageToSend)) {
+            parkSideQuestion()
+            return
+        }
+        if (/^\/fork\b/i.test(messageToSend)) {
+            forkChat()
+            return
+        }
 
         if (!user) {
             const data: QueuedMessage = { prompt: messageToSend, attachments: [...pendingAttachments], chatMode }
@@ -937,8 +1009,7 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
                     setConversations(loaded)
                     setConversationActive(true)
                 } else {
-                    setConversations([])
-                    setConversationActive(false)
+                    setConversations((prev) => prev.length > 0 ? prev : [])
                 }
             })
             .catch((err) => {
@@ -1228,6 +1299,11 @@ const handleResponseModeSelect = useCallback((mode: ResponseModeKey) => {
             <div className={`sticky bottom-0 z-50 w-full shrink-0 bg-tera-bg/90 px-2 py-2 backdrop-blur-xl transition-all duration-200 md:px-8 md:py-3`}>
                 <div className="relative mx-auto max-w-4xl">
                     <div className={`relative flex flex-col gap-2 rounded-[26px] border border-tera-border bg-tera-panel p-2.5 shadow-soft-lg transition-colors`}>
+                        <div className="flex items-center gap-2 px-2 text-[0.72rem] text-tera-secondary">
+                            <button type="button" onClick={parkSideQuestion} className="rounded-full border border-tera-border px-2.5 py-1">Side</button>
+                            <button type="button" onClick={forkChat} className="rounded-full border border-tera-border px-2.5 py-1">Fork</button>
+                            <span className="truncate">Side parks another question. Fork tries a different approach.</span>
+                        </div>
                         <div className="flex items-end gap-2 rounded-[18px] bg-transparent px-2 py-1.5">
                         <div className="flex items-center gap-1">
                                 <button onClick={() => setAttachmentOpen((current) => !current)} className="composer-action-button" title="Add attachment or switch mode">
